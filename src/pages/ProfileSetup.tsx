@@ -105,26 +105,51 @@ export default function ProfileSetup() {
       return;
     }
     
+    // Validação adicional
+    if (areasInteresse.length === 0) {
+      toast.error('Selecione pelo menos uma área de interesse');
+      return;
+    }
+    
+    // Validar formato do celular (básico) - removido temporariamente
+    // const celularRegex = /^\(\d{2}\) \d{5}-\d{4}$/;
+    // if (!celularRegex.test(celular)) {
+    //   toast.error('Formato de celular inválido. Use: (11) 99999-9999');
+    //   return;
+    // }
+    
     setLoading(true);
 
     try {
-      const { error } = await supabase
+      // Preparar dados para inserção
+      const profileData = {
+        id: user.id,
+        nome: nome.trim(),
+        data_nascimento: dataNascimento ? formatDateToISO(dataNascimento) : null,
+        celular: celular.trim(),
+        curso,
+        semestre,
+        area_interesse: areasInteresse.length > 0 ? areasInteresse[0] : null, // Primeira área como principal
+        areas_interesse: areasInteresse.length > 0 ? areasInteresse : null,
+        profile_completed: true
+      };
+      
+      console.log('Dados do perfil a serem salvos:', profileData);
+      console.log('User ID:', user.id);
+      
+      // Usar upsert para garantir que o perfil seja criado ou atualizado
+      const { data, error } = await supabase
         .from('profiles')
-        .update({
-          nome,
-          data_nascimento: dataNascimento,
-          celular,
-          curso,
-          semestre,
-          areas_interesse: areasInteresse,
-          profile_completed: true
+        .upsert(profileData, {
+          onConflict: 'id'
         })
-        .eq('id', user.id);
+        .select();
 
       if (error) {
-        toast.error('Erro ao salvar perfil');
-        console.error(error);
+        console.error('Erro detalhado:', error);
+        toast.error(`Erro ao salvar perfil: ${error.message}`);
       } else {
+        console.log('Perfil salvo com sucesso:', data);
         toast.success('Perfil criado com sucesso!');
         // Marcar que o perfil foi completado nesta sessão
         setProfileCompleted(true);
@@ -138,8 +163,8 @@ export default function ProfileSetup() {
         }, 1000);
       }
     } catch (error) {
-      toast.error('Erro ao salvar perfil');
-      console.error(error);
+      console.error('Erro ao salvar perfil:', error);
+      toast.error('Erro ao salvar perfil. Tente novamente.');
     }
 
     setLoading(false);
