@@ -102,6 +102,12 @@ export const useAuthState = () => {
       user: null,
       isAuthenticated: false
     });
+    
+    // Redirecionar para a página inicial após o logout
+    // Usar setTimeout para garantir que o estado seja limpo antes do redirecionamento
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
   };
 
   const updateStudentUser = (user: any) => {

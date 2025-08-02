@@ -140,6 +140,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     await supabase.auth.signOut();
     logoutAuthState(); // Limpar estado de autenticação exclusivo
+    
+    // Redirecionar para a página inicial após o logout
+    // Usar setTimeout para garantir que o estado seja limpo antes do redirecionamento
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
   };
 
   const value = {

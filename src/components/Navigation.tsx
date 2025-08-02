@@ -45,6 +45,12 @@ const Navigation: React.FC = () => {
       }
       
       console.log('✅ Logout concluído');
+      
+      // Redirecionar para a página inicial após o logout
+      // Usar setTimeout para garantir que o estado seja limpo antes do redirecionamento
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
     } catch (error) {
       console.error('❌ Erro durante logout:', error);
     } finally {
