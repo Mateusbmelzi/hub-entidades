@@ -185,7 +185,6 @@ const Home = () => {
                 <h3 className="text-2xl font-bold text-white mb-4">Nossa Missão</h3>
                 <p className="text-gray-300">
                   Criar uma ponte entre calouros e as diversas organizações estudantis do Insper, oferecendo uma experiência acessível, centralizada e intuitiva.
-                  <p>a</p>
                 </p>
               </div>
               
