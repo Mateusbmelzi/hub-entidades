@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Users, Calendar, Mail, MapPin, Clock, Star, ExternalLink, Edit, Plus, LogIn, LogOut, Trash2, MoreVertical, FolderOpen, Building2, Target, Sparkles, Award, TrendingUp, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -38,7 +38,14 @@ import type { Evento } from '@/hooks/useEventosEntidade';
 const EntidadeDetalhes = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { entidade, loading, error, refetch: refetchEntidade } = useEntidade(id);
+  const [isUpdating, setIsUpdating] = useState(false);
+  
+  const handleEntidadeUpdate = useCallback(() => {
+    console.log('🔄 Entidade atualizada - resetando estado de loading');
+    setIsUpdating(false);
+  }, []);
+  
+  const { entidade, loading, error, refetch: refetchEntidade } = useEntidade(id, handleEntidadeUpdate);
   const { projetos, loading: projetosLoading, refetch: refetchProjetos } = useProjetos(entidade?.id);
   const { eventos, loading: eventosLoading, refetch: refetchEventos } = useEventosEntidade(entidade?.id);
   const { entidadeId, isAuthenticated, logout } = useEntityAuth();
@@ -238,6 +245,12 @@ const EntidadeDetalhes = () => {
                 
                 <h1 className="text-4xl md:text-5xl font-bold mb-4 leading-tight">
                   {entidade.nome}
+                  {isUpdating && (
+                    <span className="ml-3 inline-flex items-center text-2xl text-red-200">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-2"></div>
+                      Atualizando...
+                    </span>
+                  )}
                 </h1>
                 
                 <p className="text-xl text-red-100 max-w-2xl leading-relaxed mb-6">
@@ -280,7 +293,19 @@ const EntidadeDetalhes = () => {
                         onSuccess={() => {
                           console.log('🔄 onSuccess chamado - fechando dialog e refetching');
                           setShowEditDialog(false);
-                          refetchEntidade();
+                          setIsUpdating(true);
+                          
+                          // Mostrar feedback visual de atualização
+                          toast({
+                            title: "🔄 Atualizando...",
+                            description: "Carregando as informações atualizadas da entidade.",
+                            duration: 2000,
+                          });
+                          
+                          // Refetch com pequeno delay para garantir que o toast seja exibido
+                          setTimeout(async () => {
+                            await refetchEntidade();
+                          }, 100);
                         }} 
                       />
                     </DialogContent>

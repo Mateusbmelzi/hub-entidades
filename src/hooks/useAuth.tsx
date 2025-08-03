@@ -1,4 +1,4 @@
-import React, { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import React, { useState, useEffect, createContext, useContext, ReactNode, useRef, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useActivityLogger } from './useActivityLogger';
@@ -31,12 +31,92 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Cache para perfis de usuário
+const profileCache = new Map<string, {
+  profile: Profile;
+  timestamp: number;
+}>();
+
+const PROFILE_CACHE_TIMEOUT = 10 * 60 * 1000; // 10 minutos
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const { loginAsStudent, logout: logoutAuthState } = useAuthStateContext();
+  
+  // Ref para controlar se o componente ainda está montado
+  const isMountedRef = useRef(true);
+  const profileFetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Função para buscar perfil com cache
+  const fetchUserProfile = useCallback(async (userId: string) => {
+    try {
+      // Verificar cache primeiro
+      const cached = profileCache.get(userId);
+      if (cached && (Date.now() - cached.timestamp) < PROFILE_CACHE_TIMEOUT) {
+        console.log('📦 Usando perfil em cache para usuário:', userId);
+        setProfile(cached.profile);
+        return;
+      }
+
+      console.log('🔄 Buscando perfil do usuário:', userId);
+      
+      // Buscar perfil e role em paralelo
+      const [profileResult, roleResult] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle(),
+        supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', userId)
+          .single()
+          .catch(() => ({ data: { role: 'aluno' } })) // Fallback para aluno
+      ]);
+      
+      if (profileResult.data && roleResult.data) {
+        const userProfile = { 
+          ...profileResult.data, 
+          role: roleResult.data.role 
+        };
+        
+        // Salvar no cache
+        profileCache.set(userId, {
+          profile: userProfile,
+          timestamp: Date.now()
+        });
+        
+        if (isMountedRef.current) {
+          setProfile(userProfile);
+        }
+      } else if (profileResult.data) {
+        const userProfile = { 
+          ...profileResult.data, 
+          role: 'aluno' 
+        };
+        
+        // Salvar no cache
+        profileCache.set(userId, {
+          profile: userProfile,
+          timestamp: Date.now()
+        });
+        
+        if (isMountedRef.current) {
+          setProfile(userProfile);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    } finally {
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     // Set up auth state listener
@@ -49,45 +129,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Notificar o sistema de autenticação exclusivo
           loginAsStudent(session.user);
           
-          // Fetch user profile with retry logic
-          setTimeout(async () => {
-            try {
-              console.log('Buscando perfil do usuário:', session.user.id);
-              
-              // Fetch profile with retry
-              const { data: profileData } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', session.user.id)
-                .maybeSingle();
-              
-              // Get user role with retry
-              let roleData = null;
-              try {
-                console.log('Buscando role do usuário');
-                const { data: roleResult } = await supabase
-                  .from('user_roles')
-                  .select('role')
-                  .eq('user_id', session.user.id)
-                  .single();
-                roleData = roleResult;
-                console.log('Role encontrado:', roleData);
-              } catch (roleError: any) {
-                // Se não conseguir buscar role, assume aluno
-                console.warn('Could not fetch user role, defaulting to aluno:', roleError?.message);
-              }
-              
-              if (profileData && roleData) {
-                setProfile({ ...profileData, role: roleData.role });
-              } else if (profileData) {
-                setProfile({ ...profileData, role: 'aluno' });
-              }
-            } catch (error) {
-              console.error('Error fetching user profile:', error);
-            } finally {
-              setLoading(false);
-            }
-          }, 2000); // Aumentei o delay para dar tempo do Supabase se recuperar
+          // Limpar timeout anterior se existir
+          if (profileFetchTimeoutRef.current) {
+            clearTimeout(profileFetchTimeoutRef.current);
+          }
+          
+          // Buscar perfil com delay reduzido
+          profileFetchTimeoutRef.current = setTimeout(() => {
+            fetchUserProfile(session.user.id);
+          }, 500); // Reduzido de 2000ms para 500ms
         } else {
           setProfile(null);
           setLoading(false);
@@ -99,53 +149,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      if (!session) {
+      
+      if (session?.user) {
+        loginAsStudent(session.user);
+        
+        // Buscar perfil imediatamente se já há sessão
+        fetchUserProfile(session.user.id);
+      } else {
         setLoading(false);
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, [loginAsStudent]);
+    // Cleanup
+    return () => {
+      isMountedRef.current = false;
+      if (profileFetchTimeoutRef.current) {
+        clearTimeout(profileFetchTimeoutRef.current);
+      }
+      subscription.unsubscribe();
+    };
+  }, [loginAsStudent, fetchUserProfile]);
+
+  // Limpar cache periodicamente
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now();
+      for (const [key, value] of profileCache.entries()) {
+        if ((now - value.timestamp) > PROFILE_CACHE_TIMEOUT) {
+          profileCache.delete(key);
+        }
+      }
+    }, PROFILE_CACHE_TIMEOUT);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
     return { error };
   };
 
   const signUp = async (email: string, password: string) => {
-    // Disable email confirmation for signup - we'll handle it manually
-    const { error } = await supabase.auth.signUp({ 
-      email, 
+    const { error } = await supabase.auth.signUp({
+      email,
       password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/profile-setup`,
-        data: {
-          email_confirm: false // Disable automatic email
-        }
-      }
     });
-
-    // Se o signUp foi bem-sucedido, fazer login automaticamente
-    if (!error) {
-      const { error: signInError } = await supabase.auth.signInWithPassword({ 
-        email, 
-        password 
-      });
-      return { error: signInError };
-    }
-
     return { error };
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    logoutAuthState(); // Limpar estado de autenticação exclusivo
+    // Limpar cache ao fazer logout
+    profileCache.clear();
     
-    // Redirecionar para a página inicial após o logout
-    // Usar setTimeout para garantir que o estado seja limpo antes do redirecionamento
-    setTimeout(() => {
-      window.location.reload();
-    }, 100);
+    await supabase.auth.signOut();
+    logoutAuthState();
   };
 
   const value = {
@@ -158,7 +218,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signOut,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {

@@ -50,6 +50,7 @@ export const useAprovarEventos = () => {
         entidade_nome: item.entidades?.nome || 'Entidade não encontrada'
       }));
 
+      console.log('Eventos carregados:', eventosComEntidade);
       setEventos(eventosComEntidade);
     } catch (err: any) {
       console.error('Error fetching eventos:', err);
@@ -71,31 +72,29 @@ export const useAprovarEventos = () => {
         throw new Error('Evento não encontrado');
       }
 
-      // Chamar função RPC para aprovar/rejeitar
-      const { error } = await supabase.rpc('aprovar_evento', {
+      // Debug: logar os parâmetros
+      console.log('Chamando aprovar_evento com:', {
         _evento_id: eventoId,
         _status_aprovacao: status,
         _comentario_aprovacao: comentario
       });
 
+      // Chamar função RPC para aprovar/rejeitar
+      const { data, error } = await supabase.rpc('aprovar_evento', {
+        _evento_id: eventoId,
+        _status_aprovacao: status,
+        _comentario_aprovacao: comentario || null
+      });
+
+      // Debug: logar a resposta
+      console.log('Resposta da função aprovar_evento:', { data, error });
+
       if (error) {
+        console.error('Erro detalhado:', error);
         throw error;
       }
 
-      // Enviar notificação para a entidade
-      const entityEmail = evento.entidades?.email_contato;
-      if (entityEmail) {
-        await notifyEventStatusChange(
-          entityEmail,
-          evento.nome,
-          status,
-          evento.entidade_id,
-          eventoId,
-          comentario
-        );
-      }
-
-      // Atualizar a lista local
+      // Atualizar a lista local imediatamente
       setEventos(prev => 
         prev.map(e => e.id === eventoId ? { 
           ...e, 
@@ -105,7 +104,24 @@ export const useAprovarEventos = () => {
         } : e)
       );
 
-      console.log(`Evento ${status} com sucesso e notificação enviada para ${entityEmail}`);
+      console.log(`Evento ${status} com sucesso!`);
+
+      // Tentar enviar notificação (opcional)
+      try {
+        const entityEmail = evento.entidades?.email_contato;
+        if (entityEmail) {
+          await notifyEventStatusChange(
+            entityEmail,
+            evento.nome,
+            status,
+            evento.entidade_id,
+            eventoId,
+            comentario
+          );
+        }
+      } catch (notificationError) {
+        console.warn('Erro ao enviar notificação (não crítico):', notificationError);
+      }
 
       return { success: true };
     } catch (err: any) {
@@ -135,13 +151,19 @@ export const useAprovarEventos = () => {
     // Usar o sistema de notificações existente
     const { createNotification } = useNotificationSystem();
     
-    return await createNotification(
-      entityEmail,
-      title,
-      message,
-      type,
-      entityId
-    );
+    try {
+      return await createNotification(
+        entityEmail,
+        title,
+        message,
+        type,
+        entityId
+      );
+    } catch (error) {
+      console.error('Erro ao enviar notificação:', error);
+      // Não falhar a operação se a notificação falhar
+      return null;
+    }
   };
 
   useEffect(() => {

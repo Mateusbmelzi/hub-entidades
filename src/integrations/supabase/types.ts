@@ -230,6 +230,10 @@ export type Database = {
           local: string | null
           nome: string
           status: string | null
+          status_aprovacao: string | null
+          comentario_aprovacao: string | null
+          data_aprovacao: string | null
+          aprovador_email: string | null
           updated_at: string
         }
         Insert: {
@@ -242,6 +246,10 @@ export type Database = {
           local?: string | null
           nome: string
           status?: string | null
+          status_aprovacao?: string | null
+          comentario_aprovacao?: string | null
+          data_aprovacao?: string | null
+          aprovador_email?: string | null
           updated_at?: string
         }
         Update: {
@@ -254,6 +262,10 @@ export type Database = {
           local?: string | null
           nome?: string
           status?: string | null
+          status_aprovacao?: string | null
+          comentario_aprovacao?: string | null
+          data_aprovacao?: string | null
+          aprovador_email?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -541,6 +553,17 @@ export type Database = {
         }
         Returns: string
       }
+      create_event_as_entity_pending: {
+        Args: {
+          _entidade_id: number
+          _nome: string
+          _data_evento: string
+          _descricao?: string
+          _local?: string
+          _capacidade?: number
+        }
+        Returns: string
+      }
       create_project_as_entity: {
         Args: {
           _entidade_id: number
@@ -646,6 +669,14 @@ export type Database = {
         Args: {
           _user_id: string
           _area_interesse?: string
+        }
+        Returns: boolean
+      }
+      aprovar_evento: {
+        Args: {
+          _evento_id: string
+          _status_aprovacao: string
+          _comentario_aprovacao?: string
         }
         Returns: boolean
       }

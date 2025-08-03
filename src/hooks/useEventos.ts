@@ -3,31 +3,40 @@ import { supabase } from '@/integrations/supabase/client';
 import { supabaseWithRetry } from '@/lib/supabase-utils';
 import type { Tables } from '@/integrations/supabase/types';
 
-export type Entidade = Tables<'entidades'>;
+export type Evento = Tables<'eventos'> & {
+  entidades?: {
+    id: number;
+    nome: string;
+  };
+};
 
-interface UseEntidadesOptions {
+interface UseEventosOptions {
   pageSize?: number;
   enablePagination?: boolean;
+  statusAprovacao?: 'pendente' | 'aprovado' | 'rejeitado';
+  entidadeId?: number;
   enableCache?: boolean;
   cacheTimeout?: number;
 }
 
-// Cache global para entidades
-const entidadesCache = new Map<string, {
-  data: Entidade[];
+// Cache global para eventos
+const eventosCache = new Map<string, {
+  data: Evento[];
   timestamp: number;
   page: number;
 }>();
 
-export const useEntidades = (options: UseEntidadesOptions = {}) => {
+export const useEventos = (options: UseEventosOptions = {}) => {
   const { 
-    pageSize = 12, 
+    pageSize = 8, 
     enablePagination = true, 
+    statusAprovacao = 'aprovado',
+    entidadeId,
     enableCache = true,
-    cacheTimeout = 5 * 60 * 1000 // 5 minutos
+    cacheTimeout = 3 * 60 * 1000 // 3 minutos (eventos mudam mais frequentemente)
   } = options;
   
-  const [entidades, setEntidades] = useState<Entidade[]>([]);
+  const [eventos, setEventos] = useState<Evento[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
@@ -40,14 +49,14 @@ export const useEntidades = (options: UseEntidadesOptions = {}) => {
 
   // Função para gerar chave do cache
   const getCacheKey = useCallback((page: number) => {
-    return `entidades_page_${page}_size_${pageSize}`;
-  }, [pageSize]);
+    return `eventos_page_${page}_size_${pageSize}_status_${statusAprovacao}_entidade_${entidadeId || 'all'}`;
+  }, [pageSize, statusAprovacao, entidadeId]);
 
   // Função para verificar se o cache é válido
   const isCacheValid = useCallback((cacheKey: string) => {
     if (!enableCache) return false;
     
-    const cached = entidadesCache.get(cacheKey);
+    const cached = eventosCache.get(cacheKey);
     if (!cached) return false;
     
     const now = Date.now();
@@ -57,14 +66,14 @@ export const useEntidades = (options: UseEntidadesOptions = {}) => {
   // Função para limpar cache antigo
   const cleanupCache = useCallback(() => {
     const now = Date.now();
-    for (const [key, value] of entidadesCache.entries()) {
+    for (const [key, value] of eventosCache.entries()) {
       if ((now - value.timestamp) > cacheTimeout) {
-        entidadesCache.delete(key);
+        eventosCache.delete(key);
       }
     }
   }, [cacheTimeout]);
 
-  const fetchEntidades = useCallback(async (page = 0, append = false) => {
+  const fetchEventos = useCallback(async (page = 0, append = false) => {
     // Cancelar requisição anterior se existir
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -92,13 +101,13 @@ export const useEntidades = (options: UseEntidadesOptions = {}) => {
       
       // Verificar cache primeiro
       if (isCacheValid(cacheKey)) {
-        const cached = entidadesCache.get(cacheKey);
+        const cached = eventosCache.get(cacheKey);
         if (cached) {
-          console.log(`📦 Usando cache para página ${page}`);
+          console.log(`📦 Usando cache para eventos página ${page}`);
           if (append) {
-            setEntidades(prev => [...prev, ...cached.data]);
+            setEventos(prev => [...prev, ...cached.data]);
           } else {
-            setEntidades(cached.data);
+            setEventos(cached.data);
           }
           setHasMore(cached.data.length === pageSize);
           setCurrentPage(page);
@@ -106,18 +115,27 @@ export const useEntidades = (options: UseEntidadesOptions = {}) => {
         }
       }
       
-      console.log(`🔄 Buscando entidades página ${page}...`);
+      console.log(`🔄 Buscando eventos página ${page}...`);
       
       const from = page * pageSize;
       const to = from + pageSize - 1;
       
-      const query = supabase
-        .from('entidades')
-        .select('*')
-        .order('nome')
+      let query = supabase
+        .from('eventos')
+        .select(`
+          *,
+          entidades(id, nome)
+        `)
+        .eq('status_aprovacao', statusAprovacao)
+        .order('data_evento', { ascending: true })
         .range(from, to);
       
-      const { data, error } = await supabaseWithRetry<Entidade[]>(
+      // Filtrar por entidade se especificado
+      if (entidadeId) {
+        query = query.eq('entidade_id', entidadeId);
+      }
+      
+      const { data, error } = await supabaseWithRetry<Evento[]>(
         () => query,
         { maxRetries: 2, delay: 500 }
       );
@@ -129,11 +147,11 @@ export const useEntidades = (options: UseEntidadesOptions = {}) => {
 
       if (error) throw error;
 
-      console.log(`📥 Entidades recebidas página ${page}:`, data?.length || 0);
+      console.log(`📥 Eventos recebidos página ${page}:`, data?.length || 0);
       
       // Salvar no cache
       if (enableCache && data) {
-        entidadesCache.set(cacheKey, {
+        eventosCache.set(cacheKey, {
           data: data,
           timestamp: Date.now(),
           page: page
@@ -141,9 +159,9 @@ export const useEntidades = (options: UseEntidadesOptions = {}) => {
       }
       
       if (append) {
-        setEntidades(prev => [...prev, ...(data || [])]);
+        setEventos(prev => [...prev, ...(data || [])]);
       } else {
-        setEntidades(data || []);
+        setEventos(data || []);
       }
       
       // Verificar se há mais dados
@@ -156,18 +174,18 @@ export const useEntidades = (options: UseEntidadesOptions = {}) => {
         return;
       }
       
-      console.error('❌ Erro ao carregar entidades:', err);
-      setError(err instanceof Error ? err.message : 'Erro ao carregar entidades');
+      console.error('❌ Erro ao carregar eventos:', err);
+      setError(err instanceof Error ? err.message : 'Erro ao carregar eventos');
     } finally {
       setLoading(false);
       setIsLoadingMore(false);
     }
-  }, [pageSize, enableCache, getCacheKey, isCacheValid]);
+  }, [pageSize, statusAprovacao, entidadeId, enableCache, getCacheKey, isCacheValid]);
 
   const loadMore = useCallback(() => {
     if (!enablePagination || isLoadingMore || !hasMore) return;
-    fetchEntidades(currentPage + 1, true);
-  }, [enablePagination, isLoadingMore, hasMore, currentPage, fetchEntidades]);
+    fetchEventos(currentPage + 1, true);
+  }, [enablePagination, isLoadingMore, hasMore, currentPage, fetchEventos]);
 
   const refresh = useCallback(() => {
     // Limpar cache ao fazer refresh
@@ -176,8 +194,8 @@ export const useEntidades = (options: UseEntidadesOptions = {}) => {
     }
     setCurrentPage(0);
     setHasMore(true);
-    fetchEntidades(0, false);
-  }, [fetchEntidades, enableCache, cleanupCache]);
+    fetchEventos(0, false);
+  }, [fetchEventos, enableCache, cleanupCache]);
 
   // Limpar cache periodicamente
   useEffect(() => {
@@ -188,7 +206,7 @@ export const useEntidades = (options: UseEntidadesOptions = {}) => {
   }, [enableCache, cleanupCache, cacheTimeout]);
 
   useEffect(() => {
-    fetchEntidades(0, false);
+    fetchEventos(0, false);
     
     // Cleanup ao desmontar
     return () => {
@@ -196,10 +214,10 @@ export const useEntidades = (options: UseEntidadesOptions = {}) => {
         abortControllerRef.current.abort();
       }
     };
-  }, [fetchEntidades]);
+  }, [fetchEventos]);
 
   return { 
-    entidades, 
+    eventos, 
     loading, 
     error, 
     hasMore,
@@ -208,4 +226,4 @@ export const useEntidades = (options: UseEntidadesOptions = {}) => {
     refresh,
     currentPage
   };
-};
+}; 

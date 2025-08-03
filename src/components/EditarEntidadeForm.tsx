@@ -82,13 +82,17 @@ export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade
 
       if (success) {
         toast({
-          title: 'Sucesso!',
-          description: 'Informações da entidade atualizadas com sucesso.',
+          title: '✅ Sucesso!',
+          description: 'Informações da entidade atualizadas com sucesso. A página será atualizada automaticamente.',
         });
-        onSuccess();
+        
+        // Pequeno delay para mostrar o feedback antes de fechar
+        setTimeout(() => {
+          onSuccess();
+        }, 500);
       } else {
         toast({
-          title: 'Erro!',
+          title: '❌ Erro!',
           description: 'Erro ao atualizar informações da entidade.',
           variant: 'destructive',
         });
@@ -96,7 +100,7 @@ export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade
     } catch (error) {
       console.error('Erro ao atualizar entidade:', error);
       toast({
-        title: 'Erro!',
+        title: '❌ Erro!',
         description: 'Erro ao atualizar informações da entidade.',
         variant: 'destructive',
       });

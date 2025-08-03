@@ -5,21 +5,23 @@ import type { Tables } from '@/integrations/supabase/types';
 
 export type Entidade = Tables<'entidades'>;
 
-export const useEntidade = (id: string | undefined) => {
+export const useEntidade = (id: string | undefined, onUpdate?: () => void) => {
   const [entidade, setEntidade] = useState<Entidade | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastFetchedId, setLastFetchedId] = useState<string>('');
+  const [lastFetchTime, setLastFetchTime] = useState<number>(0);
 
-  const fetchEntidade = useCallback(async () => {
+  const fetchEntidade = useCallback(async (forceRefresh = false) => {
     if (!id) {
       setError('ID da entidade não fornecido');
       setLoading(false);
       return;
     }
 
-    // Evitar fetch duplicado para o mesmo ID
-    if (lastFetchedId === id && entidade) {
+    // Evitar fetch duplicado para o mesmo ID, a menos que seja forçado
+    const now = Date.now();
+    if (!forceRefresh && lastFetchedId === id && entidade && (now - lastFetchTime) < 5000) {
       setLoading(false);
       return;
     }
@@ -34,14 +36,17 @@ export const useEntidade = (id: string | undefined) => {
     try {
       setLoading(true);
       setError(null);
-      console.log('🔄 Buscando dados da entidade ID:', entidadeId);
+      console.log('🔄 Buscando dados da entidade ID:', entidadeId, forceRefresh ? '(forçado)' : '');
       
       const { data, error } = await supabaseWithRetry<Entidade>(
-        () => supabase
-          .from('entidades')
-          .select('*')
-          .eq('id', entidadeId)
-          .maybeSingle(),
+        async () => {
+          const result = await supabase
+            .from('entidades')
+            .select('*')
+            .eq('id', entidadeId)
+            .maybeSingle();
+          return result;
+        },
         { maxRetries: 3, delay: 1000 }
       );
 
@@ -52,19 +57,31 @@ export const useEntidade = (id: string | undefined) => {
       console.log('📥 Dados da entidade recebidos:', data);
       setEntidade(data);
       setLastFetchedId(id);
+      setLastFetchTime(now);
+      
+      // Notificar sobre a atualização se for um refresh forçado
+      if (forceRefresh && onUpdate) {
+        onUpdate();
+      }
     } catch (err) {
       console.error('❌ Erro ao carregar entidade:', err);
       setError(err instanceof Error ? err.message : 'Erro ao carregar entidade');
     } finally {
       setLoading(false);
     }
-  }, [id, lastFetchedId, entidade]);
+  }, [id, lastFetchedId, entidade, lastFetchTime, onUpdate]);
 
   useEffect(() => {
     fetchEntidade();
   }, [fetchEntidade]);
 
-  return { entidade, loading, error, refetch: fetchEntidade };
+  // Função para forçar refresh dos dados
+  const refetch = useCallback(() => {
+    console.log('🔄 Refetch forçado solicitado');
+    fetchEntidade(true);
+  }, [fetchEntidade]);
+
+  return { entidade, loading, error, refetch };
 };
 
 // Hook para buscar áreas de interesse de uma entidade

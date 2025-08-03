@@ -8,22 +8,38 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useEntidades } from '@/hooks/useEntidades';
+import { useDebounce } from '@/hooks/useDebounce';
 import { AreaAtuacaoDisplay } from '@/components/ui/area-atuacao-display';
 import { AREAS_ATUACAO, getFirstAreaColor, getAreaColor } from '@/lib/constants';
 import { FotoPerfilEntidade } from '@/components/FotoPerfilEntidade';
 
 const Entidades = () => {
   const navigate = useNavigate();
-  const { entidades, loading, error } = useEntidades();
+  const { 
+    entidades, 
+    loading, 
+    error, 
+    hasMore, 
+    isLoadingMore, 
+    loadMore 
+  } = useEntidades({ 
+    pageSize: 12, 
+    enablePagination: true,
+    enableCache: true,
+    cacheTimeout: 5 * 60 * 1000
+  });
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [showFiltersPopover, setShowFiltersPopover] = useState(false);
   const [showSortPopover, setShowSortPopover] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(6);
   const [sortBy, setSortBy] = useState<'nome' | 'ano_criacao'>('nome');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
-  // Calcular estatísticas das áreas de atuação
+  // Debounce para a pesquisa
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+  // Calcular estatísticas das áreas de atuação (memoizado)
   const areaStats = useMemo(() => {
     const stats: Record<string, number> = {};
     AREAS_ATUACAO.forEach(area => {
@@ -37,18 +53,50 @@ const Entidades = () => {
     return stats;
   }, [entidades]);
 
-  const filters = [
+  // Filtros memoizados
+  const filters = useMemo(() => [
     { id: 'todas', label: 'Todas as Áreas', count: 0 },
     ...AREAS_ATUACAO.map(area => ({
       id: area,
       label: area,
       count: areaStats[area] || 0
     }))
-  ];
+  ], [areaStats]);
+
+  // Entidades filtradas e ordenadas (memoizado)
+  const filteredEntities = useMemo(() => {
+    return entidades.filter(entity => {
+      const area = Array.isArray(entity.area_atuacao) 
+        ? entity.area_atuacao[0] 
+        : entity.area_atuacao;
+      
+      const matchesSearch = 
+        (entity.nome?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) ||
+        (entity.descricao_curta?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) ||
+        (area?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()));
+      
+      const matchesFilter = selectedFilters.length === 0 || 
+                           (area && selectedFilters.includes(area));
+      
+      return matchesSearch && matchesFilter;
+    }).sort((a, b) => {
+      if (sortBy === 'nome') {
+        const aName = a.nome?.toLowerCase() || '';
+        const bName = b.nome?.toLowerCase() || '';
+        return sortOrder === 'asc' 
+          ? aName.localeCompare(bName)
+          : bName.localeCompare(aName);
+      } else {
+        const aYear = a.ano_criacao || 0;
+        const bYear = b.ano_criacao || 0;
+        return sortOrder === 'asc' ? aYear - bYear : bYear - aYear;
+      }
+    });
+  }, [entidades, debouncedSearchTerm, selectedFilters, sortBy, sortOrder]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-insper-light-gray to-white flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-4 border-insper-red/20 border-t-insper-red mx-auto mb-6"></div>
           <p className="text-insper-dark-gray text-lg">Carregando entidades...</p>
@@ -60,7 +108,7 @@ const Entidades = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-insper-light-gray to-white flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center">
         <div className="text-center max-w-md mx-auto px-4">
           <div className="w-20 h-20 bg-insper-red/10 rounded-full flex items-center justify-center mx-auto mb-6">
             <X className="w-10 h-10 text-insper-red" />
@@ -75,53 +123,27 @@ const Entidades = () => {
     );
   }
 
-  const filteredEntities = entidades.filter(entity => {
-    const area = Array.isArray(entity.area_atuacao) 
-      ? entity.area_atuacao[0] 
-      : entity.area_atuacao;
-    
-    const matchesSearch = 
-      (entity.nome?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (entity.descricao_curta?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (area?.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    const matchesFilter = selectedFilters.length === 0 || 
-                         (area && selectedFilters.includes(area));
-    
-    return matchesSearch && matchesFilter;
-  }).sort((a, b) => {
-    if (sortBy === 'nome') {
-      const nomeA = (a.nome || '').toLowerCase();
-      const nomeB = (b.nome || '').toLowerCase();
-      return sortOrder === 'asc' 
-        ? nomeA.localeCompare(nomeB)
-        : nomeB.localeCompare(nomeA);
-    } else {
-      // Ordenar por ano de criação
-      const anoA = a.ano_criacao || new Date(a.created_at).getFullYear();
-      const anoB = b.ano_criacao || new Date(b.created_at).getFullYear();
-      return sortOrder === 'asc' ? anoA - anoB : anoB - anoA;
-    }
-  });
-
   const toggleFilter = (filterId: string) => {
-    setSelectedFilters(prev => 
-      prev.includes(filterId)
-        ? prev.filter(id => id !== filterId)
-        : [...prev, filterId]
-    );
+    if (filterId === 'todas') {
+      setSelectedFilters([]);
+    } else {
+      setSelectedFilters(prev => 
+        prev.includes(filterId) 
+          ? prev.filter(f => f !== filterId)
+          : [...prev, filterId]
+      );
+    }
   };
 
   const clearAllFilters = () => {
     setSelectedFilters([]);
+    setSearchTerm('');
   };
 
   const handleSort = (field: 'nome' | 'ano_criacao') => {
     if (sortBy === field) {
-      // Se clicar no mesmo campo, inverte a ordem
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
-      // Se clicar em um campo diferente, define como ascendente
       setSortBy(field);
       setSortOrder('asc');
     }
@@ -356,14 +378,19 @@ const Entidades = () => {
         <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Target className="w-5 h-5 text-insper-red" />
-<p className="text-insper-dark-gray font-medium">
-            {filteredEntities.length} entidade{filteredEntities.length !== 1 ? 's' : ''} encontrada{filteredEntities.length !== 1 ? 's' : ''}
-          </p>
+            <p className="text-insper-dark-gray font-medium">
+              {filteredEntities.length} entidade{filteredEntities.length !== 1 ? 's' : ''} encontrada{filteredEntities.length !== 1 ? 's' : ''}
+              {debouncedSearchTerm && (
+                <span className="text-insper-dark-gray/60">
+                  {' '}para "{debouncedSearchTerm}"
+                </span>
+              )}
+            </p>
           </div>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredEntities.slice(0, visibleCount).map((entity, index) => {
+          {filteredEntities.map((entity, index) => {
             const entityArea = Array.isArray(entity.area_atuacao) 
               ? entity.area_atuacao[0] 
               : entity.area_atuacao;
@@ -382,28 +409,28 @@ const Entidades = () => {
                         navigate(`/entidades/${entity.id}`);
                       }}
                     >
-                                          <CardHeader className="pb-4 flex-shrink-0">
-                      <div className="flex items-center space-x-4">
-                        <div className="group-hover:scale-110 transition-transform duration-300">
-                          <FotoPerfilEntidade
-                            fotoUrl={entity.foto_perfil_url}
-                            nome={entity.nome}
-                            size="lg"
-                            className="shadow-lg"
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <CardTitle className="text-xl group-hover:text-insper-red transition-colors duration-300 font-bold">
-                            {entity.nome || 'Nome não informado'}
-                          </CardTitle>
-                          <div className="flex items-center text-sm text-insper-dark-gray/60 mt-2">
-                            <Users size={16} className="mr-2" />
-                            <span className="font-medium">{entity.numero_membros || 0}</span>
-                            <span className="ml-1">membros</span>
+                      <CardHeader className="pb-4 flex-shrink-0">
+                        <div className="flex items-center space-x-4">
+                          <div className="group-hover:scale-110 transition-transform duration-300">
+                            <FotoPerfilEntidade
+                              fotoUrl={entity.foto_perfil_url}
+                              nome={entity.nome}
+                              size="lg"
+                              className="shadow-lg"
+                            />
                           </div>
-                          <div className="flex items-center text-sm text-insper-dark-gray/60 mt-1">
-                            <Calendar size={16} className="mr-2" />
-                            <span>Criada em {entity.ano_criacao || new Date(entity.created_at).getFullYear()}</span>
+                          <div className="flex-1">
+                            <CardTitle className="text-xl group-hover:text-insper-red transition-colors duration-300 font-bold">
+                              {entity.nome || 'Nome não informado'}
+                            </CardTitle>
+                            <div className="flex items-center text-sm text-insper-dark-gray/60 mt-2">
+                              <Users size={16} className="mr-2" />
+                              <span className="font-medium">{entity.numero_membros || 0}</span>
+                              <span className="ml-1">membros</span>
+                            </div>
+                            <div className="flex items-center text-sm text-insper-dark-gray/60 mt-1">
+                              <Calendar size={16} className="mr-2" />
+                              <span>Criada em {entity.ano_criacao || new Date(entity.created_at).getFullYear()}</span>
                             </div>
                           </div>
                         </div>
@@ -431,24 +458,24 @@ const Entidades = () => {
                             <div className="bg-gradient-to-r from-insper-red/5 to-insper-yellow/5 border border-insper-red/20 rounded-xl p-4">
                               <div className="flex items-center gap-2 mb-2">
                                 <Presentation className="w-4 h-4 text-insper-red" />
-<span className="text-sm font-semibold text-insper-red">Informações da Feira</span>
+                                <span className="text-sm font-semibold text-insper-red">Informações da Feira</span>
                               </div>
                               <div className="space-y-2 text-sm">
                                 {entity.local_feira && (
                                   <div className="flex items-center gap-2 text-insper-red">
-<MapPin size={14} className="text-insper-red flex-shrink-0" />
+                                    <MapPin size={14} className="text-insper-red flex-shrink-0" />
                                     <span className="font-medium">Estande {entity.local_feira}</span>
                                   </div>
                                 )}
                                 {entity.local_apresentacao && (
                                   <div className="flex items-center gap-2 text-insper-red">
-<Presentation size={14} className="text-insper-red flex-shrink-0" />
+                                    <Presentation size={14} className="text-insper-red flex-shrink-0" />
                                     <span>{entity.local_apresentacao}</span>
                                   </div>
                                 )}
                                 {entity.horario_apresentacao && (
                                   <div className="flex items-center gap-2 text-insper-red">
-<Clock size={14} className="text-insper-red flex-shrink-0" />
+                                    <Clock size={14} className="text-insper-red flex-shrink-0" />
                                     <span>{entity.horario_apresentacao}</span>
                                   </div>
                                 )}
@@ -505,16 +532,26 @@ const Entidades = () => {
         </div>
 
         {/* Botão carregar mais */}
-        {visibleCount < filteredEntities.length && (
+        {hasMore && (
           <div className="text-center mt-12">
             <Button 
               variant="outline" 
               size="lg"
-              onClick={() => setVisibleCount(prev => prev + 6)}
+              onClick={loadMore}
+              disabled={isLoadingMore}
               className="border-insper-red/30 text-insper-red hover:bg-insper-red/5 hover:border-insper-red/50 px-8 py-3"
             >
-              Carregar mais entidades
-              <ArrowRight size={18} className="ml-2" />
+              {isLoadingMore ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-insper-red border-t-transparent mr-2"></div>
+                  Carregando...
+                </>
+              ) : (
+                <>
+                  Carregar mais entidades
+                  <ArrowRight size={18} className="ml-2" />
+                </>
+              )}
             </Button>
           </div>
         )}
@@ -522,7 +559,7 @@ const Entidades = () => {
         {filteredEntities.length === 0 && (
           <div className="text-center py-20">
             <div className="w-32 h-32 bg-gradient-to-br from-insper-red/10 to-insper-red/20 rounded-full flex items-center justify-center mx-auto mb-8">
-<Search size={48} className="text-insper-red" />
+              <Search size={48} className="text-insper-red" />
             </div>
             <h3 className="text-2xl font-bold text-insper-black mb-4">
               Nenhuma entidade encontrada

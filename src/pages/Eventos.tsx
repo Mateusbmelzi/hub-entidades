@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Search, Filter, Calendar, MapPin, Users, ArrowRight, Clock, X, Sparkles, Target, TrendingUp, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAuth } from '@/hooks/useAuth';
+import { useEventos } from '@/hooks/useEventos';
 import InscricaoEventoForm from '@/components/InscricaoEventoForm';
 
 const Eventos = () => {
@@ -25,7 +25,6 @@ const Eventos = () => {
   const [showFiltersPopover, setShowFiltersPopover] = useState(false);
   const [showInscricaoDialog, setShowInscricaoDialog] = useState(false);
   const [selectedEvento, setSelectedEvento] = useState<any>(null);
-  const [displayedEventsCount, setDisplayedEventsCount] = useState(6);
   const { user } = useAuth();
 
   // Effect para detectar filtro de entidade na URL
@@ -34,146 +33,116 @@ const Eventos = () => {
     setFilteredByEntity(entidadeId);
   }, [searchParams]);
 
-  // Effect para resetar paginação quando o termo de busca muda
+  // Usar o novo hook otimizado para eventos
+  const { 
+    eventos, 
+    loading, 
+    error, 
+    hasMore, 
+    isLoadingMore, 
+    loadMore 
+  } = useEventos({ 
+    pageSize: 8, 
+    enablePagination: true,
+    statusAprovacao: 'aprovado',
+    entidadeId: filteredByEntity ? parseInt(filteredByEntity) : undefined
+  });
+
+  // Buscar todas as entidades para o filtro (otimizado)
+  const [entidades, setEntidades] = useState<any[]>([]);
+  const [loadingEntidades, setLoadingEntidades] = useState(false);
+
   useEffect(() => {
-    resetPagination();
-  }, [searchTerm]);
+    const fetchEntidades = async () => {
+      try {
+        setLoadingEntidades(true);
+        const { data, error } = await supabase
+          .from('entidades')
+          .select('id, nome')
+          .order('nome')
+          .limit(50); // Limitar para não sobrecarregar
+        
+        if (error) throw error;
+        setEntidades(data || []);
+      } catch (err) {
+        console.error('Erro ao carregar entidades:', err);
+      } finally {
+        setLoadingEntidades(false);
+      }
+    };
 
-  const { data: eventos = [], isLoading } = useQuery({
-    queryKey: ['eventos'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('eventos')
-        .select(`
-          *,
-          entidades(id, nome)
-        `)
-        .eq('status_aprovacao', 'aprovado') // Apenas eventos aprovados
-        .order('data_evento', { ascending: true });
-      
-      if (error) throw error;
-      return data;
-    }
-  });
-
-  // Buscar todas as entidades para o filtro
-  const { data: entidades = [] } = useQuery({
-    queryKey: ['entidades'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('entidades')
-        .select('id, nome')
-        .order('nome');
-      
-      if (error) throw error;
-      return data;
-    }
-  });
+    fetchEntidades();
+  }, []);
 
   // Buscar informações da entidade filtrada
-  const { data: entidadeFiltrada } = useQuery({
-    queryKey: ['entidade', filteredByEntity],
-    queryFn: async () => {
-      if (!filteredByEntity) return null;
-      const { data, error } = await supabase
-        .from('entidades')
-        .select('nome')
-        .eq('id', parseInt(filteredByEntity))
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!filteredByEntity
-  });
+  const [entidadeFiltrada, setEntidadeFiltrada] = useState<any>(null);
 
-  // Buscar participantes de todos os eventos para verificar inscrições
-  const { data: participantes = [], refetch: refetchParticipantes } = useQuery({
-    queryKey: ['participantes-eventos'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('participantes_evento')
-        .select('evento_id, email');
-      
-      if (error) throw error;
-      return data;
-    }
-  });
+  useEffect(() => {
+    const fetchEntidadeFiltrada = async () => {
+      if (!filteredByEntity) {
+        setEntidadeFiltrada(null);
+        return;
+      }
 
-  const filters = [
-    { id: 'todos', label: 'Todos os futuros' },
-    { id: 'proximos', label: 'Próximos' },
-    { id: 'finalizados', label: 'Finalizados' },
-    { id: 'passados', label: 'Mostrar eventos passados' },
-  ];
+      try {
+        const { data, error } = await supabase
+          .from('entidades')
+          .select('nome')
+          .eq('id', parseInt(filteredByEntity))
+          .single();
+        
+        if (error) throw error;
+        setEntidadeFiltrada(data);
+      } catch (err) {
+        console.error('Erro ao carregar entidade filtrada:', err);
+        setEntidadeFiltrada(null);
+      }
+    };
 
-  const entityFilters = entidades.map(entidade => ({
-    id: entidade.id.toString(),
-    label: entidade.nome
-  }));
+    fetchEntidadeFiltrada();
+  }, [filteredByEntity]);
 
-  const filteredEventos = eventos.filter(evento => {
-    const matchesSearch = evento.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         evento.descricao?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         evento.entidades?.nome?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const now = new Date();
-    const eventDate = new Date(evento.data_evento);
-    const isPastEvent = eventDate < now;
-    
-    let matchesFilter = true;
-    if (!selectedFilters.includes('todos')) {
-      matchesFilter = selectedFilters.some(filter => {
-        if (filter === 'proximos') return eventDate > now;
-        if (filter === 'finalizados') return eventDate < now || evento.status === 'finalizado';
-        if (filter === 'passados') return isPastEvent;
-        return false;
-      });
-    } else {
-      // Por padrão, mostrar apenas eventos futuros
-      matchesFilter = !isPastEvent;
-    }
-    
-    // Filtrar por entidade URL param ou filtros selecionados
-    let matchesEntity = true;
-    if (filteredByEntity) {
-      matchesEntity = evento.entidades?.id?.toString() === filteredByEntity;
-    } else if (selectedEntityFilters.length > 0) {
-      matchesEntity = selectedEntityFilters.includes(evento.entidades?.id?.toString() || '');
-    }
-    
-    return matchesSearch && matchesFilter && matchesEntity;
-  }).sort((a, b) => {
-    // Ordenar por data/hora, do mais antigo para o mais recente
-    return new Date(a.data_evento).getTime() - new Date(b.data_evento).getTime();
-  });
+  // Buscar participantes de todos os eventos para verificar inscrições (otimizado)
+  const [participantes, setParticipantes] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchParticipantes = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('participantes_evento')
+          .select('evento_id, email')
+          .limit(1000); // Limitar para não sobrecarregar
+        
+        if (error) throw error;
+        setParticipantes(data || []);
+      } catch (err) {
+        console.error('Erro ao carregar participantes:', err);
+      }
+    };
+
+    fetchParticipantes();
+  }, []);
 
   const clearEntityFilter = () => {
-    setFilteredByEntity(null);
-    const newSearchParams = new URLSearchParams(searchParams);
-    newSearchParams.delete('entidade');
-    setSearchParams(newSearchParams);
-    resetPagination();
+    setSearchParams(prev => {
+      const newParams = new URLSearchParams(prev);
+      newParams.delete('entidade');
+      return newParams;
+    });
   };
 
   const toggleStatusFilter = (filterId: string) => {
     if (filterId === 'todos') {
       setSelectedFilters(['todos']);
-    } else if (filterId === 'passados') {
-      // Se "Mostrar eventos passados" está selecionado, remover "todos" e adicionar "passados"
-      const newFilters = selectedFilters.includes(filterId)
-        ? selectedFilters.filter(f => f !== filterId)
-        : [...selectedFilters.filter(f => f !== 'todos'), filterId];
-      
-      setSelectedFilters(newFilters.length === 0 ? ['todos'] : newFilters);
     } else {
-      const newFilters = selectedFilters.includes(filterId)
-        ? selectedFilters.filter(f => f !== filterId)
-        : [...selectedFilters.filter(f => f !== 'todos'), filterId];
-      
-      setSelectedFilters(newFilters.length === 0 ? ['todos'] : newFilters);
+      setSelectedFilters(prev => 
+        prev.includes('todos') 
+          ? [filterId]
+          : prev.includes(filterId)
+            ? prev.filter(f => f !== filterId)
+            : [...prev, filterId]
+      );
     }
-    resetPagination();
   };
 
   const toggleEntityFilter = (entityId: string) => {
@@ -182,36 +151,30 @@ const Eventos = () => {
         ? prev.filter(id => id !== entityId)
         : [...prev, entityId]
     );
-    resetPagination();
   };
 
   const clearAllFilters = () => {
     setSelectedFilters(['todos']);
     setSelectedEntityFilters([]);
-    resetPagination();
+    setSearchTerm('');
   };
 
   const getActiveFiltersCount = () => {
-    const statusCount = selectedFilters.includes('todos') ? 0 : selectedFilters.length;
-    const entityCount = selectedEntityFilters.length;
-    return statusCount + entityCount;
+    return (selectedFilters.length > 0 && !selectedFilters.includes('todos') ? selectedFilters.length : 0) + 
+           selectedEntityFilters.length;
   };
 
-  const handleLoadMore = () => {
-    setDisplayedEventsCount(prev => prev + 6);
-  };
-
-  const resetPagination = () => {
-    setDisplayedEventsCount(6);
-  };
-
-  // Funções auxiliares para verificar o status do evento e inscrição do usuário
   const getEventoStatus = (evento: any) => {
-    const usuarioInscrito = user && participantes.find(p => p.evento_id === evento.id && p.email === user.email);
-    const eventoAtivo = evento.status === 'ativo' && new Date(evento.data_evento) > new Date();
-    const eventoLotado = evento.capacidade && participantes.filter(p => p.evento_id === evento.id).length >= evento.capacidade;
+    const now = new Date();
+    const eventoDate = new Date(evento.data_evento);
     
-    return { usuarioInscrito, eventoAtivo, eventoLotado };
+    if (eventoDate < now) {
+      return 'finalizado';
+    } else if (eventoDate.getTime() - now.getTime() < 24 * 60 * 60 * 1000) {
+      return 'proximo';
+    } else {
+      return 'futuro';
+    }
   };
 
   const handleInscricao = (evento: any) => {
@@ -220,34 +183,80 @@ const Eventos = () => {
   };
 
   const getStatusColor = (status: string, dataEvento: string) => {
-    const now = new Date();
-    const eventDate = new Date(dataEvento);
+    const eventoStatus = getEventoStatus({ data_evento: dataEvento });
     
-    if (status === 'cancelado') return 'destructive';
-    if (status === 'finalizado' || eventDate < now) return 'secondary';
-    return 'success';
+    switch (eventoStatus) {
+      case 'finalizado':
+        return 'bg-gray-100 text-gray-600';
+      case 'proximo':
+        return 'bg-orange-100 text-orange-700';
+      default:
+        return 'bg-green-100 text-green-700';
+    }
   };
 
   const getStatusLabel = (status: string, dataEvento: string) => {
-    const now = new Date();
-    const eventDate = new Date(dataEvento);
+    const eventoStatus = getEventoStatus({ data_evento: dataEvento });
     
-    if (status === 'cancelado') return 'Cancelado';
-    if (status === 'finalizado' || eventDate < now) return 'Finalizado';
-    return 'Ativo';
+    switch (eventoStatus) {
+      case 'finalizado':
+        return 'Finalizado';
+      case 'proximo':
+        return 'Próximo';
+      default:
+        return 'Futuro';
+    }
   };
 
-  if (isLoading) {
+  const isUserInscrito = (eventoId: string) => {
+    if (!user?.email) return false;
+    return participantes.some(p => p.evento_id === eventoId && p.email === user.email);
+  };
+
+  const filteredEventos = eventos.filter(evento => {
+    const matchesSearch = 
+      evento.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      evento.descricao?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      evento.local?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      evento.entidades?.nome?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatusFilter = selectedFilters.includes('todos') || 
+                               selectedFilters.includes(getEventoStatus(evento));
+    
+    const matchesEntityFilter = selectedEntityFilters.length === 0 || 
+                               selectedEntityFilters.includes(evento.entidade_id?.toString());
+    
+    return matchesSearch && matchesStatusFilter && matchesEntityFilter;
+  });
+
+  if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-insper-light-gray to-white flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-4 border-insper-red/20 border-t-insper-red mx-auto mb-6"></div>
           <p className="text-insper-dark-gray text-lg">Carregando eventos...</p>
-<p className="text-insper-dark-gray/60 text-sm mt-2">Preparando as melhores experiências para você</p>
+          <p className="text-insper-dark-gray/60 text-sm mt-2">Preparando as melhores oportunidades para você</p>
         </div>
       </div>
     );
-  };
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto px-4">
+          <div className="w-20 h-20 bg-insper-red/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <X className="w-10 h-10 text-insper-red" />
+          </div>
+          <h3 className="text-xl font-semibold text-insper-black mb-2">Erro ao carregar eventos</h3>
+          <p className="text-insper-dark-gray mb-6">{error}</p>
+          <Button onClick={() => window.location.reload()} className="bg-insper-red hover:bg-insper-red/90">
+            Tentar novamente
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
@@ -282,135 +291,131 @@ const Eventos = () => {
           <div className="max-w-4xl mx-auto">
             <div className="relative mb-8">
               <Search className="absolute left-4 top-4 h-6 w-6 text-insper-dark-gray/60" />
-                              <Input
+              <Input
                 placeholder="Buscar eventos, entidades ou temas..."
                 value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  resetPagination();
-                }}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-12 h-14 text-lg bg-white/95 backdrop-blur-sm border-0 shadow-lg text-black placeholder:text-gray-500"
               />
-              </div>
+            </div>
 
             <div className="flex flex-wrap gap-3 justify-center">
-                <Popover open={showFiltersPopover} onOpenChange={setShowFiltersPopover}>
-                  <PopoverTrigger asChild>
-                    <Button 
-                      variant="outline" 
+              <Popover open={showFiltersPopover} onOpenChange={setShowFiltersPopover}>
+                <PopoverTrigger asChild>
+                  <Button 
+                    variant="outline" 
                     size="lg"
                     className={`bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 ${
                       getActiveFiltersCount() > 0 ? "ring-2 ring-white/50" : ""
                     }`}
                   >
                     <Filter className="mr-2 h-5 w-5" />
-                      Filtros
-                      {getActiveFiltersCount() > 0 && (
+                    Filtros
+                    {getActiveFiltersCount() > 0 && (
                       <Badge variant="secondary" className="ml-2 px-2 py-0 text-xs bg-white/20 text-white border-white/30">
-                          {getActiveFiltersCount()}
-                        </Badge>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
+                        {getActiveFiltersCount()}
+                      </Badge>
+                    )}
+                  </Button>
+                </PopoverTrigger>
                 <PopoverContent className="w-80 z-50 bg-white border shadow-xl rounded-xl">
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
                       <h4 className="font-semibold text-gray-900">Filtros de Eventos</h4>
-                        {getActiveFiltersCount() > 0 && (
+                      {getActiveFiltersCount() > 0 && (
                         <Button variant="ghost" size="sm" onClick={clearAllFilters} className="text-red-600 hover:text-red-700">
-                            Limpar tudo
-                          </Button>
-                        )}
-                      </div>
-                      
+                          Limpar tudo
+                        </Button>
+                      )}
+                    </div>
+                    
                     <div className="space-y-4">
                       <div>
                         <label className="text-sm font-medium mb-3 block text-gray-900">Status do Evento</label>
-                      <div className="space-y-3">
-                            {filters.map((filter) => (
-                            <div key={filter.id} className="flex items-center space-x-3">
-                                <Checkbox
-                                  id={filter.id}
-                                  checked={selectedFilters.includes(filter.id)}
-                                  onCheckedChange={() => toggleStatusFilter(filter.id)}
+                        <div className="space-y-3">
+                          {['todos', 'futuro', 'proximo', 'finalizado'].map((status) => (
+                            <div key={status} className="flex items-center space-x-3">
+                              <Checkbox
+                                id={status}
+                                checked={selectedFilters.includes(status)}
+                                onCheckedChange={() => toggleStatusFilter(status)}
                                 className="text-red-600"
-                                />
-                              <label htmlFor={filter.id} className="text-sm cursor-pointer hover:text-red-600 transition-colors">
-                                  {filter.label}
-                                </label>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div>
-                        <label className="text-sm font-medium mb-3 block text-gray-900">Entidades</label>
-                        <div className="space-y-3 max-h-48 overflow-y-auto">
-                            {entityFilters.map((entity) => (
-                            <div key={entity.id} className="flex items-center space-x-3">
-                                <Checkbox
-                                  id={entity.id}
-                                  checked={selectedEntityFilters.includes(entity.id)}
-                                  onCheckedChange={() => toggleEntityFilter(entity.id)}
-                                className="text-red-600"
-                                />
-                              <label htmlFor={entity.id} className="text-sm cursor-pointer hover:text-red-600 transition-colors">
-                                  {entity.label}
-                                </label>
-                              </div>
-                            ))}
-                          </div>
+                              />
+                              <label htmlFor={status} className="text-sm cursor-pointer hover:text-red-600 transition-colors capitalize">
+                                {status === 'todos' ? 'Todos os eventos' : status}
+                              </label>
+                            </div>
+                          ))}
                         </div>
                       </div>
+
+                      <div>
+                        <label className="text-sm font-medium mb-3 block text-gray-900">Entidades</label>
+                        <div className="space-y-3 max-h-48 overflow-y-auto">
+                          {!loadingEntidades && entidades.slice(0, 10).map((entidade) => (
+                            <div key={entidade.id} className="flex items-center space-x-3">
+                              <Checkbox
+                                id={entidade.id.toString()}
+                                checked={selectedEntityFilters.includes(entidade.id.toString())}
+                                onCheckedChange={() => toggleEntityFilter(entidade.id.toString())}
+                                className="text-red-600"
+                              />
+                              <label htmlFor={entidade.id.toString()} className="text-sm cursor-pointer hover:text-red-600 transition-colors">
+                                {entidade.nome}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
 
                     <div className="flex justify-end pt-4 border-t">
                       <Button size="sm" onClick={() => setShowFiltersPopover(false)} className="bg-red-600 hover:bg-red-700">
                         Aplicar Filtros
-                        </Button>
-                      </div>
+                      </Button>
                     </div>
-                  </PopoverContent>
-                </Popover>
-              </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
 
-              {/* Filtros Ativos */}
-              {(getActiveFiltersCount() > 0 || filteredByEntity) && (
+            {/* Filtros Ativos */}
+            {(getActiveFiltersCount() > 0 || filteredByEntity) && (
               <div className="flex flex-wrap gap-2 justify-center mt-6">
-                  {!selectedFilters.includes('todos') && selectedFilters.map(filter => {
-                    const filterObj = filters.find(f => f.id === filter);
-                    return (
+                {!selectedFilters.includes('todos') && selectedFilters.map(filter => {
+                  return (
                     <Badge key={filter} variant="secondary" className="flex items-center gap-1 bg-white/20 text-white border-white/30">
-                        {filterObj?.label}
-                        <Button
-                          variant="ghost"
-                          size="sm"
+                      {filter === 'futuro' ? 'Futuros' : filter === 'proximo' ? 'Próximos' : filter === 'finalizado' ? 'Finalizados' : filter}
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         className="h-auto p-0 ml-1 hover:bg-white/20 text-white"
-                          onClick={() => toggleStatusFilter(filter)}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </Badge>
-                    );
-                  })}
-                  
-                  {selectedEntityFilters.map(entityId => {
-                    const entity = entityFilters.find(e => e.id === entityId);
-                    return (
+                        onClick={() => toggleStatusFilter(filter)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </Badge>
+                  );
+                })}
+                
+                {selectedEntityFilters.map(entityId => {
+                  const entity = entidades.find(e => e.id.toString() === entityId);
+                  return (
                     <Badge key={entityId} variant="secondary" className="flex items-center gap-1 bg-white/20 text-white border-white/30">
-                        {entity?.label}
-                        <Button
-                          variant="ghost"
-                          size="sm"
+                      {entity?.nome}
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         className="h-auto p-0 ml-1 hover:bg-white/20 text-white"
-                          onClick={() => toggleEntityFilter(entityId)}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </Badge>
-                    );
-                  })}
-                </div>
-              )}
+                        onClick={() => toggleEntityFilter(entityId)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </Badge>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -427,10 +432,10 @@ const Eventos = () => {
                 </div>
                 <div>
                   <Badge variant="secondary" className="text-sm bg-red-100 text-red-800 border-red-200 mb-1">
-                  Filtrado por entidade
-                </Badge>
+                    Filtrado por entidade
+                  </Badge>
                   <div className="text-sm font-semibold text-gray-900">
-                  Mostrando eventos de: {entidadeFiltrada.nome}
+                    Mostrando eventos de: {entidadeFiltrada.nome}
                   </div>
                 </div>
               </div>
@@ -451,13 +456,13 @@ const Eventos = () => {
           <div className="flex items-center gap-3">
             <Target className="w-5 h-5 text-red-600" />
             <p className="text-gray-600 font-medium">
-            {filteredEventos.length} evento{filteredEventos.length !== 1 ? 's' : ''} encontrado{filteredEventos.length !== 1 ? 's' : ''}
-          </p>
+              {filteredEventos.length} evento{filteredEventos.length !== 1 ? 's' : ''} encontrado{filteredEventos.length !== 1 ? 's' : ''}
+            </p>
           </div>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredEventos.slice(0, displayedEventsCount).map((evento) => (
+          {filteredEventos.map((evento) => (
             <Card key={evento.id} className="group hover:shadow-2xl transition-all duration-500 hover:-translate-y-3 cursor-pointer border-0 shadow-lg bg-white overflow-hidden">
               <Link to={`/eventos/${evento.id}`} className="block">
                 <div className="relative">
@@ -465,134 +470,131 @@ const Eventos = () => {
                   <div className="absolute inset-0 bg-gradient-to-br from-red-600/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   
                   <CardHeader className="pb-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                      <CardTitle className="text-xl group-hover:text-red-600 transition-colors duration-300 font-bold mb-3">
-                        {evento.nome}
-                      </CardTitle>
-                      <div className="space-y-2">
-                        <div className="flex items-center text-sm text-gray-500">
-                          <Calendar className="mr-2 h-4 w-4" />
-                      {format(new Date(evento.data_evento), "dd 'de' MMMM, yyyy", { locale: ptBR })}
-                    </div>
-                        <div className="flex items-center text-sm text-gray-500">
-                          <Clock className="mr-2 h-4 w-4" />
-                      {format(new Date(evento.data_evento), "HH:mm", { locale: ptBR })}
-                    </div>
-                  </div>
-                    </div>
-                    <Badge 
-                      variant={getStatusColor(evento.status, evento.data_evento)} 
-                      className={`text-xs font-medium ${
-                        getStatusColor(evento.status, evento.data_evento) === 'success' 
-                          ? 'bg-green-100 text-green-700 border-green-200' 
-                          : getStatusColor(evento.status, evento.data_evento) === 'destructive'
-                          ? 'bg-red-100 text-red-700 border-red-200'
-                          : 'bg-gray-100 text-gray-700 border-gray-200'
-                      }`}
-                    >
-                    {getStatusLabel(evento.status, evento.data_evento)}
-                  </Badge>
-                </div>
-              </CardHeader>
-
-                <CardContent className="pt-0">
-                  <div className="space-y-4">
-                    <p className="text-gray-600 text-sm leading-relaxed line-clamp-3">
-                  {evento.descricao}
-                </p>
-
-                    <div className="space-y-3">
-                  {evento.local && (
-                        <div className="flex items-center text-sm text-gray-500">
-                          <MapPin className="mr-2 h-4 w-4" />
-                      {evento.local}
-                    </div>
-                  )}
-                  
-                  {evento.capacidade && (
-                        <div className="flex items-center text-sm text-gray-500">
-                          <Users className="mr-2 h-4 w-4" />
-                      Capacidade: {evento.capacidade} pessoas
-                    </div>
-                  )}
-
-                  {evento.entidades && (
-                        <div className="flex items-center">
-                          <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
-                        {evento.entidades.nome}
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <CardTitle className="text-xl group-hover:text-red-600 transition-colors duration-300 font-bold mb-3">
+                          {evento.nome}
+                        </CardTitle>
+                        <div className="space-y-2">
+                          <div className="flex items-center text-sm text-gray-500">
+                            <Calendar className="mr-2 h-4 w-4" />
+                            {format(new Date(evento.data_evento), "dd 'de' MMMM, yyyy", { locale: ptBR })}
+                          </div>
+                          <div className="flex items-center text-sm text-gray-500">
+                            <Clock className="mr-2 h-4 w-4" />
+                            {format(new Date(evento.data_evento), "HH:mm", { locale: ptBR })}
+                          </div>
+                        </div>
+                      </div>
+                      <Badge 
+                        variant={getStatusColor('', evento.data_evento) === 'bg-green-100 text-green-700' ? 'success' : 
+                               getStatusColor('', evento.data_evento) === 'bg-orange-100 text-orange-700' ? 'secondary' : 'secondary'} 
+                        className={`text-xs font-medium ${
+                          getStatusColor('', evento.data_evento) === 'bg-green-100 text-green-700' 
+                            ? 'bg-green-100 text-green-700 border-green-200' 
+                            : getStatusColor('', evento.data_evento) === 'bg-orange-100 text-orange-700'
+                            ? 'bg-orange-100 text-orange-700 border-orange-200'
+                            : 'bg-gray-100 text-gray-700 border-gray-200'
+                        }`}
+                      >
+                        {getStatusLabel('', evento.data_evento)}
                       </Badge>
                     </div>
-                  )}
-                </div>
+                  </CardHeader>
 
-                    <div className="flex space-x-3 pt-4 border-t border-gray-100" onClick={(e) => e.stopPropagation()}>
-                  {(() => {
-                    const { usuarioInscrito, eventoAtivo, eventoLotado } = getEventoStatus(evento);
-                    
-                    if (usuarioInscrito) {
-                      return (
-                        <Button className="flex-1" variant="outline" disabled>
-                          ✓ Já inscrito
-                        </Button>
-                      );
-                    } else if (!eventoAtivo) {
-                      return (
-                        <Button className="flex-1" variant="outline" disabled>
-                          {evento.status === 'cancelado' ? 'Cancelado' : 'Finalizado'}
-                        </Button>
-                      );
-                    } else if (eventoLotado) {
-                      return (
-                        <Button className="flex-1" variant="outline" disabled>
-                          Evento lotado
-                        </Button>
-                      );
-                    } else if (!user) {
-                      return (
-                        <Button className="flex-1" variant="outline" asChild>
-                          <Link to="/auth">
-                            Fazer login
+                  <CardContent className="pt-0">
+                    <div className="space-y-4">
+                      <p className="text-gray-600 text-sm leading-relaxed line-clamp-3">
+                        {evento.descricao}
+                      </p>
+
+                      <div className="space-y-3">
+                        {evento.local && (
+                          <div className="flex items-center text-sm text-gray-500">
+                            <MapPin className="mr-2 h-4 w-4" />
+                            {evento.local}
+                          </div>
+                        )}
+                        
+                        {evento.capacidade && (
+                          <div className="flex items-center text-sm text-gray-500">
+                            <Users className="mr-2 h-4 w-4" />
+                            Capacidade: {evento.capacidade} pessoas
+                          </div>
+                        )}
+
+                        {evento.entidades && (
+                          <div className="flex items-center">
+                            <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
+                              {evento.entidades.nome}
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex space-x-3 pt-4 border-t border-gray-100" onClick={(e) => e.stopPropagation()}>
+                        {(() => {
+                          if (isUserInscrito(evento.id)) {
+                            return (
+                              <Button className="flex-1" variant="outline" disabled>
+                                ✓ Já inscrito
+                              </Button>
+                            );
+                          } else if (!user) {
+                            return (
+                              <Button className="flex-1" variant="outline" asChild>
+                                <Link to="/auth">
+                                  Fazer login
+                                </Link>
+                              </Button>
+                            );
+                          } else {
+                            return (
+                              <Button 
+                                className="flex-1 bg-red-600 hover:bg-red-700 shadow-lg hover:shadow-xl transition-all duration-300"
+                                onClick={() => handleInscricao(evento)}
+                              >
+                                Inscrever-se
+                              </Button>
+                            );
+                          }
+                        })()}
+                        <Button variant="outline" size="sm" className="group-hover:bg-gray-50 border-gray-200 hover:border-gray-300" asChild>
+                          <Link to={`/eventos/${evento.id}`}>
+                            Ver Mais
+                            <ArrowRight size={14} className="ml-1" />
                           </Link>
                         </Button>
-                      );
-                    } else {
-                      return (
-                        <Button 
-                              className="flex-1 bg-red-600 hover:bg-red-700 shadow-lg hover:shadow-xl transition-all duration-300"
-                          onClick={() => handleInscricao(evento)}
-                        >
-                          Inscrever-se
-                        </Button>
-                      );
-                    }
-                  })()}
-                      <Button variant="outline" size="sm" className="group-hover:bg-gray-50 border-gray-200 hover:border-gray-300" asChild>
-                    <Link to={`/eventos/${evento.id}`}>
-                      Ver Mais
-                      <ArrowRight size={14} className="ml-1" />
-                    </Link>
-                  </Button>
+                      </div>
                     </div>
+                  </CardContent>
                 </div>
-              </CardContent>
-              </div>
-            </Link>
+              </Link>
             </Card>
           ))}
         </div>
 
         {/* Load More Button */}
-        {filteredEventos.length > displayedEventsCount && (
+        {hasMore && (
           <div className="flex justify-center mt-12">
             <Button 
-              onClick={handleLoadMore}
+              onClick={loadMore}
+              disabled={isLoadingMore}
               variant="outline"
               size="lg"
               className="border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 px-8 py-3"
             >
-              Carregar mais eventos
-              <ArrowRight size={18} className="ml-2" />
+              {isLoadingMore ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-red-600 border-t-transparent mr-2"></div>
+                  Carregando...
+                </>
+              ) : (
+                <>
+                  Carregar mais eventos
+                  <ArrowRight size={18} className="ml-2" />
+                </>
+              )}
             </Button>
           </div>
         )}
@@ -637,7 +639,8 @@ const Eventos = () => {
               onSuccess={() => {
                 setShowInscricaoDialog(false);
                 setSelectedEvento(null);
-                refetchParticipantes();
+                // Recarregar participantes
+                window.location.reload();
               }}
             />
           </DialogContent>

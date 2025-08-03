@@ -4,6 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { 
   Users, 
   Building2, 
@@ -24,11 +27,15 @@ import {
   MousePointer,
   Activity,
   AlertTriangle,
-  UserX
+  UserX,
+  Check,
+  X,
+  Filter
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuthStateContext } from '@/components/AuthStateProvider';
+import { useAprovarEventos, EventoParaAprovacao } from '@/hooks/useAprovarEventos';
 
 interface IndicadorEstrategico {
   id: string;
@@ -79,6 +86,7 @@ interface CalouroInativo {
 const Dashboard = () => {
   const navigate = useNavigate();
   const { logout } = useAuthStateContext();
+  const { eventos, loading: eventosLoading, aprovarEvento } = useAprovarEventos();
   const [loading, setLoading] = useState(true);
   const [indicadoresEstrategicos, setIndicadoresEstrategicos] = useState<IndicadorEstrategico[]>([]);
   const [indicadoresCruzados, setIndicadoresCruzados] = useState<IndicadorCruzado[]>([]);
@@ -90,6 +98,13 @@ const Dashboard = () => {
     totalEventos: 0,
     totalInscritos: 0
   });
+  
+  // Estados para aprovação de eventos
+  const [updatingEventoId, setUpdatingEventoId] = useState<string | null>(null);
+  const [rejectionComment, setRejectionComment] = useState('');
+  const [showRejectionDialog, setShowRejectionDialog] = useState(false);
+  const [selectedEvento, setSelectedEvento] = useState<EventoParaAprovacao | null>(null);
+  const [eventosFilter, setEventosFilter] = useState<string>('pendente');
 
   useEffect(() => {
     fetchDashboardData();
@@ -215,7 +230,7 @@ const Dashboard = () => {
       
       setStats({
         totalEntidades: entidadesData?.length || 0,
-        totalEventos: 0,
+        totalEventos: eventos?.length || 0,
         totalInscritos: demonstracoesData?.length || 0
       });
 
@@ -502,7 +517,7 @@ const Dashboard = () => {
     // Filtrar apenas calouros (1º semestre) dos profiles reais
     const calouros = profiles.filter(p => p.semestre === 1);
     
-    calouros.forEach(calouro => {
+    calouros.forEach((calouro, index) => {
       // Verificar se o calouro não está na lista de usuários ativos
       if (!usuariosAtivos.has(calouro.email)) {
         const diasSemAcao = Math.floor(Math.random() * 30) + 5; // 5-35 dias sem ação
@@ -514,7 +529,7 @@ const Dashboard = () => {
         else if (diasSemAcao > 10) riscoDesconexao = 'Médio';
         
         calourosInativos.push({
-          email: calouro.email || 'N/A',
+          email: calouro.email || `N/A-${index}`,
           nome: calouro.nome || 'N/A',
           curso: calouro.curso || 'N/A',
           semestre: calouro.semestre?.toString() || '1º',
@@ -527,6 +542,80 @@ const Dashboard = () => {
 
     return calourosInativos.sort((a, b) => b.dias_sem_acao - a.dias_sem_acao);
   };
+
+  // Funções para aprovação de eventos
+  const handleAprovarEvento = async (evento: EventoParaAprovacao) => {
+    setUpdatingEventoId(evento.id);
+    try {
+      const result = await aprovarEvento(evento.id, 'aprovado');
+      if (result.success) {
+        toast.success(`Evento "${evento.nome}" aprovado com sucesso!`);
+      } else {
+        toast.error('Erro ao aprovar evento');
+      }
+    } catch (error) {
+      toast.error('Erro ao aprovar evento');
+    } finally {
+      setUpdatingEventoId(null);
+    }
+  };
+
+  const handleRejeitarEvento = async (evento: EventoParaAprovacao, comentario: string) => {
+    setUpdatingEventoId(evento.id);
+    try {
+      const result = await aprovarEvento(evento.id, 'rejeitado', comentario);
+      if (result.success) {
+        toast.success(`Evento "${evento.nome}" rejeitado`);
+        setShowRejectionDialog(false);
+        setRejectionComment('');
+        setSelectedEvento(null);
+      } else {
+        toast.error('Erro ao rejeitar evento');
+      }
+    } catch (error) {
+      toast.error('Erro ao rejeitar evento');
+    } finally {
+      setUpdatingEventoId(null);
+    }
+  };
+
+  const openRejectionDialog = (evento: EventoParaAprovacao) => {
+    setSelectedEvento(evento);
+    setShowRejectionDialog(true);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pendente':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'aprovado':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'rejeitado':
+        return 'bg-red-100 text-red-800 border-red-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'pendente':
+        return <Clock className="w-4 h-4" />;
+      case 'aprovado':
+        return <Check className="w-4 h-4" />;
+      case 'rejeitado':
+        return <X className="w-4 h-4" />;
+      default:
+        return <Clock className="w-4 h-4" />;
+    }
+  };
+
+  const filteredEventos = eventos.filter(e => {
+    if (eventosFilter === 'todos') return true;
+    return e.status_aprovacao === eventosFilter;
+  });
+
+  const eventosPendentes = eventos.filter(e => e.status_aprovacao === 'pendente');
 
   const handleLogout = () => {
     logout();
@@ -542,7 +631,7 @@ const Dashboard = () => {
       <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
       
       {/* Cards de Estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-lg">Inscritos</CardTitle>
@@ -573,7 +662,143 @@ const Dashboard = () => {
             <p className="text-sm text-insper-dark-gray">Total de entidades</p>
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-lg">Pendentes</CardTitle>
+            <AlertTriangle className="h-5 w-5 text-orange-500" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold text-orange-600">{eventosPendentes.length}</p>
+            <p className="text-sm text-insper-dark-gray">Eventos para aprovar</p>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Seção de Aprovação de Eventos */}
+      {eventosPendentes.length > 0 && (
+        <div className="mb-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-orange-500" />
+                Eventos Pendentes de Aprovação
+                <Badge variant="outline" className="ml-2">
+                  {eventosPendentes.length}
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {eventosPendentes.slice(0, 3).map((evento) => (
+                  <div key={evento.id} className="border rounded-lg p-4 bg-orange-50/50">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h4 className="font-semibold text-lg">{evento.nome}</h4>
+                          <Badge className={getStatusColor(evento.status_aprovacao)}>
+                            <div className="flex items-center space-x-1">
+                              {getStatusIcon(evento.status_aprovacao)}
+                              <span className="capitalize">{evento.status_aprovacao}</span>
+                            </div>
+                          </Badge>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm mb-3">
+                          <div>
+                            <span className="text-muted-foreground">Entidade:</span> {evento.entidade_nome}
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Data:</span> {new Date(evento.data_evento).toLocaleDateString('pt-BR')}
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Local:</span> {evento.local || 'Não informado'}
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Capacidade:</span> {evento.capacidade || 'Ilimitada'}
+                          </div>
+                        </div>
+                        
+                        {evento.descricao && (
+                          <p className="text-sm text-muted-foreground mb-3">
+                            {evento.descricao}
+                          </p>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center space-x-2 ml-4">
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button 
+                              size="sm" 
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                              disabled={updatingEventoId === evento.id}
+                            >
+                              <Check className="w-4 h-4 mr-1" />
+                              Aprovar
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Aprovar Evento</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                <div className="space-y-2">
+                                  <div>Tem certeza que deseja aprovar o evento "{evento.nome}"?</div>
+                                  <div className="text-sm text-muted-foreground">
+                                    <strong>Detalhes do evento:</strong><br/>
+                                    • Entidade: {evento.entidade_nome}<br/>
+                                    • Data: {new Date(evento.data_evento).toLocaleDateString('pt-BR')}<br/>
+                                    • Local: {evento.local || 'Não informado'}<br/>
+                                    • Capacidade: {evento.capacidade || 'Ilimitada'}
+                                  </div>
+                                  <div className="text-sm text-muted-foreground mt-2">
+                                    O evento ficará visível para todos os usuários da plataforma.
+                                  </div>
+                                </div>
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleAprovarEvento(evento)}
+                                className="bg-green-600 hover:bg-green-700"
+                              >
+                                Aprovar Evento
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                        
+                        <Button 
+                          size="sm" 
+                          variant="destructive"
+                          disabled={updatingEventoId === evento.id}
+                          onClick={() => openRejectionDialog(evento)}
+                        >
+                          <X className="w-4 h-4 mr-1" />
+                          Rejeitar
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                
+                {eventosPendentes.length > 3 && (
+                  <div className="text-center pt-4">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => navigate('/aprovar-eventos')}
+                      className="flex items-center gap-2"
+                    >
+                      <Calendar className="w-4 h-4" />
+                      Ver todos os {eventosPendentes.length} eventos pendentes
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Indicadores Estratégicos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
@@ -782,13 +1007,75 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      {/* Botão de Logout */}
-      <div className="flex justify-end space-x-2">
+      {/* Botões de Navegação */}
+      <div className="flex justify-between items-center">
+        <div className="flex space-x-2">
+          <Button 
+            onClick={() => navigate('/aprovar-eventos')} 
+            className="flex items-center bg-insper-red hover:bg-insper-red/90"
+          >
+            <Calendar className="h-4 w-4 mr-2" />
+            Aprovar Eventos
+          </Button>
+          <Button 
+            onClick={() => navigate('/admin-credenciais')} 
+            variant="outline"
+            className="flex items-center"
+          >
+            <Building2 className="h-4 w-4 mr-2" />
+            Gerenciar Entidades
+          </Button>
+        </div>
+        
         <Button onClick={handleLogout} className="flex items-center">
           <LogOut className="h-4 w-4 mr-2" />
           Sair
         </Button>
       </div>
+
+      {/* Dialog para rejeição com comentário */}
+      <AlertDialog open={showRejectionDialog} onOpenChange={setShowRejectionDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Rejeitar Evento</AlertDialogTitle>
+            <AlertDialogDescription>
+              <div className="space-y-4">
+                <div>Tem certeza que deseja rejeitar o evento "{selectedEvento?.nome}"?</div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="rejection-comment">Comentário (opcional)</Label>
+                  <Textarea
+                    id="rejection-comment"
+                    placeholder="Explique o motivo da rejeição..."
+                    value={rejectionComment}
+                    onChange={(e) => setRejectionComment(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+                
+                <div className="text-sm text-muted-foreground">
+                  O comentário será enviado junto com a notificação para a entidade.
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setShowRejectionDialog(false);
+              setRejectionComment('');
+              setSelectedEvento(null);
+            }}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => selectedEvento && handleRejeitarEvento(selectedEvento, rejectionComment)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Rejeitar Evento
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

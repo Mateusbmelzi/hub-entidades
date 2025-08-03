@@ -9,6 +9,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Calendar, MapPin, Users, Plus } from 'lucide-react';
 import { useCreateEventoAsEntity } from '@/hooks/useCreateEventoAsEntity';
 import { useEntityAuth } from '@/hooks/useEntityAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CriarEventoEntidadeProps {
   onSuccess?: () => void;
@@ -35,6 +36,36 @@ export default function CriarEventoEntidade({ onSuccess }: CriarEventoEntidadePr
     loading
   });
 
+  // Função para testar a conexão com o banco
+  const testDatabaseConnection = async () => {
+    try {
+      console.log('🧪 Testando conexão com banco...');
+      
+      // Teste 1: Verificar se a tabela eventos existe
+      const { data: eventos, error: eventosError } = await supabase
+        .from('eventos')
+        .select('count')
+        .limit(1);
+      
+      console.log('📊 Teste tabela eventos:', { eventos, eventosError });
+      
+      // Teste 2: Verificar se a função RPC existe
+      const { data: rpcTest, error: rpcError } = await supabase.rpc('create_event_as_entity_pending', {
+        _entidade_id: 1,
+        _nome: 'TESTE',
+        _data_evento: new Date().toISOString(),
+        _descricao: 'Teste de função',
+        _local: 'Teste',
+        _capacidade: 10
+      });
+      
+      console.log('📊 Teste RPC:', { rpcTest, rpcError });
+      
+    } catch (error) {
+      console.error('❌ Erro no teste de conexão:', error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -49,6 +80,8 @@ export default function CriarEventoEntidade({ onSuccess }: CriarEventoEntidadePr
     
     if (!entidadeId) {
       console.error('❌ entidadeId não encontrado');
+      // Testar conexão com banco para debug
+      await testDatabaseConnection();
       return;
     }
 
