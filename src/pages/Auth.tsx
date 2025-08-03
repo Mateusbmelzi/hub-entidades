@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, Shield, ArrowRight, GraduationCap } from 'lucide-react';
+import { useState } from 'react';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,42 +7,104 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
+import { useRedirectDestination } from '@/hooks/useRedirectDestination';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Shield, ArrowRight, Mail, Lock, GraduationCap } from 'lucide-react';
 
 export default function Auth() {
-  const navigate = useNavigate();
-  const { signIn, signUp } = useAuth();
-  
+  // Estados separados para login
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+  // Estados separados para signup
   const [signupEmail, setSignupEmail] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const { signIn, signUp, user, profile, loading: authLoading } = useAuth();
+  const { destination, clearDestination } = useRedirectDestination();
+  const navigate = useNavigate();
 
-    if (!loginEmail.trim() || !loginPassword.trim()) {
-      toast.error('Preencha todos os campos');
-      return;
+  // Se ainda está carregando, não fazer redirecionamento
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-insper-light-gray to-white flex items-center justify-center p-4">
+        <Card className="w-full max-w-md border-0 shadow-2xl bg-white">
+          <CardContent className="p-8 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-4 border-insper-red/20 border-t-insper-red mx-auto mb-4"></div>
+            <p className="text-insper-dark-gray">Carregando...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Redirect baseado no estado do usuário
+  if (user) {
+    console.log('🔍 Auth Debug - Usuário autenticado:', {
+      userEmail: user.email,
+      profileCompleted: profile?.profile_completed,
+      destination,
+      hasDestination: !!destination
+    });
+
+    // Só redirecionar para profile-setup se o profile foi carregado e não está completo
+    if (profile && !profile.profile_completed) {
+      console.log('🔄 Redirecionando para profile-setup');
+      return <Navigate to="/profile-setup" replace />;
+    }
+    
+    // Se o profile ainda não foi carregado, aguardar
+    if (!profile) {
+      console.log('⏳ Aguardando carregamento do perfil...');
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-insper-light-gray to-white flex items-center justify-center p-4">
+          <Card className="w-full max-w-md border-0 shadow-2xl bg-white">
+            <CardContent className="p-8 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-4 border-insper-red/20 border-t-insper-red mx-auto mb-4"></div>
+              <p className="text-insper-dark-gray">Carregando perfil...</p>
+            </CardContent>
+          </Card>
+        </div>
+      );
     }
 
+    // Se tem destino salvo, redirecionar para ele
+    if (destination) {
+      const targetRoute = destination;
+      console.log('🔄 Redirecionando para destino salvo:', targetRoute);
+      clearDestination();
+      return <Navigate to={targetRoute} replace />;
+    }
+    
+    // Redirecionamento padrão para home
+    console.log('🔄 Redirecionando para home');
+    return <Navigate to="/" replace />;
+  }
+
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
     setLoading(true);
 
     const { error } = await signIn(loginEmail, loginPassword);
 
     if (error) {
       toast.error(error.message);
-      setLoading(false);
     } else {
       toast.success('Login realizado com sucesso!');
-      // O redirecionamento será tratado pelo AuthProvider
     }
+
+    setLoading(false);
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validar domínio do email (só Insper)
+    if (!signupEmail.endsWith('@al.insper.edu.br')) {
+      toast.error('Apenas alunos do Insper podem se cadastrar');
+      return;
+    }
 
     setLoading(true);
 
@@ -116,7 +177,7 @@ export default function Auth() {
                     type="email"
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
-                    placeholder="seu.email@exemplo.com"
+                    placeholder="seu.email@al.insper.edu.br"
                     className="border-insper-light-gray-1 focus:border-insper-red focus:ring-insper-red input-mobile input-no-zoom"
                     required
                   />
@@ -158,14 +219,14 @@ export default function Auth() {
                     type="email"
                     value={signupEmail}
                     onChange={(e) => setSignupEmail(e.target.value)}
-                    placeholder="seu.email@exemplo.com"
+                    placeholder="seu.email@al.insper.edu.br"
                     className="border-insper-light-gray-1 focus:border-insper-red focus:ring-insper-red input-mobile input-no-zoom"
                     required
                   />
                   <div className="flex items-center space-x-2">
                     <Badge className="bg-insper-blue/10 text-insper-blue border-insper-blue/20 text-xs">
                       <GraduationCap className="w-3 h-3 mr-1" />
-                      Qualquer email é aceito
+                      Apenas alunos do Insper
                     </Badge>
                   </div>
                 </div>
