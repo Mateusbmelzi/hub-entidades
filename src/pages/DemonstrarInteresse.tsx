@@ -230,7 +230,7 @@ const DemonstrarInteresse: React.FC = () => {
                         value={formData.email_estudante}
                         onChange={handleInputChange}
                         required
-                        placeholder="seu.email@insper.edu.br"
+                        placeholder="seu.email@exemplo.com"
                       />
                     </div>
                   </div>

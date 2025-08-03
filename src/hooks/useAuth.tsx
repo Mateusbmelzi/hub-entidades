@@ -27,6 +27,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -75,28 +76,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .select('role')
           .eq('user_id', userId)
           .single()
-          .catch(() => ({ data: { role: 'aluno' } })) // Fallback para aluno
       ]);
       
-      if (profileResult.data && roleResult.data) {
+      // Tratar erro do roleResult separadamente
+      let userRole = 'aluno'; // Fallback padrão
+      if (roleResult.error) {
+        console.log('⚠️ Erro ao buscar role, usando fallback:', roleResult.error);
+      } else if (roleResult.data) {
+        userRole = roleResult.data.role;
+      }
+      
+      if (profileResult.data) {
         const userProfile = { 
           ...profileResult.data, 
-          role: roleResult.data.role 
-        };
-        
-        // Salvar no cache
-        profileCache.set(userId, {
-          profile: userProfile,
-          timestamp: Date.now()
-        });
-        
-        if (isMountedRef.current) {
-          setProfile(userProfile);
-        }
-      } else if (profileResult.data) {
-        const userProfile = { 
-          ...profileResult.data, 
-          role: 'aluno' 
+          role: userRole
         };
         
         // Salvar no cache
@@ -117,6 +110,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
   }, []);
+
+  // Função para forçar refresh do perfil (limpa cache e busca novamente)
+  const refreshProfile = useCallback(async () => {
+    if (user) {
+      console.log('🔄 Forçando refresh do perfil...');
+      
+      // Limpar cache do usuário atual
+      profileCache.delete(user.id);
+      console.log('🗑️ Cache do perfil limpo para usuário:', user.id);
+      
+      // Buscar perfil novamente
+      await fetchUserProfile(user.id);
+      console.log('✅ Perfil atualizado com sucesso');
+    }
+  }, [user, fetchUserProfile]);
 
   useEffect(() => {
     // Set up auth state listener
@@ -216,6 +224,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signIn,
     signUp,
     signOut,
+    refreshProfile,
   };
 
   return (

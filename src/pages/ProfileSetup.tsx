@@ -26,7 +26,7 @@ export default function ProfileSetup() {
   const [loading, setLoading] = useState(false);
   const [profileCompleted, setProfileCompleted] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, signOut, refreshProfile } = useAuth();
   const { destination, clearDestination } = useRedirectDestination();
   const navigate = useNavigate();
 
@@ -151,8 +151,13 @@ export default function ProfileSetup() {
       } else {
         console.log('Perfil salvo com sucesso:', data);
         toast.success('Perfil criado com sucesso!');
+        
         // Marcar que o perfil foi completado nesta sessão
         setProfileCompleted(true);
+        
+        // Limpar cache e forçar refetch do perfil
+        await refreshProfile();
+        
         // Redirecionar após um pequeno delay para permitir que o toast seja exibido
         setTimeout(() => {
           if (destination) {

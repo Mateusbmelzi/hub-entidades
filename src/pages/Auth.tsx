@@ -100,12 +100,6 @@ export default function Auth() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validar domínio do email (só Insper)
-    if (!signupEmail.endsWith('@al.insper.edu.br')) {
-      toast.error('Apenas alunos do Insper podem se cadastrar');
-      return;
-    }
-
     setLoading(true);
 
     const { error } = await signUp(signupEmail, signupPassword);
@@ -177,7 +171,7 @@ export default function Auth() {
                     type="email"
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
-                    placeholder="seu.email@al.insper.edu.br"
+                    placeholder="seu.email@exemplo.com"
                     className="border-insper-light-gray-1 focus:border-insper-red focus:ring-insper-red input-mobile input-no-zoom"
                     required
                   />
@@ -219,14 +213,14 @@ export default function Auth() {
                     type="email"
                     value={signupEmail}
                     onChange={(e) => setSignupEmail(e.target.value)}
-                    placeholder="seu.email@al.insper.edu.br"
+                    placeholder="seu.email@exemplo.com"
                     className="border-insper-light-gray-1 focus:border-insper-red focus:ring-insper-red input-mobile input-no-zoom"
                     required
                   />
                   <div className="flex items-center space-x-2">
                     <Badge className="bg-insper-blue/10 text-insper-blue border-insper-blue/20 text-xs">
                       <GraduationCap className="w-3 h-3 mr-1" />
-                      Apenas alunos do Insper
+                      Qualquer email válido
                     </Badge>
                   </div>
                 </div>

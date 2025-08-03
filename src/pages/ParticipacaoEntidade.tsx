@@ -317,7 +317,7 @@ const ParticipacaoEntidade = () => {
                 <div>
                   <strong className="text-foreground">Contato:</strong>
                   <br />
-                  {entidade.name.toLowerCase().replace(' ', '')}@insper.edu.br
+                  {entidade.name.toLowerCase().replace(' ', '')}@exemplo.com
                 </div>
                 <div>
                   <strong className="text-foreground">Modalidade:</strong>
