@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Criação de Eventos</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Teste de Criação de Eventos</h1>
+    <div id="results"></div>
+
+    <script>
+        const SUPABASE_URL = "https://lddtackcnpzdswndqgfs.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkZHRhY2tjbnB6ZHN3bmRxZ2ZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzOTY5MDgsImV4cCI6MjA2Njk3MjkwOH0.NPN6E-4RttputzXcVavoOTRGiM9c3T5bLaLPTtJJM4s";
+
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        async function testCriarEvento() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p>Testando criação de eventos...</p>';
+
+            try {
+                // Teste 1: Verificar se a função RPC existe
+                console.log('Teste 1: Verificando função RPC');
+                const { data: rpcTest, error: rpcError } = await supabase.rpc('create_event_as_entity_pending', {
+                    _entidade_id: 1,
+                    _nome: 'TESTE CRIAÇÃO',
+                    _data_evento: new Date().toISOString(),
+                    _descricao: 'Teste de criação de evento',
+                    _local: 'Local de teste',
+                    _capacidade: 10
+                });
+
+                if (rpcError) {
+                    resultsDiv.innerHTML += `<p style="color: red;">❌ Erro na função RPC: ${rpcError.message}</p>`;
+                    console.error('Erro RPC:', rpcError);
+                } else {
+                    resultsDiv.innerHTML += `<p style="color: green;">✅ Função RPC funcionando. ID retornado: ${rpcTest}</p>`;
+                    console.log('RPC funcionando:', rpcTest);
+                }
+
+                // Teste 2: Verificar estrutura da tabela eventos
+                console.log('Teste 2: Verificando estrutura da tabela');
+                const { data: estrutura, error: estruturaError } = await supabase
+                    .from('eventos')
+                    .select('*')
+                    .limit(1);
+
+                if (estruturaError) {
+                    resultsDiv.innerHTML += `<p style="color: red;">❌ Erro ao verificar estrutura: ${estruturaError.message}</p>`;
+                    console.error('Erro estrutura:', estruturaError);
+                } else if (estrutura && estrutura.length > 0) {
+                    const campos = Object.keys(estrutura[0]);
+                    resultsDiv.innerHTML += `<p style="color: green;">✅ Estrutura da tabela: ${campos.join(', ')}</p>`;
+                    console.log('Estrutura:', estrutura[0]);
+                }
+
+                // Teste 3: Verificar se há entidades
+                console.log('Teste 3: Verificando entidades');
+                const { data: entidades, error: entidadesError } = await supabase
+                    .from('entidades')
+                    .select('id, nome')
+                    .limit(5);
+
+                if (entidadesError) {
+                    resultsDiv.innerHTML += `<p style="color: red;">❌ Erro ao buscar entidades: ${entidadesError.message}</p>`;
+                    console.error('Erro entidades:', entidadesError);
+                } else {
+                    resultsDiv.innerHTML += `<p style="color: green;">✅ Entidades encontradas: ${entidades.length}</p>`;
+                    console.log('Entidades:', entidades);
+                }
+
+                // Teste 4: Tentar criar evento com dados reais
+                if (entidades && entidades.length > 0) {
+                    console.log('Teste 4: Criando evento com dados reais');
+                    const entidadeId = entidades[0].id;
+                    
+                    const { data: eventoCriado, error: criarError } = await supabase.rpc('create_event_as_entity_pending', {
+                        _entidade_id: entidadeId,
+                        _nome: 'Evento Teste ' + new Date().getTime(),
+                        _data_evento: new Date().toISOString(),
+                        _descricao: 'Evento criado via teste',
+                        _local: 'Local de teste',
+                        _capacidade: 20
+                    });
+
+                    if (criarError) {
+                        resultsDiv.innerHTML += `<p style="color: red;">❌ Erro ao criar evento: ${criarError.message}</p>`;
+                        console.error('Erro criar evento:', criarError);
+                    } else {
+                        resultsDiv.innerHTML += `<p style="color: green;">✅ Evento criado com sucesso! ID: ${eventoCriado}</p>`;
+                        console.log('Evento criado:', eventoCriado);
+                    }
+                }
+
+            } catch (error) {
+                resultsDiv.innerHTML += `<p style="color: red;">❌ Erro geral: ${error.message}</p>`;
+                console.error('Erro geral:', error);
+            }
+        }
+
+        // Executar teste quando a página carregar
+        window.addEventListener('load', testCriarEvento);
+    </script>
+</body>
+</html> 

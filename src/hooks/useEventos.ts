@@ -103,7 +103,6 @@ export const useEventos = (options: UseEventosOptions = {}) => {
       if (isCacheValid(cacheKey)) {
         const cached = eventosCache.get(cacheKey);
         if (cached) {
-          console.log(`📦 Usando cache para eventos página ${page}`);
           if (append) {
             setEventos(prev => [...prev, ...cached.data]);
           } else {
@@ -115,8 +114,6 @@ export const useEventos = (options: UseEventosOptions = {}) => {
         }
       }
       
-      console.log(`🔄 Buscando eventos página ${page}...`);
-      
       const from = page * pageSize;
       const to = from + pageSize - 1;
       
@@ -127,7 +124,8 @@ export const useEventos = (options: UseEventosOptions = {}) => {
           entidades(id, nome)
         `)
         .eq('status_aprovacao', statusAprovacao)
-        .order('data_evento', { ascending: true })
+        .order('data', { ascending: true })
+        .order('horario', { ascending: true })
         .range(from, to);
       
       // Filtrar por entidade se especificado
@@ -135,10 +133,7 @@ export const useEventos = (options: UseEventosOptions = {}) => {
         query = query.eq('entidade_id', entidadeId);
       }
       
-      const { data, error } = await supabaseWithRetry<Evento[]>(
-        () => query,
-        { maxRetries: 2, delay: 500 }
-      );
+      const { data, error } = await query;
 
       // Verificar se a requisição foi cancelada
       if (abortControllerRef.current?.signal.aborted) {
@@ -147,8 +142,6 @@ export const useEventos = (options: UseEventosOptions = {}) => {
 
       if (error) throw error;
 
-      console.log(`📥 Eventos recebidos página ${page}:`, data?.length || 0);
-      
       // Salvar no cache
       if (enableCache && data) {
         eventosCache.set(cacheKey, {
@@ -174,7 +167,6 @@ export const useEventos = (options: UseEventosOptions = {}) => {
         return;
       }
       
-      console.error('❌ Erro ao carregar eventos:', err);
       setError(err instanceof Error ? err.message : 'Erro ao carregar eventos');
     } finally {
       setLoading(false);

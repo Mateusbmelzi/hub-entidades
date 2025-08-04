@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Exclusão de Eventos</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Teste de Exclusão de Eventos</h1>
+    <div id="results"></div>
+
+    <script>
+        const SUPABASE_URL = "https://lddtackcnpzdswndqgfs.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkZHRhY2tjbnB6ZHN3bmRxZ2ZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzOTY5MDgsImV4cCI6MjA2Njk3MjkwOH0.NPN6E-4RttputzXcVavoOTRGiM9c3T5bLaLPTtJJM4s";
+
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        async function testDeleteEvento() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p>Testando exclusão de eventos...</p>';
+
+            try {
+                // Teste 1: Verificar se a função RPC existe
+                console.log('Teste 1: Verificando função RPC delete_event_as_entity');
+                const { data: rpcTest, error: rpcError } = await supabase.rpc('delete_event_as_entity', {
+                    _evento_id: '00000000-0000-0000-0000-000000000000', // UUID inválido para teste
+                    _entidade_id: 999999 // ID inválido para teste
+                });
+
+                if (rpcError) {
+                    if (rpcError.message.includes('Evento não encontrado') || 
+                        rpcError.message.includes('Entidade não encontrada')) {
+                        resultsDiv.innerHTML += `<p style="color: green;">✅ Função RPC existe e está funcionando (erro esperado para dados inválidos)</p>`;
+                        console.log('RPC funcionando:', rpcError.message);
+                    } else {
+                        resultsDiv.innerHTML += `<p style="color: red;">❌ Erro inesperado na função RPC: ${rpcError.message}</p>`;
+                        console.error('Erro RPC:', rpcError);
+                    }
+                } else {
+                    resultsDiv.innerHTML += `<p style="color: green;">✅ Função RPC funcionando</p>`;
+                    console.log('RPC funcionando:', rpcTest);
+                }
+
+                // Teste 2: Verificar eventos existentes
+                console.log('Teste 2: Verificando eventos existentes');
+                const { data: eventos, error: eventosError } = await supabase
+                    .from('eventos')
+                    .select('id, nome, entidade_id')
+                    .limit(5);
+
+                if (eventosError) {
+                    resultsDiv.innerHTML += `<p style="color: red;">❌ Erro ao buscar eventos: ${eventosError.message}</p>`;
+                    console.error('Erro eventos:', eventosError);
+                } else {
+                    resultsDiv.innerHTML += `<p style="color: green;">✅ Eventos encontrados: ${eventos.length}</p>`;
+                    console.log('Eventos:', eventos);
+                }
+
+                // Teste 3: Verificar entidades existentes
+                console.log('Teste 3: Verificando entidades existentes');
+                const { data: entidades, error: entidadesError } = await supabase
+                    .from('entidades')
+                    .select('id, nome')
+                    .limit(5);
+
+                if (entidadesError) {
+                    resultsDiv.innerHTML += `<p style="color: red;">❌ Erro ao buscar entidades: ${entidadesError.message}</p>`;
+                    console.error('Erro entidades:', entidadesError);
+                } else {
+                    resultsDiv.innerHTML += `<p style="color: green;">✅ Entidades encontradas: ${entidades.length}</p>`;
+                    console.log('Entidades:', entidades);
+                }
+
+                // Teste 4: Tentar excluir um evento real (se existir)
+                if (eventos && eventos.length > 0 && entidades && entidades.length > 0) {
+                    console.log('Teste 4: Tentando excluir evento real');
+                    const eventoParaExcluir = eventos[0];
+                    const entidadeParaTeste = entidades[0];
+                    
+                    resultsDiv.innerHTML += `<p style="color: blue;">🔄 Tentando excluir evento: ${eventoParaExcluir.nome} (ID: ${eventoParaExcluir.id})</p>`;
+                    
+                    const { data: deleteResult, error: deleteError } = await supabase.rpc('delete_event_as_entity', {
+                        _evento_id: eventoParaExcluir.id,
+                        _entidade_id: entidadeParaTeste.id
+                    });
+
+                    if (deleteError) {
+                        resultsDiv.innerHTML += `<p style="color: orange;">⚠️ Resultado da exclusão: ${deleteError.message}</p>`;
+                        console.log('Resultado exclusão:', deleteError.message);
+                    } else {
+                        resultsDiv.innerHTML += `<p style="color: green;">✅ Evento excluído com sucesso!</p>`;
+                        console.log('Evento excluído:', deleteResult);
+                    }
+                }
+
+            } catch (error) {
+                resultsDiv.innerHTML += `<p style="color: red;">❌ Erro geral: ${error.message}</p>`;
+                console.error('Erro geral:', error);
+            }
+        }
+
+        // Executar teste quando a página carregar
+        window.addEventListener('load', testDeleteEvento);
+    </script>
+</body>
+</html> 

@@ -35,6 +35,7 @@ import EmailVerification from '@/pages/EmailVerification';
 import Welcome from '@/pages/Welcome';
 import NotFound from '@/pages/NotFound';
 import TestAuth from '@/pages/TestAuth';
+import TestEventos from '@/pages/TestEventos';
 import { ConnectionMonitor } from '@/components/ConnectionMonitor';
 
 
@@ -64,7 +65,8 @@ function App() {
                         {/* Rota de teste de autenticação */}
                         <Route path="/test-auth" element={<TestAuth />} />
                         
-
+                        {/* Rota de teste de eventos */}
+                        <Route path="/test-eventos" element={<TestEventos />} />
                         
 
                         

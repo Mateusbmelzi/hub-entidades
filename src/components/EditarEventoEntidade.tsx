@@ -18,9 +18,18 @@ export default function EditarEventoEntidade({ evento, entidadeId, onSuccess }: 
   const [nome, setNome] = useState(evento.nome);
   const [descricao, setDescricao] = useState(evento.descricao || '');
   const [local, setLocal] = useState(evento.local || '');
-  const [dataEvento, setDataEvento] = useState(
-    new Date(evento.data_evento).toISOString().slice(0, 16)
-  );
+  const [dataEvento, setDataEvento] = useState(() => {
+    // Combinar data e horário para criar um datetime-local
+    const data = new Date(evento.data);
+    const horario = evento.horario;
+    
+    if (horario) {
+      const [horas, minutos] = horario.split(':');
+      data.setHours(parseInt(horas), parseInt(minutos), 0, 0);
+    }
+    
+    return data.toISOString().slice(0, 16);
+  });
   const [capacidade, setCapacidade] = useState(evento.capacidade?.toString() || '');
   
   const { updateEvento, loading } = useUpdateEventoAsEntity();

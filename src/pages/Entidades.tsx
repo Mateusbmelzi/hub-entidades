@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Search, Filter, Users, Building, ArrowRight, X, MapPin, Clock, Presentation, Sparkles, Target, Calendar, ArrowUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,7 +21,11 @@ const Entidades = () => {
     error, 
     hasMore, 
     isLoadingMore, 
-    loadMore 
+    loadMore,
+    searchEntidades,
+    searchResults,
+    isSearching,
+    searchError
   } = useEntidades({ 
     pageSize: 12, 
     enablePagination: true,
@@ -38,6 +42,13 @@ const Entidades = () => {
 
   // Debounce para a pesquisa
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+  // Effect para fazer busca global quando há termo de busca
+  useEffect(() => {
+    if (debouncedSearchTerm.trim()) {
+      searchEntidades(debouncedSearchTerm);
+    }
+  }, [debouncedSearchTerm, searchEntidades]);
 
   // Calcular estatísticas das áreas de atuação (memoizado)
   const areaStats = useMemo(() => {
@@ -65,6 +76,33 @@ const Entidades = () => {
 
   // Entidades filtradas e ordenadas (memoizado)
   const filteredEntities = useMemo(() => {
+    // Se há termo de busca, usar resultados da busca global
+    if (debouncedSearchTerm.trim()) {
+      return searchResults.filter(entity => {
+        const area = Array.isArray(entity.area_atuacao) 
+          ? entity.area_atuacao[0] 
+          : entity.area_atuacao;
+        
+        const matchesFilter = selectedFilters.length === 0 || 
+                             (area && selectedFilters.includes(area));
+        
+        return matchesFilter;
+      }).sort((a, b) => {
+        if (sortBy === 'nome') {
+          const aName = a.nome?.toLowerCase() || '';
+          const bName = b.nome?.toLowerCase() || '';
+          return sortOrder === 'asc' 
+            ? aName.localeCompare(bName)
+            : bName.localeCompare(aName);
+        } else {
+          const aYear = a.ano_criacao || 0;
+          const bYear = b.ano_criacao || 0;
+          return sortOrder === 'asc' ? aYear - bYear : bYear - aYear;
+        }
+      });
+    }
+    
+    // Caso contrário, usar entidades carregadas normalmente
     return entidades.filter(entity => {
       const area = Array.isArray(entity.area_atuacao) 
         ? entity.area_atuacao[0] 
@@ -92,7 +130,7 @@ const Entidades = () => {
         return sortOrder === 'asc' ? aYear - bYear : bYear - aYear;
       }
     });
-  }, [entidades, debouncedSearchTerm, selectedFilters, sortBy, sortOrder]);
+  }, [entidades, searchResults, debouncedSearchTerm, selectedFilters, sortBy, sortOrder]);
 
   if (loading) {
     return (
@@ -173,12 +211,12 @@ const Entidades = () => {
           <div className="text-center mb-12">
             <div className="inline-flex items-center px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-sm font-medium mb-6">
               <Sparkles className="w-4 h-4 mr-2" />
-              {entidades.length} Entidades Disponíveis
+              {entidades.length} Organizações Estudantis Disponíveis
             </div>
             
             <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
-              Explore as Entidades
-              <span className="block text-red-200">do Insper</span>
+              Explore as Organizações Estudantis
+              <span> do Insper</span>
             </h1>
             
             <p className="text-xl text-red-100 max-w-3xl mx-auto leading-relaxed">
@@ -196,6 +234,11 @@ const Entidades = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-12 h-14 text-lg bg-white/95 backdrop-blur-sm border-0 shadow-lg text-insper-black placeholder:text-insper-dark-gray/60"
               />
+              {isSearching && (
+                <div className="absolute right-4 top-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-2 border-insper-red border-t-transparent"></div>
+                </div>
+              )}
             </div>
 
             {/* Filtros e Ordenação */}
@@ -531,8 +574,8 @@ const Entidades = () => {
           })}
         </div>
 
-        {/* Botão carregar mais */}
-        {hasMore && (
+        {/* Botão carregar mais - apenas quando não há busca ativa */}
+        {hasMore && !debouncedSearchTerm.trim() && (
           <div className="text-center mt-12">
             <Button 
               variant="outline" 

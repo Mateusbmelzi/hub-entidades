@@ -166,11 +166,22 @@ const Eventos = () => {
 
   const getEventoStatus = (evento: any) => {
     const now = new Date();
-    const eventoDate = new Date(evento.data_evento);
+    // Usar data e horario para criar um timestamp completo
+    const dataEvento = evento.data;
+    const horarioEvento = evento.horario;
     
-    if (eventoDate < now) {
+    if (!dataEvento) return 'futuro';
+    
+    // Criar data completa combinando data e horário
+    const dataCompleta = new Date(dataEvento);
+    if (horarioEvento) {
+      const [horas, minutos] = horarioEvento.split(':');
+      dataCompleta.setHours(parseInt(horas), parseInt(minutos), 0, 0);
+    }
+    
+    if (dataCompleta < now) {
       return 'finalizado';
-    } else if (eventoDate.getTime() - now.getTime() < 24 * 60 * 60 * 1000) {
+    } else if (dataCompleta.getTime() - now.getTime() < 24 * 60 * 60 * 1000) {
       return 'proximo';
     } else {
       return 'futuro';
@@ -182,8 +193,8 @@ const Eventos = () => {
     setShowInscricaoDialog(true);
   };
 
-  const getStatusColor = (status: string, dataEvento: string) => {
-    const eventoStatus = getEventoStatus({ data_evento: dataEvento });
+  const getStatusColor = (status: string, dataEvento: string, horarioEvento?: string) => {
+    const eventoStatus = getEventoStatus({ data: dataEvento, horario: horarioEvento });
     
     switch (eventoStatus) {
       case 'finalizado':
@@ -195,8 +206,8 @@ const Eventos = () => {
     }
   };
 
-  const getStatusLabel = (status: string, dataEvento: string) => {
-    const eventoStatus = getEventoStatus({ data_evento: dataEvento });
+  const getStatusLabel = (status: string, dataEvento: string, horarioEvento?: string) => {
+    const eventoStatus = getEventoStatus({ data: dataEvento, horario: horarioEvento });
     
     switch (eventoStatus) {
       case 'finalizado':
@@ -278,11 +289,11 @@ const Eventos = () => {
             </div>
             
             <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
-              Eventos do Insper
+              Eventos das Organizações Estudantis
             </h1>
             
             <p className="text-xl text-insper-red/90 max-w-3xl mx-auto leading-relaxed">
-              Descubra workshops, palestras e atividades organizadas pelas entidades estudantis. 
+              Descubra workshops, palestras e atividades organizadas pelas organizações estudantis. 
               Conecte-se, aprenda e participe da comunidade que move o Insper.
             </p>
           </div>
@@ -292,7 +303,7 @@ const Eventos = () => {
             <div className="relative mb-8">
               <Search className="absolute left-4 top-4 h-6 w-6 text-insper-dark-gray/60" />
               <Input
-                placeholder="Buscar eventos, entidades ou temas..."
+                placeholder="Buscar eventos, organizações estudantis ou temas..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-12 h-14 text-lg bg-white/95 backdrop-blur-sm border-0 shadow-lg text-black placeholder:text-gray-500"
@@ -350,7 +361,7 @@ const Eventos = () => {
                       </div>
 
                       <div>
-                        <label className="text-sm font-medium mb-3 block text-gray-900">Entidades</label>
+                        <label className="text-sm font-medium mb-3 block text-gray-900">Organizações Estudantis</label>
                         <div className="space-y-3 max-h-48 overflow-y-auto">
                           {!loadingEntidades && entidades.slice(0, 10).map((entidade) => (
                             <div key={entidade.id} className="flex items-center space-x-3">
@@ -478,26 +489,26 @@ const Eventos = () => {
                         <div className="space-y-2">
                           <div className="flex items-center text-sm text-gray-500">
                             <Calendar className="mr-2 h-4 w-4" />
-                            {format(new Date(evento.data_evento), "dd 'de' MMMM, yyyy", { locale: ptBR })}
+                            {format(new Date((evento as any).data), "dd 'de' MMMM, yyyy", { locale: ptBR })}
                           </div>
                           <div className="flex items-center text-sm text-gray-500">
                             <Clock className="mr-2 h-4 w-4" />
-                            {format(new Date(evento.data_evento), "HH:mm", { locale: ptBR })}
+                            {(evento as any).horario || 'Horário não definido'}
                           </div>
                         </div>
                       </div>
                       <Badge 
-                        variant={getStatusColor('', evento.data_evento) === 'bg-green-100 text-green-700' ? 'success' : 
-                               getStatusColor('', evento.data_evento) === 'bg-orange-100 text-orange-700' ? 'secondary' : 'secondary'} 
+                        variant={getStatusColor('', (evento as any).data, (evento as any).horario) === 'bg-green-100 text-green-700' ? 'success' : 
+                               getStatusColor('', (evento as any).data, (evento as any).horario) === 'bg-orange-100 text-orange-700' ? 'secondary' : 'secondary'} 
                         className={`text-xs font-medium ${
-                          getStatusColor('', evento.data_evento) === 'bg-green-100 text-green-700' 
+                          getStatusColor('', (evento as any).data, (evento as any).horario) === 'bg-green-100 text-green-700' 
                             ? 'bg-green-100 text-green-700 border-green-200' 
-                            : getStatusColor('', evento.data_evento) === 'bg-orange-100 text-orange-700'
+                            : getStatusColor('', (evento as any).data, (evento as any).horario) === 'bg-orange-100 text-orange-700'
                             ? 'bg-orange-100 text-orange-700 border-orange-200'
                             : 'bg-gray-100 text-gray-700 border-gray-200'
                         }`}
                       >
-                        {getStatusLabel('', evento.data_evento)}
+                        {getStatusLabel('', (evento as any).data, (evento as any).horario)}
                       </Badge>
                     </div>
                   </CardHeader>

@@ -74,6 +74,13 @@ export const useCreateEventoAsEntity = () => {
         throw error;
       }
 
+      console.log('📊 Resultado da RPC:', { result, error });
+
+      if (error) {
+        console.error('❌ Erro na RPC:', error);
+        throw error;
+      }
+
       console.log('✅ Evento criado com sucesso! ID:', result);
 
       toast({

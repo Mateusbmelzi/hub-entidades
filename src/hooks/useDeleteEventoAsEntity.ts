@@ -10,13 +10,22 @@ export const useDeleteEventoAsEntity = () => {
     try {
       setLoading(true);
       
-      const { error } = await supabase.rpc('delete_event_as_entity', {
+      console.log('🗑️ Tentando excluir evento:', { eventoId, entidadeId });
+      
+      const { data, error } = await supabase.rpc('delete_event_as_entity', {
         _evento_id: eventoId,
         _entidade_id: entidadeId
       });
 
-      if (error) throw error;
+      console.log('📊 Resultado da exclusão:', { data, error });
 
+      if (error) {
+        console.error('❌ Erro na exclusão:', error);
+        throw error;
+      }
+
+      console.log('✅ Evento excluído com sucesso');
+      
       toast({
         title: "Evento removido com sucesso!",
         description: "O evento foi removido da plataforma.",
@@ -25,6 +34,8 @@ export const useDeleteEventoAsEntity = () => {
       return { success: true };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Erro ao remover evento';
+      console.error('❌ Erro ao remover evento:', error);
+      
       toast({
         title: "Erro ao remover evento",
         description: message,

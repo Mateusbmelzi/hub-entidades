@@ -74,7 +74,7 @@ const Home = () => {
 
             <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
               Hub de Entidades
-              <span className="block text-red-200">Insper</span>
+              <span> Insper</span>
             </h1>
             
             <p className="text-xl md:text-2xl mb-10 text-red-100 max-w-4xl mx-auto leading-relaxed">

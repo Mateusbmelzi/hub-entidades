@@ -6,7 +6,8 @@ export interface Evento {
   nome: string;
   descricao?: string;
   local?: string;
-  data_evento: string;
+  data: string;
+  horario?: string;
   capacidade?: number;
   status: string;
   entidade_id: number;
@@ -30,7 +31,8 @@ export const useEventosEntidade = (entidadeId?: number) => {
         .from('eventos')
         .select('*')
         .eq('entidade_id', entidadeId)
-        .order('data_evento', { ascending: true });
+        .order('data', { ascending: true })
+        .order('horario', { ascending: true });
 
       if (error) throw error;
       setEventos(data || []);

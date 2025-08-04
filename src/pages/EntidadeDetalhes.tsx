@@ -750,14 +750,11 @@ const EntidadeDetalhes = () => {
                               <div className="space-y-1 text-sm text-gray-500">
                                 <div className="flex items-center">
                                   <Calendar className="mr-2 h-4 w-4" />
-                                  {new Date(evento.data_evento).toLocaleDateString('pt-BR')}
+                                  {new Date((evento as any).data).toLocaleDateString('pt-BR')}
                                 </div>
                                 <div className="flex items-center">
                                   <Clock className="mr-2 h-4 w-4" />
-                                  {new Date(evento.data_evento).toLocaleTimeString('pt-BR', { 
-                                    hour: '2-digit', 
-                                    minute: '2-digit' 
-                                  })}
+                                                          {(evento as any).horario || 'Horário não definido'}
                                 </div>
                                 {evento.local && (
                                   <div className="flex items-center">
