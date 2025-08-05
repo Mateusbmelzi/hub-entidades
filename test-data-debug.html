@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Data 05/08/2025</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .debug-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .error { color: red; }
+        .success { color: green; }
+        .warning { color: orange; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+        input[type="datetime-local"] { padding: 8px; margin: 5px; }
+        button { padding: 10px 15px; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug Data 05/08/2025</h1>
+    
+    <div class="debug-section">
+        <h2>1. Informações do Sistema</h2>
+        <p><strong>Data/Hora Atual:</strong> <span id="data-atual"></span></p>
+        <p><strong>Timezone:</strong> <span id="timezone"></span></p>
+        <p><strong>User Agent:</strong> <span id="user-agent"></span></p>
+    </div>
+
+    <div class="debug-section">
+        <h2>2. Teste de Formatação de Data</h2>
+        <p>Selecione uma data e hora:</p>
+        <input type="datetime-local" id="data-teste" />
+        <button onclick="testarFormatacao()">Testar Formatação</button>
+        <div id="resultado-formatacao"></div>
+    </div>
+
+    <div class="debug-section">
+        <h2>3. Teste de Criação de Evento</h2>
+        <p>Data para o evento:</p>
+        <input type="datetime-local" id="data-evento" />
+        <button onclick="criarEventoTeste()">Criar Evento Teste</button>
+        <div id="resultado-criacao"></div>
+    </div>
+
+    <div class="debug-section">
+        <h2>4. Verificar Eventos com Data 05/08/2025</h2>
+        <button onclick="verificarEventosProblema()">Verificar Eventos Problemáticos</button>
+        <div id="eventos-problema"></div>
+    </div>
+
+    <div class="debug-section">
+        <h2>5. Teste da Função RPC</h2>
+        <button onclick="testarRPCComData()">Testar RPC com Data Atual</button>
+        <div id="resultado-rpc"></div>
+    </div>
+
+    <script>
+        // Configuração do Supabase
+        const supabaseUrl = 'https://lddtackcnpzdswndqgfs.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkZHRhY2tjbnB6ZHN3bmRxZ2ZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NzI5NzQsImV4cCI6MjA1MDU0ODk3NH0.Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        // 1. Mostrar informações do sistema
+        function mostrarInfoSistema() {
+            const agora = new Date();
+            document.getElementById('data-atual').textContent = agora.toLocaleString('pt-BR');
+            document.getElementById('timezone').textContent = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            document.getElementById('user-agent').textContent = navigator.userAgent;
+            
+            // Definir data atual no input
+            const ano = agora.getFullYear();
+            const mes = String(agora.getMonth() + 1).padStart(2, '0');
+            const dia = String(agora.getDate()).padStart(2, '0');
+            const hora = String(agora.getHours()).padStart(2, '0');
+            const minuto = String(agora.getMinutes()).padStart(2, '0');
+            const datetimeLocal = `${ano}-${mes}-${dia}T${hora}:${minuto}`;
+            
+            document.getElementById('data-teste').value = datetimeLocal;
+            document.getElementById('data-evento').value = datetimeLocal;
+        }
+
+        // 2. Testar formatação de data
+        function testarFormatacao() {
+            const dataInput = document.getElementById('data-teste').value;
+            const resultado = document.getElementById('resultado-formatacao');
+            
+            if (!dataInput) {
+                resultado.innerHTML = '<p class="error">❌ Nenhuma data selecionada</p>';
+                return;
+            }
+            
+            const data = new Date(dataInput);
+            const dataISO = data.toISOString();
+            const dataLocal = data.toLocaleString('pt-BR');
+            const timestamp = data.getTime();
+            
+            console.log('📅 Debug Data:', {
+                input: dataInput,
+                date: data,
+                iso: dataISO,
+                local: dataLocal,
+                timestamp: timestamp
+            });
+            
+            resultado.innerHTML = `
+                <h3>Análise da Data:</h3>
+                <p><strong>Input:</strong> ${dataInput}</p>
+                <p><strong>Date Object:</strong> ${data}</p>
+                <p><strong>ISO String:</strong> ${dataISO}</p>
+                <p><strong>Local String:</strong> ${dataLocal}</p>
+                <p><strong>Timestamp:</strong> ${timestamp}</p>
+                <p><strong>É válida?</strong> ${!isNaN(data.getTime()) ? '✅ Sim' : '❌ Não'}</p>
+                <p><strong>É no futuro?</strong> ${data > new Date() ? '✅ Sim' : '❌ Não'}</p>
+            `;
+        }
+
+        // 3. Criar evento teste
+        async function criarEventoTeste() {
+            const dataEvento = document.getElementById('data-evento').value;
+            const resultado = document.getElementById('resultado-criacao');
+            
+            if (!dataEvento) {
+                resultado.innerHTML = '<p class="error">❌ Selecione uma data</p>';
+                return;
+            }
+            
+            resultado.innerHTML = '<p>🔄 Criando evento...</p>';
+            
+            try {
+                console.log('🚀 Criando evento com data:', dataEvento);
+                
+                const { data, error } = await supabase.rpc('create_event_as_entity_pending', {
+                    _entidade_id: 1,
+                    _nome: 'Evento Debug Data',
+                    _data_evento: dataEvento,
+                    _descricao: 'Teste de debug da data',
+                    _local: 'Local Debug',
+                    _capacidade: 5
+                });
+                
+                if (error) {
+                    resultado.innerHTML = `<p class="error">❌ Erro: ${error.message}</p>`;
+                    console.error('Erro:', error);
+                } else {
+                    resultado.innerHTML = `<p class="success">✅ Evento criado! ID: ${data}</p>`;
+                    console.log('Evento criado:', data);
+                    
+                    // Verificar o evento criado
+                    setTimeout(() => verificarEventoCriado(data), 1000);
+                }
+            } catch (err) {
+                resultado.innerHTML = `<p class="error">❌ Erro: ${err.message}</p>`;
+                console.error('Erro:', err);
+            }
+        }
+
+        // Verificar evento criado
+        async function verificarEventoCriado(eventoId) {
+            try {
+                const { data, error } = await supabase
+                    .from('eventos')
+                    .select('*')
+                    .eq('id', eventoId)
+                    .single();
+                
+                if (error) {
+                    console.error('Erro ao verificar evento:', error);
+                    return;
+                }
+                
+                console.log('📊 Evento criado:', data);
+                
+                const resultado = document.getElementById('resultado-criacao');
+                resultado.innerHTML += `
+                    <h3>Evento Verificado:</h3>
+                    <p><strong>ID:</strong> ${data.id}</p>
+                    <p><strong>Nome:</strong> ${data.nome}</p>
+                    <p><strong>Data Evento:</strong> ${data.data_evento}</p>
+                    <p><strong>Criado em:</strong> ${data.created_at}</p>
+                    <p><strong>Status:</strong> ${data.status_aprovacao}</p>
+                `;
+                
+                // Verificar se a data está correta
+                const dataEsperada = new Date(document.getElementById('data-evento').value);
+                const dataSalva = new Date(data.data_evento);
+                
+                if (Math.abs(dataEsperada.getTime() - dataSalva.getTime()) < 60000) { // 1 minuto de tolerância
+                    resultado.innerHTML += '<p class="success">✅ Data salva corretamente!</p>';
+                } else {
+                    resultado.innerHTML += `<p class="warning">⚠️ Data pode estar incorreta. Esperada: ${dataEsperada}, Salva: ${dataSalva}</p>`;
+                }
+                
+            } catch (err) {
+                console.error('Erro ao verificar evento:', err);
+            }
+        }
+
+        // 4. Verificar eventos com problema
+        async function verificarEventosProblema() {
+            const resultado = document.getElementById('eventos-problema');
+            resultado.innerHTML = '<p>🔍 Verificando eventos...</p>';
+            
+            try {
+                // Buscar eventos com data 05/08/2025
+                const { data, error } = await supabase
+                    .from('eventos')
+                    .select('*')
+                    .gte('data_evento', '2025-08-05T00:00:00')
+                    .lt('data_evento', '2025-08-06T00:00:00')
+                    .order('created_at', { ascending: false });
+                
+                if (error) {
+                    resultado.innerHTML = `<p class="error">❌ Erro: ${error.message}</p>`;
+                    return;
+                }
+                
+                if (data.length === 0) {
+                    resultado.innerHTML = '<p class="success">✅ Nenhum evento encontrado com data 05/08/2025</p>';
+                    return;
+                }
+                
+                let html = `<h3>⚠️ Encontrados ${data.length} eventos com data 05/08/2025:</h3>`;
+                data.forEach(evento => {
+                    html += `
+                        <div style="border: 1px solid #ff6b6b; margin: 10px 0; padding: 10px; background: #fff5f5;">
+                            <p><strong>ID:</strong> ${evento.id}</p>
+                            <p><strong>Nome:</strong> ${evento.nome}</p>
+                            <p><strong>Data Evento:</strong> ${evento.data_evento}</p>
+                            <p><strong>Criado em:</strong> ${evento.created_at}</p>
+                            <p><strong>Entidade ID:</strong> ${evento.entidade_id}</p>
+                        </div>
+                    `;
+                });
+                
+                resultado.innerHTML = html;
+                
+            } catch (err) {
+                resultado.innerHTML = `<p class="error">❌ Erro: ${err.message}</p>`;
+            }
+        }
+
+        // 5. Testar RPC com data atual
+        async function testarRPCComData() {
+            const resultado = document.getElementById('resultado-rpc');
+            resultado.innerHTML = '<p>🧪 Testando RPC...</p>';
+            
+            const dataAtual = new Date().toISOString();
+            console.log('🧪 Testando RPC com data atual:', dataAtual);
+            
+            try {
+                const { data, error } = await supabase.rpc('create_event_as_entity_pending', {
+                    _entidade_id: 1,
+                    _nome: 'Teste RPC Data Atual',
+                    _data_evento: dataAtual,
+                    _descricao: 'Teste com data atual',
+                    _local: 'Teste',
+                    _capacidade: 3
+                });
+                
+                if (error) {
+                    resultado.innerHTML = `<p class="error">❌ Erro RPC: ${error.message}</p>`;
+                    console.error('Erro RPC:', error);
+                } else {
+                    resultado.innerHTML = `<p class="success">✅ RPC funcionou! ID: ${data}</p>`;
+                    console.log('RPC funcionou:', data);
+                }
+            } catch (err) {
+                resultado.innerHTML = `<p class="error">❌ Erro: ${err.message}</p>`;
+                console.error('Erro:', err);
+            }
+        }
+
+        // Inicializar
+        mostrarInfoSistema();
+    </script>
+</body>
+</html> 

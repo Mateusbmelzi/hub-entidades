@@ -85,7 +85,7 @@ export default function CriarEvento() {
           nome,
           descricao,
           local,
-          data_evento: dataEvento,
+          data_evento: dataEvento, // Mantemos para compatibilidade com a função RPC
           capacidade: capacidade ? parseInt(capacidade) : null,
           entidade_id: parseInt(entidadeId),
           status: 'ativo'

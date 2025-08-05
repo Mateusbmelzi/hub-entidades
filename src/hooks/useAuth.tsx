@@ -47,9 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const { loginAsStudent, logout: logoutAuthState } = useAuthStateContext();
   
-  // Ref para controlar se o componente ainda está montado
-  const isMountedRef = useRef(true);
-  const profileFetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
 
   // Função para buscar perfil com cache
   const fetchUserProfile = useCallback(async (userId: string) => {
@@ -57,13 +55,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Verificar cache primeiro
       const cached = profileCache.get(userId);
       if (cached && (Date.now() - cached.timestamp) < PROFILE_CACHE_TIMEOUT) {
-        console.log('📦 Usando perfil em cache para usuário:', userId);
         setProfile(cached.profile);
+        setLoading(false);
         return;
       }
 
-      console.log('🔄 Buscando perfil do usuário:', userId);
-      
       // Buscar perfil e role em paralelo
       const [profileResult, roleResult] = await Promise.all([
         supabase
@@ -81,7 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Tratar erro do roleResult separadamente
       let userRole = 'aluno'; // Fallback padrão
       if (roleResult.error) {
-        console.log('⚠️ Erro ao buscar role, usando fallback:', roleResult.error);
+        // Role não encontrado, usar fallback
       } else if (roleResult.data) {
         userRole = roleResult.data.role;
       }
@@ -98,31 +94,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           timestamp: Date.now()
         });
         
-        if (isMountedRef.current) {
-          setProfile(userProfile);
-        }
+        setProfile(userProfile);
+        setLoading(false);
+      } else {
+        setProfile(null);
+        setLoading(false);
       }
     } catch (error) {
       console.error('Error fetching user profile:', error);
-    } finally {
-      if (isMountedRef.current) {
-        setLoading(false);
-      }
+      setProfile(null);
+      setLoading(false);
     }
   }, []);
 
   // Função para forçar refresh do perfil (limpa cache e busca novamente)
   const refreshProfile = useCallback(async () => {
     if (user) {
-      console.log('🔄 Forçando refresh do perfil...');
-      
       // Limpar cache do usuário atual
       profileCache.delete(user.id);
-      console.log('🗑️ Cache do perfil limpo para usuário:', user.id);
       
       // Buscar perfil novamente
       await fetchUserProfile(user.id);
-      console.log('✅ Perfil atualizado com sucesso');
     }
   }, [user, fetchUserProfile]);
 
@@ -137,15 +129,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Notificar o sistema de autenticação exclusivo
           loginAsStudent(session.user);
           
-          // Limpar timeout anterior se existir
-          if (profileFetchTimeoutRef.current) {
-            clearTimeout(profileFetchTimeoutRef.current);
-          }
-          
-          // Buscar perfil com delay reduzido
-          profileFetchTimeoutRef.current = setTimeout(() => {
+          // Buscar perfil com delay
+          setTimeout(() => {
             fetchUserProfile(session.user.id);
-          }, 500); // Reduzido de 2000ms para 500ms
+          }, 2000);
         } else {
           setProfile(null);
           setLoading(false);
@@ -168,14 +155,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    // Cleanup
-    return () => {
-      isMountedRef.current = false;
-      if (profileFetchTimeoutRef.current) {
-        clearTimeout(profileFetchTimeoutRef.current);
-      }
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, [loginAsStudent, fetchUserProfile]);
 
   // Limpar cache periodicamente

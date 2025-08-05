@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { combineDataHorario, formatDataHorario, isEventoAtivo, getEventoStatus } from '@/lib/date-utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useEntityAuth } from '@/hooks/useEntityAuth';
 import InscricaoEventoForm from '@/components/InscricaoEventoForm';
@@ -62,7 +63,7 @@ const EventoDetalhes = () => {
   const usuarioInscrito = user && participantes.find(p => p.email === user.email);
 
   // Verificar se o evento está ativo e não passou da data
-  const eventoAtivo = evento && evento.status === 'ativo' && new Date(evento.data_evento) > new Date();
+  const eventoAtivo = evento && evento.status === 'ativo' && isEventoAtivo(evento.data, evento.horario);
   
   // Verificar se o evento está lotado
   const eventoLotado = evento?.capacidade && participantes.length >= evento.capacidade;
@@ -131,18 +132,18 @@ const EventoDetalhes = () => {
     );
   }
 
-  const getStatusColor = (status: string, dataEvento: string) => {
+  const getStatusColor = (status: string, data: string, horario?: string | null) => {
+    const eventDate = combineDataHorario(data, horario);
     const now = new Date();
-    const eventDate = new Date(dataEvento);
     
     if (status === 'cancelado') return 'bg-red-100 text-red-800 border-red-200';
     if (status === 'finalizado' || eventDate < now) return 'bg-gray-100 text-gray-800 border-gray-200';
     return 'bg-green-100 text-green-800 border-green-200';
   };
 
-  const getStatusLabel = (status: string, dataEvento: string) => {
+  const getStatusLabel = (status: string, data: string, horario?: string | null) => {
+    const eventDate = combineDataHorario(data, horario);
     const now = new Date();
-    const eventDate = new Date(dataEvento);
     
     if (status === 'cancelado') return 'Cancelado';
     if (status === 'finalizado' || eventDate < now) return 'Finalizado';
@@ -193,11 +194,11 @@ const EventoDetalhes = () => {
                 <div className="flex flex-wrap items-center gap-6 text-red-100 mb-6">
                   <div className="flex items-center">
                     <Calendar className="mr-2 h-5 w-5" />
-                    {format(new Date(evento.data_evento), "dd 'de' MMMM, yyyy", { locale: ptBR })}
+                    {format(combineDataHorario(evento.data, evento.horario), "dd 'de' MMMM, yyyy", { locale: ptBR })}
                   </div>
                   <div className="flex items-center">
                     <Clock className="mr-2 h-5 w-5" />
-                    {format(new Date(evento.data_evento), "HH:mm", { locale: ptBR })}
+                    {format(combineDataHorario(evento.data, evento.horario), "HH:mm", { locale: ptBR })}
                   </div>
                   {evento.local && (
                     <div className="flex items-center">
@@ -221,8 +222,8 @@ const EventoDetalhes = () => {
                 <CardHeader className="pb-4">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-xl text-gray-900">Informações do Evento</CardTitle>
-                    <Badge className={`${getStatusColor(evento.status, evento.data_evento)} text-sm px-3 py-1`}>
-                      {getStatusLabel(evento.status, evento.data_evento)}
+                                    <Badge className={`${getStatusColor(evento.status, evento.data, evento.horario)} text-sm px-3 py-1`}>
+                  {getStatusLabel(evento.status, evento.data, evento.horario)}
                     </Badge>
                   </div>
                 </CardHeader>

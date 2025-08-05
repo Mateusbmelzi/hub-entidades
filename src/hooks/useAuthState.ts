@@ -18,35 +18,31 @@ export const useAuthState = () => {
   // Verificar estado inicial ao carregar
   useEffect(() => {
     const checkAuthState = () => {
-      console.log('🔍 Verificando estado inicial de autenticação...');
-      
       const isSuperAdmin = localStorage.getItem('superAdminAuthenticated') === 'true';
-      const studentUser = localStorage.getItem('supabase.auth.token'); // Verificar se há token do Supabase
-      
-      console.log('📊 Estado do localStorage:', { isSuperAdmin, studentUser: !!studentUser });
       
       if (isSuperAdmin) {
-        console.log('👑 Detectado super admin no localStorage');
         setAuthState({
           type: 'superAdmin',
           user: { email: localStorage.getItem('superAdminEmail') },
           isAuthenticated: true
         });
-      } else if (studentUser) {
-        console.log('👨‍🎓 Detectado aluno no localStorage');
-        // Se há token do Supabase, o usuário está logado como aluno
-        setAuthState({
-          type: 'student',
-          user: null, // Será preenchido pelo useAuth
-          isAuthenticated: true
-        });
       } else {
-        console.log('🚫 Nenhum usuário autenticado');
-        setAuthState({
-          type: null,
-          user: null,
-          isAuthenticated: false
-        });
+        // Verificar se há token do Supabase (aluno logado)
+        const hasSupabaseToken = localStorage.getItem('supabase.auth.token');
+        
+        if (hasSupabaseToken) {
+          setAuthState({
+            type: 'student',
+            user: null, // Será preenchido pelo useAuth
+            isAuthenticated: true
+          });
+        } else {
+          setAuthState({
+            type: null,
+            user: null,
+            isAuthenticated: false
+          });
+        }
       }
     };
 
@@ -54,8 +50,6 @@ export const useAuthState = () => {
   }, []);
 
   const loginAsSuperAdmin = (email: string) => {
-    console.log('🔐 loginAsSuperAdmin chamado com:', email);
-    
     // Limpar qualquer login de aluno primeiro
     localStorage.removeItem('supabase.auth.token');
     localStorage.removeItem('supabase.auth.refreshToken');
@@ -64,18 +58,11 @@ export const useAuthState = () => {
     localStorage.setItem('superAdminAuthenticated', 'true');
     localStorage.setItem('superAdminEmail', email);
     
-    console.log('💾 localStorage atualizado');
-    
-    const newAuthState = {
-      type: 'superAdmin' as const,
+    setAuthState({
+      type: 'superAdmin',
       user: { email },
       isAuthenticated: true
-    };
-    
-    console.log('🔄 Atualizando AuthState para:', newAuthState);
-    setAuthState(newAuthState);
-    
-    console.log('✅ AuthState atualizado para superAdmin');
+    });
   };
 
   const loginAsStudent = (user: any) => {

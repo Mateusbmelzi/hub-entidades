@@ -17,6 +17,8 @@ import { useEventos } from '@/hooks/useEventos';
 import InscricaoEventoForm from '@/components/InscricaoEventoForm';
 
 const Eventos = () => {
+
+  
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFilters, setSelectedFilters] = useState<string[]>(['todos']);

@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste - Atualização de Eventos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Teste - Atualização de Eventos</h1>
+    
+    <div class="container">
+        <h2>1. Configuração do Supabase</h2>
+        <div class="form-group">
+            <label for="supabaseUrl">URL do Supabase:</label>
+            <input type="text" id="supabaseUrl" placeholder="https://seu-projeto.supabase.co">
+        </div>
+        <div class="form-group">
+            <label for="supabaseKey">Chave Anon do Supabase:</label>
+            <input type="text" id="supabaseKey" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+        </div>
+        <button onclick="testConnection()">Testar Conexão</button>
+        <div id="connectionResult" class="result" style="display: none;"></div>
+    </div>
+
+    <div class="container">
+        <h2>2. Buscar Eventos Existentes</h2>
+        <div class="form-group">
+            <label for="entidadeId">ID da Entidade:</label>
+            <input type="number" id="entidadeId" placeholder="1">
+        </div>
+        <button onclick="buscarEventos()">Buscar Eventos</button>
+        <div id="eventosResult" class="result" style="display: none;"></div>
+    </div>
+
+    <div class="container">
+        <h2>3. Testar Atualização de Evento</h2>
+        <div class="form-group">
+            <label for="eventoId">ID do Evento:</label>
+            <input type="text" id="eventoId" placeholder="uuid-do-evento">
+        </div>
+        <div class="form-group">
+            <label for="novoNome">Novo Nome:</label>
+            <input type="text" id="novoNome" placeholder="Nome atualizado do evento">
+        </div>
+        <div class="form-group">
+            <label for="novaDescricao">Nova Descrição:</label>
+            <textarea id="novaDescricao" rows="3" placeholder="Descrição atualizada"></textarea>
+        </div>
+        <div class="form-group">
+            <label for="novoLocal">Novo Local:</label>
+            <input type="text" id="novoLocal" placeholder="Novo local do evento">
+        </div>
+        <div class="form-group">
+            <label for="novaData">Nova Data e Hora:</label>
+            <input type="datetime-local" id="novaData">
+        </div>
+        <div class="form-group">
+            <label for="novaCapacidade">Nova Capacidade:</label>
+            <input type="number" id="novaCapacidade" placeholder="50">
+        </div>
+        <button onclick="testarAtualizacao()">Testar Atualização</button>
+        <div id="updateResult" class="result" style="display: none;"></div>
+    </div>
+
+    <div class="container">
+        <h2>4. Verificar Evento Atualizado</h2>
+        <button onclick="verificarEvento()">Verificar Evento</button>
+        <div id="verifyResult" class="result" style="display: none;"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        let supabase = null;
+
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `result ${type}`;
+            element.style.display = 'block';
+        }
+
+        function testConnection() {
+            const url = document.getElementById('supabaseUrl').value;
+            const key = document.getElementById('supabaseKey').value;
+            
+            if (!url || !key) {
+                showResult('connectionResult', 'Por favor, preencha URL e chave do Supabase', 'error');
+                return;
+            }
+
+            try {
+                supabase = window.supabase.createClient(url, key);
+                showResult('connectionResult', '✅ Conexão com Supabase estabelecida com sucesso!', 'success');
+            } catch (error) {
+                showResult('connectionResult', `❌ Erro na conexão: ${error.message}`, 'error');
+            }
+        }
+
+        async function buscarEventos() {
+            if (!supabase) {
+                showResult('eventosResult', '❌ Configure a conexão com Supabase primeiro', 'error');
+                return;
+            }
+
+            const entidadeId = document.getElementById('entidadeId').value;
+            if (!entidadeId) {
+                showResult('eventosResult', '❌ Digite o ID da entidade', 'error');
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase
+                    .from('eventos')
+                    .select('*')
+                    .eq('entidade_id', entidadeId)
+                    .order('data', { ascending: true });
+
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    let result = `📋 Eventos encontrados (${data.length}):\n\n`;
+                    data.forEach((evento, index) => {
+                        result += `${index + 1}. ID: ${evento.id}\n`;
+                        result += `   Nome: ${evento.nome}\n`;
+                        result += `   Data: ${evento.data}\n`;
+                        result += `   Horário: ${evento.horario || 'Não definido'}\n`;
+                        result += `   Local: ${evento.local || 'Não definido'}\n`;
+                        result += `   Status: ${evento.status_aprovacao}\n\n`;
+                    });
+                    showResult('eventosResult', result, 'success');
+                } else {
+                    showResult('eventosResult', '📭 Nenhum evento encontrado para esta entidade', 'info');
+                }
+            } catch (error) {
+                showResult('eventosResult', `❌ Erro ao buscar eventos: ${error.message}`, 'error');
+            }
+        }
+
+        async function testarAtualizacao() {
+            if (!supabase) {
+                showResult('updateResult', '❌ Configure a conexão com Supabase primeiro', 'error');
+                return;
+            }
+
+            const eventoId = document.getElementById('eventoId').value;
+            const entidadeId = document.getElementById('entidadeId').value;
+            const novoNome = document.getElementById('novoNome').value;
+            const novaDescricao = document.getElementById('novaDescricao').value;
+            const novoLocal = document.getElementById('novoLocal').value;
+            const novaData = document.getElementById('novaData').value;
+            const novaCapacidade = document.getElementById('novaCapacidade').value;
+
+            if (!eventoId || !entidadeId) {
+                showResult('updateResult', '❌ ID do evento e ID da entidade são obrigatórios', 'error');
+                return;
+            }
+
+            try {
+                const params = {
+                    _evento_id: eventoId,
+                    _entidade_id: parseInt(entidadeId)
+                };
+
+                if (novoNome) params._nome = novoNome;
+                if (novaDescricao) params._descricao = novaDescricao;
+                if (novoLocal) params._local = novoLocal;
+                if (novaData) params._data_evento = novaData;
+                if (novaCapacidade) params._capacidade = parseInt(novaCapacidade);
+
+                console.log('Parâmetros da função RPC:', params);
+
+                const { data, error } = await supabase.rpc('update_event_as_entity', params);
+
+                if (error) throw error;
+
+                showResult('updateResult', `✅ Evento atualizado com sucesso!\n\nResultado: ${data}`, 'success');
+            } catch (error) {
+                showResult('updateResult', `❌ Erro ao atualizar evento: ${error.message}`, 'error');
+            }
+        }
+
+        async function verificarEvento() {
+            if (!supabase) {
+                showResult('verifyResult', '❌ Configure a conexão com Supabase primeiro', 'error');
+                return;
+            }
+
+            const eventoId = document.getElementById('eventoId').value;
+            if (!eventoId) {
+                showResult('verifyResult', '❌ Digite o ID do evento', 'error');
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase
+                    .from('eventos')
+                    .select('*')
+                    .eq('id', eventoId)
+                    .single();
+
+                if (error) throw error;
+
+                if (data) {
+                    let result = `📋 Evento atualizado:\n\n`;
+                    result += `ID: ${data.id}\n`;
+                    result += `Nome: ${data.nome}\n`;
+                    result += `Descrição: ${data.descricao || 'Não definida'}\n`;
+                    result += `Data: ${data.data}\n`;
+                    result += `Horário: ${data.horario || 'Não definido'}\n`;
+                    result += `Local: ${data.local || 'Não definido'}\n`;
+                    result += `Capacidade: ${data.capacidade || 'Ilimitada'}\n`;
+                    result += `Status: ${data.status_aprovacao}\n`;
+                    result += `Última atualização: ${data.updated_at}\n`;
+                    
+                    showResult('verifyResult', result, 'success');
+                } else {
+                    showResult('verifyResult', '📭 Evento não encontrado', 'info');
+                }
+            } catch (error) {
+                showResult('verifyResult', `❌ Erro ao verificar evento: ${error.message}`, 'error');
+            }
+        }
+
+        // Definir data atual como padrão
+        document.addEventListener('DOMContentLoaded', function() {
+            const now = new Date();
+            const localDateTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+            document.getElementById('novaData').value = localDateTime;
+        });
+    </script>
+</body>
+</html> 

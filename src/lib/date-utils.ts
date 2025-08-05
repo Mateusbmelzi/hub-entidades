@@ -82,3 +82,71 @@ export const formatDateForDisplay = (date: string | Date): string => {
   
   return `${day}/${month}/${year}`;
 }; 
+
+// Funções utilitárias para trabalhar com data e horário separados
+
+/**
+ * Combina data e horário em um timestamp
+ */
+export function combineDataHorario(data: string, horario?: string | null): Date {
+  if (!horario) {
+    return new Date(data);
+  }
+  
+  // Combinar data e horário
+  const dataHorarioString = `${data}T${horario}`;
+  return new Date(dataHorarioString);
+}
+
+/**
+ * Formata data e horário para exibição
+ */
+export function formatDataHorario(data: string, horario?: string | null): string {
+  const date = combineDataHorario(data, horario);
+  return date.toLocaleString('pt-BR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+/**
+ * Formata apenas a data para exibição
+ */
+export function formatData(data: string): string {
+  return new Date(data).toLocaleDateString('pt-BR');
+}
+
+/**
+ * Formata apenas o horário para exibição
+ */
+export function formatHorario(horario?: string | null): string {
+  if (!horario) return '';
+  return new Date(`2000-01-01T${horario}`).toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+/**
+ * Verifica se um evento está ativo (data futura)
+ */
+export function isEventoAtivo(data: string, horario?: string | null): boolean {
+  const eventDate = combineDataHorario(data, horario);
+  return eventDate > new Date();
+}
+
+/**
+ * Obtém o status de um evento baseado na data
+ */
+export function getEventoStatus(data: string, horario?: string | null): 'futuro' | 'proximo' | 'finalizado' {
+  const eventDate = combineDataHorario(data, horario);
+  const now = new Date();
+  const diffInHours = (eventDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+  
+  if (diffInHours < 0) return 'finalizado';
+  if (diffInHours <= 24) return 'proximo';
+  return 'futuro';
+} 

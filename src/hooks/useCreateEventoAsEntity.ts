@@ -6,7 +6,7 @@ interface CreateEventoData {
   nome: string;
   descricao?: string;
   local?: string;
-  data_evento: string;
+  data_evento: string; // Mantemos para compatibilidade com o frontend
   capacidade?: number;
 }
 

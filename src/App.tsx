@@ -5,6 +5,7 @@ import { AuthProvider } from '@/hooks/useAuth';
 import { EntityAuthProvider } from '@/hooks/useEntityAuth';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { SuperAdminRoute } from '@/components/SuperAdminRoute';
+
 import Navigation from '@/components/Navigation';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -68,6 +69,7 @@ function App() {
                         {/* Rota de teste de eventos */}
                         <Route path="/test-eventos" element={<TestEventos />} />
                         
+
 
                         
                         {/* Rota protegida - requer apenas super admin */}

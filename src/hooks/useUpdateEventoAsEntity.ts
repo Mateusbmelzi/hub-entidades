@@ -19,13 +19,38 @@ export const useUpdateEventoAsEntity = () => {
     try {
       setLoading(true);
       
+      // Converter data_evento de string para Date se fornecida
+      let dataEventoProcessada = null;
+      if (data.data_evento) {
+        // O input datetime-local está no timezone local
+        // Vamos converter para UTC para evitar problemas de timezone
+        
+        // Criar uma data a partir do input datetime-local
+        const dataLocal = new Date(data.data_evento);
+        
+        // Verificar se a data é válida
+        if (isNaN(dataLocal.getTime())) {
+          throw new Error('Data inválida fornecida');
+        }
+        
+        // Converter para UTC (isso vai ajustar automaticamente o timezone)
+        dataEventoProcessada = dataLocal.toISOString();
+        
+        // Debug: log para verificar o que está sendo enviado
+        console.log('Debug - Data processada:', {
+          input: data.data_evento,
+          dataLocal: dataLocal.toString(),
+          final: dataEventoProcessada
+        });
+      }
+      
       const { error } = await supabase.rpc('update_event_as_entity', {
         _evento_id: eventoId,
         _entidade_id: entidadeId,
         _nome: data.nome,
         _descricao: data.descricao,
         _local: data.local,
-        _data_evento: data.data_evento,
+        _data_evento: dataEventoProcessada,
         _capacidade: data.capacidade,
         _status: data.status
       });

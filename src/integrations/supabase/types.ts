@@ -223,7 +223,8 @@ export type Database = {
         Row: {
           capacidade: number | null
           created_at: string
-          data_evento: string
+          data: string
+          horario: string | null
           descricao: string | null
           entidade_id: number | null
           id: string
@@ -239,7 +240,8 @@ export type Database = {
         Insert: {
           capacidade?: number | null
           created_at?: string
-          data_evento: string
+          data: string
+          horario?: string | null
           descricao?: string | null
           entidade_id?: number | null
           id?: string
@@ -255,7 +257,8 @@ export type Database = {
         Update: {
           capacidade?: number | null
           created_at?: string
-          data_evento?: string
+          data?: string
+          horario?: string | null
           descricao?: string | null
           entidade_id?: number | null
           id?: string

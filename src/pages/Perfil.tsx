@@ -184,7 +184,8 @@ export default function Perfil() {
               id, 
               nome, 
               descricao, 
-              data_evento, 
+              data,
+        horario, 
               local,
               entidade_id
             `)
@@ -235,7 +236,8 @@ export default function Perfil() {
               ...d,
               evento_nome: evento?.nome || 'Evento não encontrado',
               evento_descricao: evento?.descricao,
-              evento_data: evento?.data_evento,
+              evento_data: evento?.data,
+        evento_horario: evento?.horario,
               evento_local: evento?.local,
               evento_entidade_nome: entidade?.nome,
               status_participacao: d.status_participacao as 'confirmado' | 'pendente' | 'cancelado'

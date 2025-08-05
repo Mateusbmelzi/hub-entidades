@@ -13,6 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useAuthStateContext } from '@/components/AuthStateProvider';
 import { useAprovarEventos, EventoParaAprovacao } from '@/hooks/useAprovarEventos';
 import { toast } from 'sonner';
+import { combineDataHorario, formatData } from '@/lib/date-utils';
 
 const AprovarEventos = () => {
   const navigate = useNavigate();
@@ -229,13 +230,7 @@ const AprovarEventos = () => {
                         <div>
                           <p className="text-sm text-muted-foreground">Data do Evento</p>
                           <p className="text-sm">
-                            {new Date(evento.data_evento).toLocaleDateString('pt-BR', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
+                            {formatData(evento.data)}
                           </p>
                         </div>
                         <div>
@@ -296,7 +291,7 @@ const AprovarEventos = () => {
                                   <p className="text-sm text-muted-foreground">
                                     <strong>Detalhes do evento:</strong><br/>
                                     • Entidade: {evento.entidade_nome}<br/>
-                                    • Data: {new Date(evento.data_evento).toLocaleDateString('pt-BR')}<br/>
+                                    • Data: {formatData(evento.data)}<br/>
                                     • Local: {evento.local || 'Não informado'}<br/>
                                     • Capacidade: {evento.capacidade || 'Ilimitada'}
                                   </p>

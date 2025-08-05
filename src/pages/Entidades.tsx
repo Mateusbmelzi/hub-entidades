@@ -14,6 +14,8 @@ import { AREAS_ATUACAO, getFirstAreaColor, getAreaColor } from '@/lib/constants'
 import { FotoPerfilEntidade } from '@/components/FotoPerfilEntidade';
 
 const Entidades = () => {
+
+  
   const navigate = useNavigate();
   const { 
     entidades, 
