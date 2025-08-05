@@ -529,7 +529,7 @@ const Entidades = () => {
                           )}
 
                           <div className="flex flex-wrap gap-2">
-                            {entity.nivel_exigencia && (
+                            {/* {entity.nivel_exigencia && (
                               <Badge 
                                 variant="outline" 
                                 className={`text-xs font-medium ${
@@ -540,7 +540,7 @@ const Entidades = () => {
                               >
                                 {entity.nivel_exigencia}
                               </Badge>
-                            )}
+                            )} */}
                           </div>
                         </div>
                       </CardContent>

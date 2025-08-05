@@ -426,7 +426,7 @@ const EntidadeDetalhes = () => {
                     variant="secondary"
                     className="text-sm font-medium"
                   />
-                  {entidade.nivel_exigencia && (
+                  {/* {entidade.nivel_exigencia && (
                     <Badge 
                       variant="outline" 
                       className={`text-sm font-medium ${
@@ -437,7 +437,7 @@ const EntidadeDetalhes = () => {
                     >
                       Exigência: {entidade.nivel_exigencia}
                     </Badge>
-                  )}
+                  )} */}
                 </div>
               </CardContent>
             </Card>
