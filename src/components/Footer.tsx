@@ -90,9 +90,32 @@ const Footer: React.FC = () => {
           <p className="text-xs text-insper-dark-gray">
             © {new Date().getFullYear()} Hub de Entidades Insper. Todos os direitos reservados.
           </p>
-          <p className="text-xs text-insper-dark-gray">
-            Desenvolvido para a comunidade Insper
-          </p>
+          <div className="flex items-center space-x-4">
+            <a 
+              href="https://www.linkedin.com/in/gabriel-pradyumna-alencar-costa-8887a6201/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-xs text-insper-dark-gray hover:text-insper-red transition-colors"
+            >
+              Gabriel Pradyumna
+            </a>
+            <a 
+              href="https://www.linkedin.com/in/mateus-bellon-melzi-6381111a9/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-xs text-insper-dark-gray hover:text-insper-red transition-colors"
+            >
+              Mateus Melzi
+            </a>
+            <a 
+              href="https://www.instagram.com/hubdeentidades/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-xs text-insper-dark-gray hover:text-insper-red transition-colors"
+            >
+              Instagram
+            </a>
+          </div>
         </div>
       </div>
     </footer>

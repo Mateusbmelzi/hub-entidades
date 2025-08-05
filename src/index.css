@@ -362,24 +362,7 @@
 */
 
 /* Mobile-friendly footer links */
-.footer-link-mobile {
-  @apply text-red-600 hover:text-red-700 transition-colors font-medium text-base py-2 px-3 rounded hover:bg-red-50 min-h-[44px] flex items-center justify-center sm:justify-start;
-}
 
-/* Mobile-friendly footer layout */
-.footer-mobile-layout {
-  @apply flex flex-col space-y-4 md:flex-row md:justify-between md:items-center md:space-y-0;
-}
-
-/* Mobile-friendly footer text */
-.footer-text-mobile {
-  @apply text-gray-600 text-sm leading-relaxed;
-}
-
-/* Mobile-friendly footer links container */
-.footer-links-mobile {
-  @apply flex flex-col sm:flex-row sm:items-center sm:space-x-2 space-y-2 sm:space-y-0;
-}
 
 /* Mobile-friendly inputs */
 .input-mobile {
@@ -401,10 +384,7 @@
   @apply p-4 sm:p-6 hover:shadow-xl transition-all duration-300;
 }
 
-/* Mobile-friendly navigation links */
-.nav-link-mobile {
-  @apply flex items-center space-x-3 px-4 py-3 min-h-[44px] rounded-md text-base font-medium;
-}
+
 
 /* Mobile-friendly form fields */
 .form-field-mobile {
