@@ -390,7 +390,7 @@ const EventoDetalhes = () => {
                          <LogIn className="h-10 w-10 text-red-600" />
                        </div>
                        <h3 className="text-xl font-bold text-gray-900 mb-3">
-                         Faça login como entidade
+                         Faça login como organizador
                        </h3>
                        <p className="text-gray-600 mb-6">
                          Para visualizar a lista completa de inscritos e exportar os dados, faça login como entidade responsável pelo evento.
@@ -399,7 +399,7 @@ const EventoDetalhes = () => {
                          <DialogTrigger asChild>
                            <Button className="bg-red-600 hover:bg-red-700">
                              <LogIn className="w-4 h-4 mr-2" />
-                             Login como Entidade
+                             Login como Organização Responsável
                            </Button>
                          </DialogTrigger>
                          <DialogContent>
@@ -424,7 +424,7 @@ const EventoDetalhes = () => {
                  <CardHeader className="pb-4">
                    <div className="flex items-center space-x-2">
                      <Building2 className="w-5 h-5 text-red-600" />
-                     <CardTitle className="text-xl">Entidade Responsável</CardTitle>
+                     <CardTitle className="text-xl">Organização Responsável</CardTitle>
                    </div>
                  </CardHeader>
                  <CardContent className="space-y-6">
@@ -451,7 +451,7 @@ const EventoDetalhes = () => {
                    </div>
                    <Button variant="outline" className="w-full border-red-200 text-red-600 hover:bg-red-50" asChild>
                      <Link to={`/entidades/${evento.entidades.id}`}>
-                       Ver Perfil da Entidade
+                       Ver Perfil da Organização
                      </Link>
                    </Button>
                  </CardContent>

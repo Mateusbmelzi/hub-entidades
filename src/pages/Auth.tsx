@@ -11,6 +11,7 @@ import { useRedirectDestination } from '@/hooks/useRedirectDestination';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Shield, ArrowRight, Mail, Lock, GraduationCap } from 'lucide-react';
+import TermosModal from '@/components/TermosModal';
 
 export default function Auth() {
   // Estados separados para login
@@ -20,6 +21,8 @@ export default function Auth() {
   const [signupEmail, setSignupEmail] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showTermosModal, setShowTermosModal] = useState(false);
+  const [pendingSignUp, setPendingSignUp] = useState(false);
 
   const { signIn, signUp, user, profile, loading: authLoading } = useAuth();
   const { destination, clearDestination } = useRedirectDestination();
@@ -99,7 +102,12 @@ export default function Auth() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    setPendingSignUp(true);
+    setShowTermosModal(true);
+  };
 
+  const handleAcceptTerms = async () => {
+    setShowTermosModal(false);
     setLoading(true);
 
     const { error } = await signUp(signupEmail, signupPassword);
@@ -122,11 +130,17 @@ export default function Auth() {
 
       toast.success('Conta criada com sucesso! Redirecionando para completar seu perfil...');
       
-      // Aguardar um pouco para o toast ser exibido e depois redirecionar
       setTimeout(() => {
         navigate('/profile-setup');
       }, 1500);
     }
+    
+    setPendingSignUp(false);
+  };
+
+  const handleCloseTermosModal = () => {
+    setShowTermosModal(false);
+    setPendingSignUp(false);
   };
 
   return (
@@ -256,19 +270,32 @@ export default function Auth() {
 
           {/* Footer */}
           <div className="mt-8 pt-6 border-t border-insper-light-gray-1">
-            <p className="text-xs text-insper-dark-gray/60 text-center">
-              Ao continuar, você concorda com nossos{' '}
-              <a href="#" className="text-insper-red hover:text-insper-red/80 underline">
-                Termos de Uso
-              </a>{' '}
-              e{' '}
-              <a href="#" className="text-insper-red hover:text-insper-red/80 underline">
-                Política de Privacidade
-              </a>
-            </p>
+                          <p className="text-xs text-insper-dark-gray/60 text-center">
+                Ao continuar, você concorda com nossos{' '}
+                <button 
+                  onClick={() => setShowTermosModal(true)}
+                  className="text-insper-red hover:text-insper-red/80 underline"
+                >
+                  Termos de Uso
+                </button>{' '}
+                e{' '}
+                <button 
+                  onClick={() => setShowTermosModal(true)}
+                  className="text-insper-red hover:text-insper-red/80 underline"
+                >
+                  Política de Privacidade
+                </button>
+              </p>
           </div>
         </CardContent>
       </Card>
+
+      {/* Termos Modal */}
+      <TermosModal
+        isOpen={showTermosModal}
+        onClose={handleCloseTermosModal}
+        onAccept={handleAcceptTerms}
+      />
     </div>
   );
 }

@@ -172,6 +172,15 @@ const Navigation: React.FC = () => {
                 </Link>
               </div>
             )}
+            
+            {/* Link discreto para termos de uso */}
+            <Link
+              to="/termos-uso"
+              className="text-xs text-insper-dark-gray hover:text-insper-black transition-colors"
+              title="Termos de Uso"
+            >
+              Termos
+            </Link>
           </div>
 
           {/* Mobile menu button */}

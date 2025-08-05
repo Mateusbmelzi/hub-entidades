@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import React, { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStateContext } from '@/components/AuthStateProvider';
 import { useRedirectDestination } from '@/hooks/useRedirectDestination';
@@ -17,8 +17,11 @@ export const SuperAdminRoute: React.FC<SuperAdminRouteProps> = ({ children }) =>
 
   // Se não é super admin, salvar a URL atual e redirecionar para login
   if (!isSuperAdmin) {
-    // Salvar a URL atual para redirecionar após login
-    setDestination(location.pathname + location.search);
+    // Usar useEffect para evitar chamar setState durante render
+    React.useEffect(() => {
+      setDestination(location.pathname + location.search);
+    }, [location.pathname, location.search, setDestination]);
+    
     return <Navigate to="/super-admin-auth" replace />;
   }
 
