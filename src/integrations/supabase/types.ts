@@ -94,7 +94,7 @@ export type Database = {
           }
         ]
       }
-                   entidades: {
+      entidades: {
         Row: {
           ano_criacao: number | null
           area_atuacao: string | null
@@ -102,8 +102,14 @@ export type Database = {
           contato: string | null
           created_at: string
           data_primeira_fase: string | null
+          data_primeira_fase_2: string | null
+          data_primeira_fase_3: string | null
           data_segunda_fase: string | null
+          data_segunda_fase_2: string | null
+          data_segunda_fase_3: string | null
           data_terceira_fase: string | null
+          data_terceira_fase_2: string | null
+          data_terceira_fase_3: string | null
           descricao_curta: string | null
           descricao_detalhada: string | null
           email_contato: string | null
@@ -133,8 +139,14 @@ export type Database = {
           contato?: string | null
           created_at?: string
           data_primeira_fase?: string | null
+          data_primeira_fase_2?: string | null
+          data_primeira_fase_3?: string | null
           data_segunda_fase?: string | null
+          data_segunda_fase_2?: string | null
+          data_segunda_fase_3?: string | null
           data_terceira_fase?: string | null
+          data_terceira_fase_2?: string | null
+          data_terceira_fase_3?: string | null
           descricao_curta?: string | null
           descricao_detalhada?: string | null
           email_contato?: string | null
@@ -162,8 +174,14 @@ export type Database = {
           contato?: string | null
           created_at?: string
           data_primeira_fase?: string | null
+          data_primeira_fase_2?: string | null
+          data_primeira_fase_3?: string | null
           data_segunda_fase?: string | null
+          data_segunda_fase_2?: string | null
+          data_segunda_fase_3?: string | null
           data_terceira_fase?: string | null
+          data_terceira_fase_2?: string | null
+          data_terceira_fase_3?: string | null
           descricao_curta?: string | null
           descricao_detalhada?: string | null
           email_contato?: string | null
@@ -441,8 +459,14 @@ export type Database = {
           link_inscricao: string | null
           is_active: boolean | null
           data_primeira_fase: string | null
+          data_primeira_fase_2: string | null
+          data_primeira_fase_3: string | null
           data_segunda_fase: string | null
+          data_segunda_fase_2: string | null
+          data_segunda_fase_3: string | null
           data_terceira_fase: string | null
+          data_terceira_fase_2: string | null
+          data_terceira_fase_3: string | null
         }
         Insert: {
           id?: number
@@ -450,8 +474,14 @@ export type Database = {
           link_inscricao?: string | null
           is_active?: boolean | null
           data_primeira_fase?: string | null
+          data_primeira_fase_2: string | null
+          data_primeira_fase_3: string | null
           data_segunda_fase?: string | null
+          data_segunda_fase_2: string | null
+          data_segunda_fase_3: string | null
           data_terceira_fase?: string | null
+          data_terceira_fase_2: string | null
+          data_terceira_fase_3: string | null
         }
         Update: {
           id?: number
@@ -459,8 +489,14 @@ export type Database = {
           link_inscricao?: string | null
           is_active?: boolean | null
           data_primeira_fase?: string | null
+          data_primeira_fase_2?: string | null
+          data_primeira_fase_3?: string | null
           data_segunda_fase?: string | null
+          data_segunda_fase_2?: string | null
+          data_segunda_fase_3?: string | null
           data_terceira_fase?: string | null
+          data_terceira_fase_2?: string | null
+          data_terceira_fase_3?: string | null
         }
         Relationships: []
       }
@@ -691,6 +727,12 @@ export type Database = {
           _tiktok?: string
           _informacoes_feira?: string
           _local_palestra?: string
+          _data_primeira_fase_2?: string
+          _data_primeira_fase_3?: string
+          _data_segunda_fase_2?: string
+          _data_segunda_fase_3?: string
+          _data_terceira_fase_2?: string
+          _data_terceira_fase_3?: string
         }
         Returns: boolean
       }

@@ -24,8 +24,14 @@ interface UpdateEntidadeData {
   abertura_processo_seletivo?: string;
   fechamento_processo_seletivo?: string;
   data_primeira_fase?: string;
+  data_primeira_fase_2?: string;
+  data_primeira_fase_3?: string;
   data_segunda_fase?: string;
+  data_segunda_fase_2?: string;
+  data_segunda_fase_3?: string;
   data_terceira_fase?: string;
+  data_terceira_fase_2?: string;
+  data_terceira_fase_3?: string;
 }
 
 export const useUpdateEntidade = () => {
@@ -63,8 +69,14 @@ export const useUpdateEntidade = () => {
           processo_seletivo_ativo: data.processo_seletivo_ativo,
           link_processo_seletivo: data.link_processo_seletivo,
           data_primeira_fase: data.data_primeira_fase,
+          data_primeira_fase_2: data.data_primeira_fase_2,
+          data_primeira_fase_3: data.data_primeira_fase_3,
           data_segunda_fase: data.data_segunda_fase,
+          data_segunda_fase_2: data.data_segunda_fase_2,
+          data_segunda_fase_3: data.data_segunda_fase_3,
           data_terceira_fase: data.data_terceira_fase,
+          data_terceira_fase_2: data.data_terceira_fase_2,
+          data_terceira_fase_3: data.data_terceira_fase_3,
           abertura_processo_seletivo: data.abertura_processo_seletivo,
           fechamento_processo_seletivo: data.fechamento_processo_seletivo
         })
@@ -90,7 +102,19 @@ export const useUpdateEntidade = () => {
            _instagram: data.instagram_url,
            _local_palestra: data.local_apresentacao,
            _informacoes_feira: data.local_feira,
-           _area_atuacao: data.area_atuacao
+           _area_atuacao: data.area_atuacao,
+           _data_primeira_fase: data.data_primeira_fase,
+           _data_primeira_fase_2: data.data_primeira_fase_2,
+           _data_primeira_fase_3: data.data_primeira_fase_3,
+           _data_segunda_fase: data.data_segunda_fase,
+           _data_segunda_fase_2: data.data_segunda_fase_2,
+           _data_segunda_fase_3: data.data_segunda_fase_3,
+           _data_terceira_fase: data.data_terceira_fase,
+           _data_terceira_fase_2: data.data_terceira_fase_2,
+           _data_terceira_fase_3: data.data_terceira_fase_3,
+
+
+
          });
 
         console.log('📥 Resposta da função RPC:', { rpcError, rpcResult });

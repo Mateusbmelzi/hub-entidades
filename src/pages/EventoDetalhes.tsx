@@ -133,7 +133,12 @@ const EventoDetalhes = () => {
   }
 
   const getStatusColor = (status: string, data: string, horario?: string | null) => {
-    const eventDate = combineDataHorario(data, horario);
+    const eventDate = (() => {
+      const [y, m, d] = data.split("-");
+      const [h = 0, min = 0] = horario.split(":");
+      return new Date(+y, +m - 1, +d, +h, +min);
+    })();
+    
     const now = new Date();
     
     if (status === 'cancelado') return 'bg-red-100 text-red-800 border-red-200';
@@ -142,7 +147,11 @@ const EventoDetalhes = () => {
   };
 
   const getStatusLabel = (status: string, data: string, horario?: string | null) => {
-    const eventDate = combineDataHorario(data, horario);
+    const eventDate = (() => {
+      const [y, m, d] = data.split("-");
+      const [h = 0, min = 0] = horario.split(":");
+      return new Date(+y, +m - 1, +d, +h, +min);
+    })();
     const now = new Date();
     
     if (status === 'cancelado') return 'Cancelado';

@@ -31,8 +31,14 @@ const formSchema = z.object({
   processo_seletivo_ativo: z.boolean().optional(),
   link_processo_seletivo: z.string().url('Link deve ser uma URL válida').optional().or(z.literal('')),
   data_primeira_fase: z.string().optional(),
+  data_primeira_fase_2: z.string().optional(),
+  data_primeira_fase_3: z.string().optional(),
   data_segunda_fase: z.string().optional(),
+  data_segunda_fase_2: z.string().optional(),
+  data_segunda_fase_3: z.string().optional(),
   data_terceira_fase: z.string().optional(),
+  data_terceira_fase_2: z.string().optional(),
+  data_terceira_fase_3: z.string().optional(),
   abertura_processo_seletivo: z.string().optional(),
   fechamento_processo_seletivo: z.string().optional(),
 });
@@ -68,8 +74,14 @@ export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade
       processo_seletivo_ativo: entidade.processo_seletivo_ativo || false,
       link_processo_seletivo: entidade.link_processo_seletivo || '',
       data_primeira_fase: entidade.data_primeira_fase || '',
+      data_primeira_fase_2: entidade.data_primeira_fase_2 || '',
+      data_primeira_fase_3: entidade.data_primeira_fase_3 || '',
       data_segunda_fase: entidade.data_segunda_fase || '',
+      data_segunda_fase_2: entidade.data_segunda_fase_2 || '',
+      data_segunda_fase_3: entidade.data_segunda_fase_3 || '',
       data_terceira_fase: entidade.data_terceira_fase || '',
+      data_terceira_fase_2: entidade.data_terceira_fase_2 || '',
+      data_terceira_fase_3: entidade.data_terceira_fase_3 || '',
       abertura_processo_seletivo: entidade.abertura_processo_seletivo || '',
       fechamento_processo_seletivo: entidade.fechamento_processo_seletivo || '',
     },
@@ -101,8 +113,14 @@ export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade
         abertura_processo_seletivo: data.abertura_processo_seletivo || null,
         fechamento_processo_seletivo: data.fechamento_processo_seletivo || null,
         data_primeira_fase: data.data_primeira_fase || null,
+        data_primeira_fase_2: data.data_primeira_fase_2 || null,
+        data_primeira_fase_3: data.data_primeira_fase_3 || null,
         data_segunda_fase: data.data_segunda_fase || null,
+        data_segunda_fase_2: data.data_segunda_fase_2 || null,
+        data_segunda_fase_3: data.data_segunda_fase_3 || null,
         data_terceira_fase: data.data_terceira_fase || null,
+        data_terceira_fase_2: data.data_terceira_fase_2 || null,
+        data_terceira_fase_3: data.data_terceira_fase_3 || null,
       });
 
       if (success) {
@@ -387,6 +405,24 @@ export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="data_primeira_fase_2">Primeira Fase 2º Dia</Label>
+              <Input
+                id="data_primeira_fase_2"
+                type="date"
+                {...form.register('data_primeira_fase_2')}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="data_primeira_fase_3">Primeira Fase 3º Dia</Label>
+              <Input
+                id="data_primeira_fase_3"
+                type="date"
+                {...form.register('data_primeira_fase_3')}
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="data_segunda_fase">Data da Segunda Fase</Label>
               <Input
                 id="data_segunda_fase"
@@ -396,11 +432,47 @@ export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="data_segunda_fase_2">Segunda Fase 2º Dia</Label>
+              <Input
+                id="data_segunda_fase_2"
+                type="date"
+                {...form.register('data_segunda_fase_2')}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="data_segunda_fase_3">Segunda Fase 3º Dia</Label>
+              <Input
+                id="data_segunda_fase_3"
+                type="date"
+                {...form.register('data_segunda_fase_3')}
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="data_terceira_fase">Data da Terceira Fase</Label>
               <Input
                 id="data_terceira_fase"
                 type="date"
                 {...form.register('data_terceira_fase')}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="data_terceira_fase_2">Terceira Fase 2º Dia</Label>
+              <Input
+                id="data_terceira_fase_2"
+                type="date"
+                {...form.register('data_terceira_fase_2')}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="data_terceira_fase_3">Terceira Fase 3º Dia</Label>
+              <Input
+                id="data_terceira_fase_3"
+                type="date"
+                {...form.register('data_terceira_fase_3')}
               />
             </div>
           </div>

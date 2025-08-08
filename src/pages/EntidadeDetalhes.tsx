@@ -543,137 +543,186 @@ const EntidadeDetalhes = () => {
               </Card>
             )}
 
-            {/* Processo Seletivo - Só aparece se processo_seletivo_ativo for true */}
-            {entidade.processo_seletivo_ativo && (
-              <Card className="border-0 shadow-lg bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-500">
-                <CardHeader className="pb-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Target className="w-5 h-5 text-green-600" />
-                      <CardTitle className="text-2xl text-green-800">Processo Seletivo</CardTitle>
+{/* Processo Seletivo - Só aparece se processo_seletivo_ativo for true */}
+{entidade.processo_seletivo_ativo && (
+  <Card className="border-0 shadow-lg bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-500">
+    <CardHeader className="pb-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <Target className="w-5 h-5 text-green-600" />
+          <CardTitle className="text-2xl text-green-800">Processo Seletivo</CardTitle>
+        </div>
+        {isOwner && (
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-green-700 border-green-300 hover:bg-green-100"
+              >
+                <Edit className="mr-2 h-4 w-4" />
+                Editar Processo
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <EditarEntidadeForm
+                entidade={entidade}
+                onSuccess={() => {
+                  console.log("🔄 onSuccess chamado - refetching dados da entidade");
+                  refetchEntidade();
+                }}
+              />
+            </DialogContent>
+          </Dialog>
+        )}
+      </div>
+    </CardHeader>
+
+    <CardContent>
+      <div className="space-y-6">
+        {/* Link de inscrição */}
+        {entidade.link_processo_seletivo && (
+          <div className="flex items-center p-4 bg-white rounded-xl border border-green-200 shadow-sm">
+            <ExternalLink className="mr-4 h-6 w-6 text-green-600 flex-shrink-0" />
+            <div>
+              <div className="font-semibold text-gray-900">Link de Inscrição</div>
+              <a
+                href={entidade.link_processo_seletivo}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-lg text-green-600 hover:text-green-700 hover:underline"
+              >
+                Acessar formulário de inscrição
+              </a>
+            </div>
+          </div>
+        )}
+
+        {/* Datas do processo */}
+        {(entidade.abertura_processo_seletivo ||
+          entidade.fechamento_processo_seletivo ||
+          entidade.data_primeira_fase ||
+          entidade.data_segunda_fase ||
+          entidade.data_terceira_fase) && (
+          <div className="space-y-6">
+            {/* Período de inscrições */}
+            {(entidade.abertura_processo_seletivo || entidade.fechamento_processo_seletivo) && (
+              <div className="bg-white rounded-xl border border-green-200 shadow-sm p-4">
+                <div className="flex items-center mb-3">
+                  <Calendar className="mr-2 h-6 w-6 text-green-600" />
+                  <h3 className="text-xl font-semibold text-gray-900">Período do Processo Seletivo</h3>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {entidade.abertura_processo_seletivo && (
+                    <div>
+                      <div className="text-sm text-gray-500">Abertura</div>
+                      <div className="text-lg">
+                      {
+  (() => {
+    const [y, m, d] = entidade.abertura_processo_seletivo.split("-");
+    return new Date(+y, +m - 1, +d).toLocaleDateString("pt-BR");
+  })()
+      }
+                      </div>
                     </div>
-                    {isOwner && (
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="outline" size="sm" className="text-green-700 border-green-300 hover:bg-green-100">
-                            <Edit className="mr-2 h-4 w-4" />
-                            Editar Processo
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                          <EditarEntidadeForm 
-                            entidade={entidade} 
-                            onSuccess={() => {
-                              console.log('🔄 onSuccess chamado - refetching dados da entidade');
-                              refetchEntidade();
-                            }} 
-                          />
-                        </DialogContent>
-                      </Dialog>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {entidade.link_processo_seletivo && (
-                      <div className="flex items-center p-4 bg-white rounded-xl border border-green-200 shadow-sm">
-                        <ExternalLink className="mr-4 h-6 w-6 text-green-600 flex-shrink-0" />
-                        <div>
-                          <div className="font-semibold text-gray-900">Link de Inscrição</div>
-                          <a 
-                            href={entidade.link_processo_seletivo} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-lg text-green-600 hover:text-green-700 hover:underline"
-                          >
-                            Acessar formulário de inscrição
-                          </a>
-                        </div>
+                  )}
+                  {entidade.fechamento_processo_seletivo && (
+                    <div>
+                      <div className="text-sm text-gray-500">Fechamento</div>
+                      <div className="text-lg">
+                        {
+                          (() => {
+                            const [y, m, d] = entidade.fechamento_processo_seletivo.split("-");
+                            return new Date(+y, +m - 1, +d).toLocaleDateString("pt-BR");
+                          })()
+                        }
                       </div>
-                    )}
-                    
-
-                    {(entidade.data_primeira_fase || entidade.data_segunda_fase || entidade.data_terceira_fase || entidade.abertura_processo_seletivo || entidade.fechamento_processo_seletivo) && (
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {entidade.data_primeira_fase && (
-                          <div className="flex items-center p-4 bg-white rounded-xl border border-green-200 shadow-sm">
-                            <Calendar className="mr-4 h-6 w-6 text-green-600 flex-shrink-0" />
-                            <div>
-                              <div className="font-semibold text-gray-900">Primeira Fase</div>
-                              <div className="text-lg text-gray-700">
-                                {new Date(entidade.data_primeira_fase).toLocaleDateString('pt-BR')}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {entidade.abertura_processo_seletivo && (
-                          <div className="flex items-center p-4 bg-white rounded-xl border border-green-200 shadow-sm">
-                            <Calendar className="mr-4 h-6 w-6 text-green-600 flex-shrink-0" />
-                            <div>
-                              <div className="font-semibold text-gray-900">Abertura do Processo Seletivo</div>
-                              <div className="text-lg text-gray-700">
-                                {new Date(entidade.abertura_processo_seletivo).toLocaleDateString('pt-BR')}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {entidade.fechamento_processo_seletivo && (
-                          <div className="flex items-center p-4 bg-white rounded-xl border border-green-200 shadow-sm">
-                            <Calendar className="mr-4 h-6 w-6 text-green-600 flex-shrink-0" />
-                            <div>
-                              <div className="font-semibold text-gray-900">Fechamento do Processo Seletivo</div>
-                              <div className="text-lg text-gray-700">
-                                {new Date(entidade.fechamento_processo_seletivo).toLocaleDateString('pt-BR')}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {entidade.data_segunda_fase && (
-                          <div className="flex items-center p-4 bg-white rounded-xl border border-green-200 shadow-sm">
-                            <Calendar className="mr-4 h-6 w-6 text-green-600 flex-shrink-0" />
-                            <div>
-                              <div className="font-semibold text-gray-900">Segunda Fase</div>
-                              <div className="text-lg text-gray-700">
-                                {new Date(entidade.data_segunda_fase).toLocaleDateString('pt-BR')}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {entidade.data_terceira_fase && (
-                          <div className="flex items-center p-4 bg-white rounded-xl border border-green-200 shadow-sm">
-                            <Calendar className="mr-4 h-6 w-6 text-green-600 flex-shrink-0" />
-                            <div>
-                              <div className="font-semibold text-gray-900">Terceira Fase</div>
-                              <div className="text-lg text-gray-700">
-                                {new Date(entidade.data_terceira_fase).toLocaleDateString('pt-BR')}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {!entidade.link_processo_seletivo && !entidade.data_primeira_fase && !entidade.data_segunda_fase && !entidade.data_terceira_fase && (
-                      <div className="text-center py-8">
-                        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                          <Target className="h-8 w-8 text-green-600" />
-                        </div>
-                        <p className="text-gray-600 mb-2">
-                          {isOwner 
-                            ? 'Nenhuma informação do processo seletivo cadastrada ainda.'
-                            : 'Esta organização ainda não cadastrou informações do processo seletivo.'
-                          }
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
+
+            {/* Fases agrupadas */}
+            {[
+              {
+                titulo: "Primeira Fase",
+                datas: [
+                  { label: "Dia 1", valor: entidade.data_primeira_fase },
+                  { label: "Dia 2", valor: entidade.data_primeira_fase_2 },
+                  { label: "Dia 3", valor: entidade.data_primeira_fase_3 },
+                ],
+              },
+              {
+                titulo: "Segunda Fase",
+                datas: [
+                  { label: "Dia 1", valor: entidade.data_segunda_fase },
+                  { label: "Dia 2", valor: entidade.data_segunda_fase_2 },
+                  { label: "Dia 3", valor: entidade.data_segunda_fase_3 },
+                ],
+              },
+              {
+                titulo: "Terceira Fase",
+                datas: [
+                  { label: "Dia 1", valor: entidade.data_terceira_fase },
+                  { label: "Dia 2", valor: entidade.data_terceira_fase_2 },
+                  { label: "Dia 3", valor: entidade.data_terceira_fase_3 },
+                ],
+              },
+            ].map(
+              (fase) =>
+                fase.datas.some((d) => d.valor) && (
+                  <div
+                    key={fase.titulo}
+                    className="bg-white rounded-xl border border-green-200 shadow-sm p-4"
+                  >
+                    <div className="flex items-center mb-3">
+                      <Calendar className="mr-2 h-6 w-6 text-green-600" />
+                      <h3 className="text-xl font-semibold text-gray-900">{fase.titulo}</h3>
+                    </div>
+                    <div className="flex flex-wrap gap-6">
+                      {fase.datas.map(
+                        (d, idx) =>
+                          d.valor && (
+                            <div key={idx}>
+                              <div className="text-sm text-gray-500">{d.label}</div>
+                              <div className="text-lg">
+                                {(() => {
+                                  const [y, m, day] = d.valor.split("-");
+                                  return new Date(+y, +m - 1, +day).toLocaleDateString("pt-BR");
+                                })()}                              
+                              </div>
+                            </div>
+                          )
+                      )}
+                    </div>
+                  </div>
+                )
+            )}
+          </div>
+        )}
+
+        {/* Caso não tenha nada */}
+        {!entidade.link_processo_seletivo &&
+          !entidade.data_primeira_fase &&
+          !entidade.data_segunda_fase &&
+          !entidade.data_terceira_fase && (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Target className="h-8 w-8 text-green-600" />
+              </div>
+              <p className="text-gray-600 mb-2">
+                {isOwner
+                  ? "Nenhuma informação do processo seletivo cadastrada ainda."
+                  : "Esta organização ainda não cadastrou informações do processo seletivo."}
+              </p>
+            </div>
+          )}
+      </div>
+    </CardContent>
+  </Card>
+)}
+
 
 
 

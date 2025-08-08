@@ -524,16 +524,52 @@ const Entidades = () => {
                                     <span>Primeira Fase: {entity.data_primeira_fase}</span>
                                   </div>
                                 )}
+                                {entity.data_primeira_fase_2 && (
+                                  <div className="flex items-center gap-2 text-insper-red">
+                                    <CalendarDays size={14} className="text-insper-red flex-shrink-0" />
+                                    <span>Primeira Fase 2º Dia: {entity.data_primeira_fase_2}</span>
+                                  </div>
+                                )}
+                                {entity.data_primeira_fase_3 && (
+                                  <div className="flex items-center gap-2 text-insper-red">
+                                    <CalendarDays size={14} className="text-insper-red flex-shrink-0" />
+                                    <span>Primeira Fase 3º Dia: {entity.data_primeira_fase_3}</span>
+                                  </div>
+                                )}
                                 {entity.data_segunda_fase && (
                                   <div className="flex items-center gap-2 text-insper-red">
                                     <CalendarDays size={14} className="text-insper-red flex-shrink-0" />
                                     <span>Segunda Fase: {entity.data_segunda_fase}</span>
                                   </div>
                                 )}
+                                {entity.data_segunda_fase_2 && (
+                                  <div className="flex items-center gap-2 text-insper-red">
+                                    <CalendarDays size={14} className="text-insper-red flex-shrink-0" />
+                                    <span>Segunda Fase 2º Dia: {entity.data_segunda_fase_2}</span>
+                                  </div>
+                                )}
+                                {entity.data_segunda_fase_3 && (
+                                  <div className="flex items-center gap-2 text-insper-red">
+                                    <CalendarDays size={14} className="text-insper-red flex-shrink-0" />
+                                    <span>Segunda Fase 3º Dia: {entity.data_segunda_fase_3}</span>
+                                  </div>
+                                )}
                                 {entity.data_terceira_fase && (
                                   <div className="flex items-center gap-2 text-insper-red">
                                     <CalendarDays size={14} className="text-insper-red flex-shrink-0" />
                                     <span>Terceira Fase: {entity.data_terceira_fase}</span>
+                                  </div>
+                                )}
+                                {entity.data_terceira_fase_2 && (
+                                  <div className="flex items-center gap-2 text-insper-red">
+                                    <CalendarDays size={14} className="text-insper-red flex-shrink-0" />
+                                    <span>Terceira Fase 2º Dia: {entity.data_terceira_fase_2}</span>
+                                  </div>
+                                )}
+                                {entity.data_terceira_fase_3 && (
+                                  <div className="flex items-center gap-2 text-insper-red">
+                                    <CalendarDays size={14} className="text-insper-red flex-shrink-0" />
+                                    <span>Terceira Fase 3º Dia: {entity.data_terceira_fase_3}</span>
                                   </div>
                                 )}
                               </div>
