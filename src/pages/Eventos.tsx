@@ -168,19 +168,18 @@ const Eventos = () => {
 
   const getEventoStatus = (evento: any) => {
     const now = new Date();
-    // Usar data e horario para criar um timestamp completo
     const dataEvento = evento.data;
     const horarioEvento = evento.horario;
-    
+  
     if (!dataEvento) return 'futuro';
-    
-    // Criar data completa combinando data e horário
-    const dataCompleta = new Date(dataEvento);
-    if (horarioEvento) {
-      const [horas, minutos] = horarioEvento.split(':');
-      dataCompleta.setHours(parseInt(horas), parseInt(minutos), 0, 0);
-    }
-    
+  
+    // Criar data completa combinando data e horário direto na linha
+    const dataCompleta = (() => {
+      const [y, m, d] = dataEvento.split("-");
+      const [h = 0, min = 0] = horarioEvento ? horarioEvento.split(":") : [0, 0];
+      return new Date(+y, +m - 1, +d, +h, +min);
+    })();
+  
     if (dataCompleta < now) {
       return 'finalizado';
     } else if (dataCompleta.getTime() - now.getTime() < 24 * 60 * 60 * 1000) {
@@ -189,6 +188,7 @@ const Eventos = () => {
       return 'futuro';
     }
   };
+  
 
   const handleInscricao = (evento: any) => {
     setSelectedEvento(evento);
@@ -491,7 +491,15 @@ const Eventos = () => {
                         <div className="space-y-2">
                           <div className="flex items-center text-sm text-gray-500">
                             <Calendar className="mr-2 h-4 w-4" />
-                            {format(new Date((evento as any).data), "dd 'de' MMMM, yyyy", { locale: ptBR })}
+                            {format(
+                              new Date(
+                                ...((evento as any).data as string)
+                                  .split("-")
+                                  .map((v, i) => (i === 1 ? +v - 1 : +v))
+                              ),
+                              "dd 'de' MMMM, yyyy",
+                              { locale: ptBR }
+                            )}
                           </div>
                           <div className="flex items-center text-sm text-gray-500">
                             <Clock className="mr-2 h-4 w-4" />
