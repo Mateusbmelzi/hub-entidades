@@ -394,7 +394,7 @@ const EntidadeDetalhes = () => {
                     >
                       {interestCheckLoading ? 'Verificando...' : 
                        hasDemonstratedInterest ? '✓ Interesse já demonstrado' : 
-                       'Cadastrar-se'}
+                       'Inscreva-se'}
                     </Button>
                   ) : (
                     <Button 
