@@ -101,19 +101,28 @@ export type Database = {
           areas_internas: string[] | null
           contato: string | null
           created_at: string
+          data_primeira_fase: string | null
+          data_segunda_fase: string | null
+          data_terceira_fase: string | null
           descricao_curta: string | null
           descricao_detalhada: string | null
           email_contato: string | null
           foto_perfil_url: string | null
+          grau_exigencia: string | null
           horario_apresentacao: string | null
           id: number
           instagram_url: string | null
+          link_processo_seletivo: string | null
           linkedin_url: string | null
           local_apresentacao: string | null
           local_feira: string | null
           nivel_exigencia: string | null
           nome: string | null
           numero_membros: number | null
+          processo_seletivo_ativo: boolean | null
+          abertura_processo_seletivo: string | null
+          fechamento_processo_seletivo: string | null
+          feira_ativa: boolean | null
           sala_feira: string | null
           site_url: string | null
         }
@@ -123,19 +132,26 @@ export type Database = {
           areas_internas?: string[] | null
           contato?: string | null
           created_at?: string
+          data_primeira_fase?: string | null
+          data_segunda_fase?: string | null
+          data_terceira_fase?: string | null
           descricao_curta?: string | null
           descricao_detalhada?: string | null
           email_contato?: string | null
           foto_perfil_url?: string | null
+          grau_exigencia?: string | null
           horario_apresentacao?: string | null
           id?: number
           instagram_url?: string | null
+          link_processo_seletivo?: string | null
           linkedin_url?: string | null
           local_apresentacao?: string | null
           local_feira?: string | null
           nivel_exigencia?: string | null
           nome?: string | null
           numero_membros?: number | null
+          processo_seletivo_ativo?: boolean | null
+          feira_ativa?: boolean | null
           sala_feira?: string | null
           site_url?: string | null
         }
@@ -145,19 +161,26 @@ export type Database = {
           areas_internas?: string[] | null
           contato?: string | null
           created_at?: string
+          data_primeira_fase?: string | null
+          data_segunda_fase?: string | null
+          data_terceira_fase?: string | null
           descricao_curta?: string | null
           descricao_detalhada?: string | null
           email_contato?: string | null
           foto_perfil_url?: string | null
+          grau_exigencia?: string | null
           horario_apresentacao?: string | null
           id?: number
           instagram_url?: string | null
+          link_processo_seletivo?: string | null
           linkedin_url?: string | null
           local_apresentacao?: string | null
           local_feira?: string | null
           nivel_exigencia?: string | null
           nome?: string | null
           numero_membros?: number | null
+          processo_seletivo_ativo?: boolean | null
+          feira_ativa?: boolean | null
           sala_feira?: string | null
           site_url?: string | null
         }
@@ -410,6 +433,36 @@ export type Database = {
             referencedColumns: ["id"]
           }
         ]
+      }
+      processos_seletivos: {
+        Row: {
+          id: number
+          created_at: string
+          link_inscricao: string | null
+          is_active: boolean | null
+          data_primeira_fase: string | null
+          data_segunda_fase: string | null
+          data_terceira_fase: string | null
+        }
+        Insert: {
+          id?: number
+          created_at?: string
+          link_inscricao?: string | null
+          is_active?: boolean | null
+          data_primeira_fase?: string | null
+          data_segunda_fase?: string | null
+          data_terceira_fase?: string | null
+        }
+        Update: {
+          id?: number
+          created_at?: string
+          link_inscricao?: string | null
+          is_active?: boolean | null
+          data_primeira_fase?: string | null
+          data_segunda_fase?: string | null
+          data_terceira_fase?: string | null
+        }
+        Relationships: []
       }
       security_audit_log: {
         Row: {

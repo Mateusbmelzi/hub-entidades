@@ -18,6 +18,14 @@ interface UpdateEntidadeData {
   ano_criacao?: number;
   area_atuacao?: string;
   areas_internas?: string[];
+  feira_ativa?: boolean;
+  processo_seletivo_ativo?: boolean;
+  link_processo_seletivo?: string;
+  abertura_processo_seletivo?: string;
+  fechamento_processo_seletivo?: string;
+  data_primeira_fase?: string;
+  data_segunda_fase?: string;
+  data_terceira_fase?: string;
 }
 
 export const useUpdateEntidade = () => {
@@ -50,7 +58,15 @@ export const useUpdateEntidade = () => {
           local_feira: data.local_feira,
           ano_criacao: data.ano_criacao,
           area_atuacao: data.area_atuacao,
-          areas_internas: data.areas_internas
+          areas_internas: data.areas_internas,
+          feira_ativa: data.feira_ativa,
+          processo_seletivo_ativo: data.processo_seletivo_ativo,
+          link_processo_seletivo: data.link_processo_seletivo,
+          data_primeira_fase: data.data_primeira_fase,
+          data_segunda_fase: data.data_segunda_fase,
+          data_terceira_fase: data.data_terceira_fase,
+          abertura_processo_seletivo: data.abertura_processo_seletivo,
+          fechamento_processo_seletivo: data.fechamento_processo_seletivo
         })
         .eq('id', id)
         .select();

@@ -143,6 +143,27 @@ const EntidadeDetalhes = () => {
       return;
     }
 
+    // Verificar se existe um processo seletivo ativo com link de inscrição
+    console.log('🔍 Debug - processo_seletivo_ativo:', entidade?.processo_seletivo_ativo);
+    console.log('🔍 Debug - link_processo_seletivo:', entidade?.link_processo_seletivo);
+    console.log('🔍 Debug - entidade.id:', entidade?.id);
+    
+    if (entidade?.processo_seletivo_ativo && entidade?.link_processo_seletivo) {
+      console.log('✅ Processo seletivo encontrado, abrindo link:', entidade.link_processo_seletivo);
+      // Abrir o link de inscrição em uma nova aba
+      window.open(entidade.link_processo_seletivo, '_blank');
+      
+      toast({
+        title: "Link de inscrição aberto",
+        description: "O formulário de inscrição foi aberto em uma nova aba.",
+        duration: 3000,
+      });
+      return;
+    }
+    
+    console.log('❌ Nenhum processo seletivo encontrado, redirecionando para demonstração de interesse');
+
+    // Se não há processo seletivo ativo, redirecionar para a página de demonstração de interesse
     navigate(`/demonstrar-interesse/${entidade.id}`);
   };
 
@@ -373,7 +394,7 @@ const EntidadeDetalhes = () => {
                     >
                       {interestCheckLoading ? 'Verificando...' : 
                        hasDemonstratedInterest ? '✓ Interesse já demonstrado' : 
-                       'Demonstrar interesse'}
+                       'Cadastrar-se'}
                     </Button>
                   ) : (
                     <Button 
@@ -442,83 +463,219 @@ const EntidadeDetalhes = () => {
               </CardContent>
             </Card>
 
-            {/* Informações da Feira */}
-            <Card className="border-0 shadow-lg bg-gradient-to-r from-red-50 to-orange-50 border-l-4 border-red-500">
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Award className="w-5 h-5 text-red-600" />
-                    <CardTitle className="text-2xl text-red-800">Informações da Feira</CardTitle>
+            {/* Informações da Feira - Só aparece se feira_ativa for true */}
+            {entidade.feira_ativa && (
+              <Card className="border-0 shadow-lg bg-gradient-to-r from-red-50 to-orange-50 border-l-4 border-red-500">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Award className="w-5 h-5 text-red-600" />
+                      <CardTitle className="text-2xl text-red-800">Informações da Feira</CardTitle>
+                    </div>
+                    {isOwner && (
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm" className="text-red-700 border-red-300 hover:bg-red-100">
+                            <Edit className="mr-2 h-4 w-4" />
+                            Editar Feira
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                          <EditarEntidadeForm 
+                            entidade={entidade} 
+                            onSuccess={() => {
+                              console.log('🔄 onSuccess chamado - refetching dados da entidade');
+                              refetchEntidade();
+                            }} 
+                          />
+                        </DialogContent>
+                      </Dialog>
+                    )}
                   </div>
-                  {isOwner && (
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" size="sm" className="text-red-700 border-red-300 hover:bg-red-100">
-                          <Edit className="mr-2 h-4 w-4" />
-                          Editar Feira
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                        <EditarEntidadeForm 
-                          entidade={entidade} 
-                          onSuccess={() => {
-                            console.log('🔄 onSuccess chamado - refetching dados da entidade');
-                            refetchEntidade();
-                          }} 
-                        />
-                      </DialogContent>
-                    </Dialog>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {entidade.local_feira && (
-                    <div className="flex items-center p-4 bg-white rounded-xl border border-red-200 shadow-sm">
-                      <MapPin className="mr-4 h-6 w-6 text-red-600 flex-shrink-0" />
-                      <div>
-                        <div className="font-semibold text-gray-900">Local do Estande</div>
-                        <div className="text-lg font-bold text-red-600">{entidade.local_feira}</div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {entidade.local_feira && (
+                      <div className="flex items-center p-4 bg-white rounded-xl border border-red-200 shadow-sm">
+                        <MapPin className="mr-4 h-6 w-6 text-red-600 flex-shrink-0" />
+                        <div>
+                          <div className="font-semibold text-gray-900">Local do Estande</div>
+                          <div className="text-lg font-bold text-red-600">{entidade.local_feira}</div>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {entidade.local_apresentacao && (
-                    <div className="flex items-center p-4 bg-white rounded-xl border border-red-200 shadow-sm">
-                      <MapPin className="mr-4 h-6 w-6 text-red-600 flex-shrink-0" />
-                      <div>
-                        <div className="font-semibold text-gray-900">Local da Apresentação</div>
-                        <div className="text-lg text-gray-700">{entidade.local_apresentacao}</div>
+                    {entidade.local_apresentacao && (
+                      <div className="flex items-center p-4 bg-white rounded-xl border border-red-200 shadow-sm">
+                        <MapPin className="mr-4 h-6 w-6 text-red-600 flex-shrink-0" />
+                        <div>
+                          <div className="font-semibold text-gray-900">Local da Apresentação</div>
+                          <div className="text-lg text-gray-700">{entidade.local_apresentacao}</div>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {entidade.horario_apresentacao && (
-                    <div className="flex items-center p-4 bg-white rounded-xl border border-red-200 shadow-sm">
-                      <Clock className="mr-4 h-6 w-6 text-red-600 flex-shrink-0" />
-                      <div>
-                        <div className="font-semibold text-gray-900">Horário da Apresentação</div>
-                        <div className="text-lg text-gray-700">{entidade.horario_apresentacao}</div>
+                    {entidade.horario_apresentacao && (
+                      <div className="flex items-center p-4 bg-white rounded-xl border border-red-200 shadow-sm">
+                        <Clock className="mr-4 h-6 w-6 text-red-600 flex-shrink-0" />
+                        <div>
+                          <div className="font-semibold text-gray-900">Horário da Apresentação</div>
+                          <div className="text-lg text-gray-700">{entidade.horario_apresentacao}</div>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {!entidade.local_feira && !entidade.local_apresentacao && !entidade.horario_apresentacao && (
-                    <div className="text-center py-8">
-                      <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Award className="h-8 w-8 text-red-600" />
+                    {!entidade.local_feira && !entidade.local_apresentacao && !entidade.horario_apresentacao && (
+                      <div className="text-center py-8">
+                        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <Award className="h-8 w-8 text-red-600" />
+                        </div>
+                        <p className="text-gray-600 mb-2">
+                          {isOwner 
+                            ? 'Nenhuma informação da feira cadastrada ainda.'
+                            : 'Esta organização ainda não cadastrou informações da feira.'
+                          }
+                        </p>
                       </div>
-                      <p className="text-gray-600 mb-2">
-                        {isOwner 
-                          ? 'Nenhuma informação da feira cadastrada ainda.'
-                          : 'Esta organização ainda não cadastrou informações da feira.'
-                        }
-                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Processo Seletivo - Só aparece se processo_seletivo_ativo for true */}
+            {entidade.processo_seletivo_ativo && (
+              <Card className="border-0 shadow-lg bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-500">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Target className="w-5 h-5 text-green-600" />
+                      <CardTitle className="text-2xl text-green-800">Processo Seletivo</CardTitle>
                     </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                    {isOwner && (
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm" className="text-green-700 border-green-300 hover:bg-green-100">
+                            <Edit className="mr-2 h-4 w-4" />
+                            Editar Processo
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                          <EditarEntidadeForm 
+                            entidade={entidade} 
+                            onSuccess={() => {
+                              console.log('🔄 onSuccess chamado - refetching dados da entidade');
+                              refetchEntidade();
+                            }} 
+                          />
+                        </DialogContent>
+                      </Dialog>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {entidade.link_processo_seletivo && (
+                      <div className="flex items-center p-4 bg-white rounded-xl border border-green-200 shadow-sm">
+                        <ExternalLink className="mr-4 h-6 w-6 text-green-600 flex-shrink-0" />
+                        <div>
+                          <div className="font-semibold text-gray-900">Link de Inscrição</div>
+                          <a 
+                            href={entidade.link_processo_seletivo} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-lg text-green-600 hover:text-green-700 hover:underline"
+                          >
+                            Acessar formulário de inscrição
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                    
+
+                    {(entidade.data_primeira_fase || entidade.data_segunda_fase || entidade.data_terceira_fase || entidade.abertura_processo_seletivo || entidade.fechamento_processo_seletivo) && (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {entidade.data_primeira_fase && (
+                          <div className="flex items-center p-4 bg-white rounded-xl border border-green-200 shadow-sm">
+                            <Calendar className="mr-4 h-6 w-6 text-green-600 flex-shrink-0" />
+                            <div>
+                              <div className="font-semibold text-gray-900">Primeira Fase</div>
+                              <div className="text-lg text-gray-700">
+                                {new Date(entidade.data_primeira_fase).toLocaleDateString('pt-BR')}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {entidade.abertura_processo_seletivo && (
+                          <div className="flex items-center p-4 bg-white rounded-xl border border-green-200 shadow-sm">
+                            <Calendar className="mr-4 h-6 w-6 text-green-600 flex-shrink-0" />
+                            <div>
+                              <div className="font-semibold text-gray-900">Abertura do Processo Seletivo</div>
+                              <div className="text-lg text-gray-700">
+                                {new Date(entidade.abertura_processo_seletivo).toLocaleDateString('pt-BR')}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {entidade.fechamento_processo_seletivo && (
+                          <div className="flex items-center p-4 bg-white rounded-xl border border-green-200 shadow-sm">
+                            <Calendar className="mr-4 h-6 w-6 text-green-600 flex-shrink-0" />
+                            <div>
+                              <div className="font-semibold text-gray-900">Fechamento do Processo Seletivo</div>
+                              <div className="text-lg text-gray-700">
+                                {new Date(entidade.fechamento_processo_seletivo).toLocaleDateString('pt-BR')}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {entidade.data_segunda_fase && (
+                          <div className="flex items-center p-4 bg-white rounded-xl border border-green-200 shadow-sm">
+                            <Calendar className="mr-4 h-6 w-6 text-green-600 flex-shrink-0" />
+                            <div>
+                              <div className="font-semibold text-gray-900">Segunda Fase</div>
+                              <div className="text-lg text-gray-700">
+                                {new Date(entidade.data_segunda_fase).toLocaleDateString('pt-BR')}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {entidade.data_terceira_fase && (
+                          <div className="flex items-center p-4 bg-white rounded-xl border border-green-200 shadow-sm">
+                            <Calendar className="mr-4 h-6 w-6 text-green-600 flex-shrink-0" />
+                            <div>
+                              <div className="font-semibold text-gray-900">Terceira Fase</div>
+                              <div className="text-lg text-gray-700">
+                                {new Date(entidade.data_terceira_fase).toLocaleDateString('pt-BR')}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {!entidade.link_processo_seletivo && !entidade.data_primeira_fase && !entidade.data_segunda_fase && !entidade.data_terceira_fase && (
+                      <div className="text-center py-8">
+                        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <Target className="h-8 w-8 text-green-600" />
+                        </div>
+                        <p className="text-gray-600 mb-2">
+                          {isOwner 
+                            ? 'Nenhuma informação do processo seletivo cadastrada ainda.'
+                            : 'Esta organização ainda não cadastrou informações do processo seletivo.'
+                          }
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+
 
             {/* Projetos */}
             {(projetos.length > 0 || isOwner) && (

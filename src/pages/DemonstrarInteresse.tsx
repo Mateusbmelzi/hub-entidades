@@ -196,6 +196,18 @@ const DemonstrarInteresse: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Formulário */}
           <div className="lg:col-span-2">
+            {/* Mensagem sobre processo seletivo */}
+            <Alert className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Processo Seletivo Temporariamente Fechado</strong><br />
+                O processo seletivo desta organização estudantil não está aberto no momento. 
+                No entanto, você pode demonstrar seu interesse através deste formulário. 
+                Sua demonstração será considerada e você poderá ser notificado quando o 
+                processo seletivo for aberto.
+              </AlertDescription>
+            </Alert>
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">

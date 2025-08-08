@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Filter, Users, Building, ArrowRight, X, MapPin, Clock, Presentation, Sparkles, Target, Calendar, ArrowUpDown } from 'lucide-react';
+import { Search, Filter, Users, Building, ArrowRight, X, MapPin, Clock, Presentation, Sparkles, Target, Calendar, ArrowUpDown, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -499,29 +499,41 @@ const Entidades = () => {
                           </p>
 
                           {/* Informações da Feira - Design Melhorado */}
-                          {(entity.local_feira || entity.local_apresentacao || entity.horario_apresentacao) && (
+                          {(entity.link_processo_seletivo || entity.local_apresentacao || entity.horario_apresentacao) && (
                             <div className="bg-gradient-to-r from-insper-red/5 to-insper-yellow/5 border border-insper-red/20 rounded-xl p-4">
                               <div className="flex items-center gap-2 mb-2">
                                 <Presentation className="w-4 h-4 text-insper-red" />
-                                <span className="text-sm font-semibold text-insper-red">Informações da Feira</span>
+                                <span className="text-sm font-semibold text-insper-red">Processo Seletivo</span>
                               </div>
                               <div className="space-y-2 text-sm">
-                                {entity.local_feira && (
+                                {entity.abertura_processo_seletivo && (
                                   <div className="flex items-center gap-2 text-insper-red">
-                                    <MapPin size={14} className="text-insper-red flex-shrink-0" />
-                                    <span className="font-medium">Estande {entity.local_feira}</span>
+                                    <Calendar size={14} className="text-insper-red flex-shrink-0" />
+                                    <span className="font-medium">Abertura Inscrições: {entity.abertura_processo_seletivo}</span>
                                   </div>
                                 )}
-                                {entity.local_apresentacao && (
+                                {entity.fechamento_processo_seletivo && (
                                   <div className="flex items-center gap-2 text-insper-red">
-                                    <Presentation size={14} className="text-insper-red flex-shrink-0" />
-                                    <span>{entity.local_apresentacao}</span>
+                                    <Calendar size={14} className="text-insper-red flex-shrink-0" />
+                                    <span className="font-medium">Fechamento Inscrições: {entity.fechamento_processo_seletivo}</span>
                                   </div>
                                 )}
-                                {entity.horario_apresentacao && (
+                                {entity.data_primeira_fase && (
                                   <div className="flex items-center gap-2 text-insper-red">
-                                    <Clock size={14} className="text-insper-red flex-shrink-0" />
-                                    <span>{entity.horario_apresentacao}</span>
+                                    <CalendarDays size={14} className="text-insper-red flex-shrink-0" />
+                                    <span>Primeira Fase: {entity.data_primeira_fase}</span>
+                                  </div>
+                                )}
+                                {entity.data_segunda_fase && (
+                                  <div className="flex items-center gap-2 text-insper-red">
+                                    <CalendarDays size={14} className="text-insper-red flex-shrink-0" />
+                                    <span>Segunda Fase: {entity.data_segunda_fase}</span>
+                                  </div>
+                                )}
+                                {entity.data_terceira_fase && (
+                                  <div className="flex items-center gap-2 text-insper-red">
+                                    <CalendarDays size={14} className="text-insper-red flex-shrink-0" />
+                                    <span>Terceira Fase: {entity.data_terceira_fase}</span>
                                   </div>
                                 )}
                               </div>

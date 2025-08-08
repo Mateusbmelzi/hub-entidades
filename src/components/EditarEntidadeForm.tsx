@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useUpdateEntidade } from '@/hooks/useUpdateEntidade';
 import { useToast } from '@/hooks/use-toast';
 import { AREAS_ATUACAO } from '@/lib/constants';
@@ -26,6 +27,14 @@ const formSchema = z.object({
   local_apresentacao: z.string().optional(),
   horario_apresentacao: z.string().optional(),
   local_feira: z.string().optional(),
+  feira_ativa: z.boolean().optional(),
+  processo_seletivo_ativo: z.boolean().optional(),
+  link_processo_seletivo: z.string().url('Link deve ser uma URL válida').optional().or(z.literal('')),
+  data_primeira_fase: z.string().optional(),
+  data_segunda_fase: z.string().optional(),
+  data_terceira_fase: z.string().optional(),
+  abertura_processo_seletivo: z.string().optional(),
+  fechamento_processo_seletivo: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -55,6 +64,14 @@ export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade
       local_apresentacao: entidade.local_apresentacao || '',
       horario_apresentacao: entidade.horario_apresentacao || '',
       local_feira: entidade.local_feira || '',
+      feira_ativa: entidade.feira_ativa || false,
+      processo_seletivo_ativo: entidade.processo_seletivo_ativo || false,
+      link_processo_seletivo: entidade.link_processo_seletivo || '',
+      data_primeira_fase: entidade.data_primeira_fase || '',
+      data_segunda_fase: entidade.data_segunda_fase || '',
+      data_terceira_fase: entidade.data_terceira_fase || '',
+      abertura_processo_seletivo: entidade.abertura_processo_seletivo || '',
+      fechamento_processo_seletivo: entidade.fechamento_processo_seletivo || '',
     },
   });
 
@@ -78,6 +95,14 @@ export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade
         local_apresentacao: data.local_apresentacao || null,
         horario_apresentacao: data.horario_apresentacao || null,
         local_feira: data.local_feira || null,
+        feira_ativa: data.feira_ativa || false,
+        processo_seletivo_ativo: data.processo_seletivo_ativo || false,
+        link_processo_seletivo: data.link_processo_seletivo || null,
+        abertura_processo_seletivo: data.abertura_processo_seletivo || null,
+        fechamento_processo_seletivo: data.fechamento_processo_seletivo || null,
+        data_primeira_fase: data.data_primeira_fase || null,
+        data_segunda_fase: data.data_segunda_fase || null,
+        data_terceira_fase: data.data_terceira_fase || null,
       });
 
       if (success) {
@@ -265,6 +290,17 @@ export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade
           <CardTitle>Informações da Feira</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="feira_ativa"
+              checked={form.watch('feira_ativa')}
+              onCheckedChange={(checked) => form.setValue('feira_ativa', checked as boolean)}
+            />
+            <Label htmlFor="feira_ativa" className="text-sm font-normal cursor-pointer">
+              Feira ativa
+            </Label>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="horario_apresentacao">Horário da Apresentação</Label>
             <Input
@@ -290,6 +326,83 @@ export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade
               {...form.register('local_feira')}
               placeholder="Local do estande na feira"
             />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Processo Seletivo</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="processo_seletivo_ativo"
+              checked={form.watch('processo_seletivo_ativo')}
+              onCheckedChange={(checked) => form.setValue('processo_seletivo_ativo', checked as boolean)}
+            />
+            <Label htmlFor="processo_seletivo_ativo" className="text-sm font-normal cursor-pointer">
+              Processo seletivo ativo
+            </Label>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="abertura_processo_seletivo">Abertura do Processo Seletivo</Label>
+            <Input
+              id="abertura_processo_seletivo"
+              type="date"
+              {...form.register('abertura_processo_seletivo')}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="fechamento_processo_seletivo">Fechamento do Processo Seletivo</Label>
+            <Input
+              id="fechamento_processo_seletivo"
+              type="date"
+              {...form.register('fechamento_processo_seletivo')}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="link_processo_seletivo">Link do Processo Seletivo</Label>
+            <Input
+              id="link_processo_seletivo"
+              {...form.register('link_processo_seletivo')}
+              placeholder="https://forms.google.com/processo-seletivo"
+            />
+            {form.formState.errors.link_processo_seletivo && (
+              <p className="text-sm text-red-500">{form.formState.errors.link_processo_seletivo.message}</p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="data_primeira_fase">Data da Primeira Fase</Label>
+              <Input
+                id="data_primeira_fase"
+                type="date"
+                {...form.register('data_primeira_fase')}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="data_segunda_fase">Data da Segunda Fase</Label>
+              <Input
+                id="data_segunda_fase"
+                type="date"
+                {...form.register('data_segunda_fase')}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="data_terceira_fase">Data da Terceira Fase</Label>
+              <Input
+                id="data_terceira_fase"
+                type="date"
+                {...form.register('data_terceira_fase')}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
