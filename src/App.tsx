@@ -75,31 +75,31 @@ function AppRouter() {
           } />
           
           <Route path="/entidades" element={
-            <ProtectedRoute>
+            <ProtectedRoute requireProfile={true}>
               <Entidades />
             </ProtectedRoute>
           } />
           
           <Route path="/entidades/:id" element={
-            <ProtectedRoute>
+            <ProtectedRoute requireProfile={true}>
               <EntidadeDetalhes />
             </ProtectedRoute>
           } />
           
           <Route path="/entidades/:id/demonstracoes" element={
-            <ProtectedRoute>
+            <ProtectedRoute requireProfile={true}>
               <DemonstracoesInteresse />
             </ProtectedRoute>
           } />
           
           <Route path="/eventos" element={
-            <ProtectedRoute>
+            <ProtectedRoute requireProfile={true}>
               <Eventos />
             </ProtectedRoute>
           } />
           
           <Route path="/eventos/:id" element={
-            <ProtectedRoute>
+            <ProtectedRoute requireProfile={true}>
               <EventoDetalhes />
             </ProtectedRoute>
           } />
@@ -117,7 +117,7 @@ function AppRouter() {
           } />
           
           <Route path="/perfil" element={
-            <ProtectedRoute>
+            <ProtectedRoute requireProfile={true}>
               <Perfil />
             </ProtectedRoute>
           } />
