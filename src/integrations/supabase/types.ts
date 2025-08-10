@@ -102,14 +102,11 @@ export type Database = {
           contato: string | null
           created_at: string
           data_primeira_fase: string | null
-          data_primeira_fase_2: string | null
-          data_primeira_fase_3: string | null
+          encerramento_primeira_fase: string | null
           data_segunda_fase: string | null
-          data_segunda_fase_2: string | null
-          data_segunda_fase_3: string | null
+          encerramento_segunda_fase: string | null
           data_terceira_fase: string | null
-          data_terceira_fase_2: string | null
-          data_terceira_fase_3: string | null
+          encerramento_terceira_fase: string | null
           descricao_curta: string | null
           descricao_detalhada: string | null
           email_contato: string | null
@@ -174,14 +171,11 @@ export type Database = {
           contato?: string | null
           created_at?: string
           data_primeira_fase?: string | null
-          data_primeira_fase_2?: string | null
-          data_primeira_fase_3?: string | null
+          encerramento_primeira_fase?: string | null
           data_segunda_fase?: string | null
-          data_segunda_fase_2?: string | null
-          data_segunda_fase_3?: string | null
+          encerramento_segunda_fase?: string | null
           data_terceira_fase?: string | null
-          data_terceira_fase_2?: string | null
-          data_terceira_fase_3?: string | null
+          encerramento_terceira_fase?: string | null
           descricao_curta?: string | null
           descricao_detalhada?: string | null
           email_contato?: string | null
@@ -729,6 +723,7 @@ export type Database = {
           _local_palestra?: string
           _data_primeira_fase_2?: string
           _data_primeira_fase_3?: string
+          _encerramento_primeira_fase?: string
           _data_segunda_fase_2?: string
           _data_segunda_fase_3?: string
           _data_terceira_fase_2?: string

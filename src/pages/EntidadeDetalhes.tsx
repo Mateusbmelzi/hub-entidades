@@ -42,10 +42,12 @@ const EntidadeDetalhes = () => {
   
   const handleEntidadeUpdate = useCallback(() => {
     console.log('🔄 Entidade atualizada - resetando estado de loading');
+    
     setIsUpdating(false);
   }, []);
   
   const { entidade, loading, error, refetch: refetchEntidade } = useEntidade(id, handleEntidadeUpdate);
+  // console.log(entidade.encerramento_primeira_fase) 
   const { projetos, loading: projetosLoading, refetch: refetchProjetos } = useProjetos(entidade?.id);
   const { eventos, loading: eventosLoading, refetch: refetchEventos } = useEventosEntidade(entidade?.id);
   const { entidadeId, isAuthenticated, logout } = useEntityAuth();
@@ -144,12 +146,12 @@ const EntidadeDetalhes = () => {
     }
 
     // Verificar se existe um processo seletivo ativo com link de inscrição
-    console.log('🔍 Debug - processo_seletivo_ativo:', entidade?.processo_seletivo_ativo);
-    console.log('🔍 Debug - link_processo_seletivo:', entidade?.link_processo_seletivo);
-    console.log('🔍 Debug - entidade.id:', entidade?.id);
+    // console.log('🔍 Debug - processo_seletivo_ativo:', entidade?.processo_seletivo_ativo);
+    // console.log('🔍 Debug - link_processo_seletivo:', entidade?.link_processo_seletivo);
+    // console.log('🔍 Debug - entidade.id:', entidade?.id);
     
     if (entidade?.processo_seletivo_ativo && entidade?.link_processo_seletivo) {
-      console.log('✅ Processo seletivo encontrado, abrindo link:', entidade.link_processo_seletivo);
+      // console.log('✅ Processo seletivo encontrado, abrindo link:', entidade.link_processo_seletivo);
       // Abrir o link de inscrição em uma nova aba
       window.open(entidade.link_processo_seletivo, '_blank');
       
@@ -161,7 +163,7 @@ const EntidadeDetalhes = () => {
       return;
     }
     
-    console.log('❌ Nenhum processo seletivo encontrado, redirecionando para demonstração de interesse');
+    // console.log('❌ Nenhum processo seletivo encontrado, redirecionando para demonstração de interesse');
 
     // Se não há processo seletivo ativo, redirecionar para a página de demonstração de interesse
     navigate(`/demonstrar-interesse/${entidade.id}`);
@@ -312,7 +314,7 @@ const EntidadeDetalhes = () => {
                       <EditarEntidadeForm 
                         entidade={entidade} 
                         onSuccess={() => {
-                          console.log('🔄 onSuccess chamado - fechando dialog e refetching');
+                          // console.log('🔄 onSuccess chamado - fechando dialog e refetching');
                           setShowEditDialog(false);
                           setIsUpdating(true);
                           
@@ -360,7 +362,7 @@ const EntidadeDetalhes = () => {
                     entidadeId={entidade.id}
                     areasAtuais={entidade.areas_internas || []}
                     onSuccess={() => {
-                      console.log('Áreas internas atualizadas');
+                      // console.log('Áreas internas atualizadas');
                       refetchEntidade();
                     }}
                   />
@@ -484,7 +486,7 @@ const EntidadeDetalhes = () => {
                           <EditarEntidadeForm 
                             entidade={entidade} 
                             onSuccess={() => {
-                              console.log('🔄 onSuccess chamado - refetching dados da entidade');
+                              // console.log('🔄 onSuccess chamado - refetching dados da entidade');
                               refetchEntidade();
                             }} 
                           />
@@ -568,7 +570,7 @@ const EntidadeDetalhes = () => {
               <EditarEntidadeForm
                 entidade={entidade}
                 onSuccess={() => {
-                  console.log("🔄 onSuccess chamado - refetching dados da entidade");
+                  // console.log("🔄 onSuccess chamado - refetching dados da entidade");
                   refetchEntidade();
                 }}
               />
@@ -580,30 +582,16 @@ const EntidadeDetalhes = () => {
 
     <CardContent>
       <div className="space-y-6">
-        {/* Link de inscrição */}
-        {entidade.link_processo_seletivo && (
-          <div className="flex items-center p-4 bg-white rounded-xl border border-green-200 shadow-sm">
-            <ExternalLink className="mr-4 h-6 w-6 text-green-600 flex-shrink-0" />
-            <div>
-              <div className="font-semibold text-gray-900">Link de Inscrição</div>
-              <a
-                href={entidade.link_processo_seletivo}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-lg text-green-600 hover:text-green-700 hover:underline"
-              >
-                Acessar formulário de inscrição
-              </a>
-            </div>
-          </div>
-        )}
+
 
         {/* Datas do processo */}
         {(entidade.abertura_processo_seletivo ||
           entidade.fechamento_processo_seletivo ||
           entidade.data_primeira_fase ||
           entidade.data_segunda_fase ||
-          entidade.data_terceira_fase) && (
+          entidade.data_terceira_fase ||
+          entidade.encerramento_primeira_fase
+        ) && (
           <div className="space-y-6">
             {/* Período de inscrições */}
             {(entidade.abertura_processo_seletivo || entidade.fechamento_processo_seletivo) && (
@@ -618,11 +606,11 @@ const EntidadeDetalhes = () => {
                       <div className="text-sm text-gray-500">Abertura</div>
                       <div className="text-lg">
                       {
-  (() => {
-    const [y, m, d] = entidade.abertura_processo_seletivo.split("-");
-    return new Date(+y, +m - 1, +d).toLocaleDateString("pt-BR");
-  })()
-      }
+                        (() => {
+                          const [y, m, d] = entidade.abertura_processo_seletivo.split("-");
+                          return new Date(+y, +m - 1, +d).toLocaleDateString("pt-BR");
+                        })()
+                      }
                       </div>
                     </div>
                   )}
@@ -648,55 +636,66 @@ const EntidadeDetalhes = () => {
               {
                 titulo: "Primeira Fase",
                 datas: [
-                  { label: "Dia 1", valor: entidade.data_primeira_fase },
-                  { label: "Dia 2", valor: entidade.data_primeira_fase_2 },
-                  { label: "Dia 3", valor: entidade.data_primeira_fase_3 },
+                  { label: "Início 1ª Fase", valor: entidade.data_primeira_fase },
+                  { label: "Encerramento 1ª Fase", valor: entidade.encerramento_primeira_fase }
                 ],
               },
               {
                 titulo: "Segunda Fase",
                 datas: [
-                  { label: "Dia 1", valor: entidade.data_segunda_fase },
-                  { label: "Dia 2", valor: entidade.data_segunda_fase_2 },
-                  { label: "Dia 3", valor: entidade.data_segunda_fase_3 },
+                  { label: "Início 2ª Fase", valor: entidade.data_segunda_fase },
+                  { label: "Encerramento 2ª Fase", valor: entidade.encerramento_segunda_fase },
                 ],
               },
               {
                 titulo: "Terceira Fase",
                 datas: [
-                  { label: "Dia 1", valor: entidade.data_terceira_fase },
-                  { label: "Dia 2", valor: entidade.data_terceira_fase_2 },
-                  { label: "Dia 3", valor: entidade.data_terceira_fase_3 },
+                  { label: "Início 3ª Fase", valor: entidade.data_terceira_fase },
+                  { label: "Encerramento 3ª Fase", valor: entidade.encerramento_terceira_fase },
                 ],
               },
             ].map(
               (fase) =>
                 fase.datas.some((d) => d.valor) && (
-                  <div
-                    key={fase.titulo}
-                    className="bg-white rounded-xl border border-green-200 shadow-sm p-4"
-                  >
-                    <div className="flex items-center mb-3">
-                      <Calendar className="mr-2 h-6 w-6 text-green-600" />
-                      <h3 className="text-xl font-semibold text-gray-900">{fase.titulo}</h3>
-                    </div>
-                    <div className="flex flex-wrap gap-6">
-                      {fase.datas.map(
-                        (d, idx) =>
-                          d.valor && (
-                            <div key={idx}>
-                              <div className="text-sm text-gray-500">{d.label}</div>
-                              <div className="text-lg">
-                                {(() => {
-                                  const [y, m, day] = d.valor.split("-");
-                                  return new Date(+y, +m - 1, +day).toLocaleDateString("pt-BR");
-                                })()}                              
-                              </div>
-                            </div>
-                          )
-                      )}
-                    </div>
+                <div
+                  key={fase.titulo}
+                  className="bg-white rounded-xl border border-green-200 shadow-sm p-4"
+                >
+                  <div className="flex items-center mb-3">
+                    <Calendar className="mr-2 h-6 w-6 text-green-600" />
+                    <h3 className="text-xl font-semibold text-gray-900">{fase.titulo}</h3>
                   </div>
+
+                  <div className="flex">
+                    {/* Primeira data */}
+                    {fase.datas[0]?.valor && (
+                      <div className="flex flex-col">
+                        <div className="text-sm text-gray-500">{fase.datas[0].label}</div>
+                        <div className="text-lg">
+                          {(() => {
+                            const [y, m, day] = fase.datas[0].valor.split("-");
+                            return new Date(+y, +m - 1, +day).toLocaleDateString("pt-BR");
+                          })()}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Segunda data, deslocada */}
+                    {fase.datas[1]?.valor && (
+                      <div className="flex flex-col ml-auto mr-[30%]">
+                        <div className="text-sm text-gray-500">{fase.datas[1].label}</div>
+                        <div className="text-lg">
+                          {(() => {
+                            const [y, m, day] = fase.datas[1].valor.split("-");
+                            return new Date(+y, +m - 1, +day).toLocaleDateString("pt-BR");
+                          })()}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+
                 )
             )}
           </div>

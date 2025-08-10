@@ -31,17 +31,15 @@ const formSchema = z.object({
   processo_seletivo_ativo: z.boolean().optional(),
   link_processo_seletivo: z.string().url('Link deve ser uma URL válida').optional().or(z.literal('')),
   data_primeira_fase: z.string().optional(),
-  data_primeira_fase_2: z.string().optional(),
-  data_primeira_fase_3: z.string().optional(),
+  encerramento_primeira_fase: z.string().optional(),
   data_segunda_fase: z.string().optional(),
-  data_segunda_fase_2: z.string().optional(),
-  data_segunda_fase_3: z.string().optional(),
+  encerramento_segunda_fase: z.string().optional(),
   data_terceira_fase: z.string().optional(),
-  data_terceira_fase_2: z.string().optional(),
-  data_terceira_fase_3: z.string().optional(),
+  encerramento_terceira_fase: z.string().optional(),
   abertura_processo_seletivo: z.string().optional(),
   fechamento_processo_seletivo: z.string().optional(),
 });
+
 
 type FormData = z.infer<typeof formSchema>;
 
@@ -73,16 +71,13 @@ export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade
       feira_ativa: entidade.feira_ativa || false,
       processo_seletivo_ativo: entidade.processo_seletivo_ativo || false,
       link_processo_seletivo: entidade.link_processo_seletivo || '',
-      data_primeira_fase: entidade.data_primeira_fase || '',
-      data_primeira_fase_2: entidade.data_primeira_fase_2 || '',
-      data_primeira_fase_3: entidade.data_primeira_fase_3 || '',
-      data_segunda_fase: entidade.data_segunda_fase || '',
-      data_segunda_fase_2: entidade.data_segunda_fase_2 || '',
-      data_segunda_fase_3: entidade.data_segunda_fase_3 || '',
-      data_terceira_fase: entidade.data_terceira_fase || '',
-      data_terceira_fase_2: entidade.data_terceira_fase_2 || '',
-      data_terceira_fase_3: entidade.data_terceira_fase_3 || '',
       abertura_processo_seletivo: entidade.abertura_processo_seletivo || '',
+      data_primeira_fase: entidade.data_primeira_fase || '',
+      encerramento_primeira_fase: entidade.encerramento_primeira_fase || '',
+      data_segunda_fase: entidade.data_segunda_fase || '',
+      encerramento_segunda_fase: entidade.encerramento_segunda_fase || '',
+      data_terceira_fase: entidade.data_terceira_fase || '',
+      encerramento_terceira_fase: entidade.encerramento_terceira_fase || '',
       fechamento_processo_seletivo: entidade.fechamento_processo_seletivo || '',
     },
   });
@@ -113,14 +108,11 @@ export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade
         abertura_processo_seletivo: data.abertura_processo_seletivo || null,
         fechamento_processo_seletivo: data.fechamento_processo_seletivo || null,
         data_primeira_fase: data.data_primeira_fase || null,
-        data_primeira_fase_2: data.data_primeira_fase_2 || null,
-        data_primeira_fase_3: data.data_primeira_fase_3 || null,
+        encerramento_primeira_fase: data.encerramento_primeira_fase || null,
         data_segunda_fase: data.data_segunda_fase || null,
-        data_segunda_fase_2: data.data_segunda_fase_2 || null,
-        data_segunda_fase_3: data.data_segunda_fase_3 || null,
+        encerramento_segunda_fase: data.encerramento_segunda_fase || null,
         data_terceira_fase: data.data_terceira_fase || null,
-        data_terceira_fase_2: data.data_terceira_fase_2 || null,
-        data_terceira_fase_3: data.data_terceira_fase_3 || null,
+        encerramento_terceira_fase: data.encerramento_terceira_fase || null
       });
 
       if (success) {
@@ -349,54 +341,57 @@ export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Processo Seletivo</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="processo_seletivo_ativo"
-              checked={form.watch('processo_seletivo_ativo')}
-              onCheckedChange={(checked) => form.setValue('processo_seletivo_ativo', checked as boolean)}
-            />
-            <Label htmlFor="processo_seletivo_ativo" className="text-sm font-normal cursor-pointer">
-              Processo seletivo ativo
-            </Label>
-          </div>
+      <CardHeader>
+        <CardTitle>Processo Seletivo</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="processo_seletivo_ativo"
+            checked={form.watch('processo_seletivo_ativo')}
+            onCheckedChange={(checked) => form.setValue('processo_seletivo_ativo', checked as boolean)}
+          />
+          <Label htmlFor="processo_seletivo_ativo" className="text-sm font-normal cursor-pointer">
+            Processo seletivo ativo
+          </Label>
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="abertura_processo_seletivo">Abertura do Processo Seletivo</Label>
-            <Input
-              id="abertura_processo_seletivo"
-              type="date"
-              {...form.register('abertura_processo_seletivo')}
-            />
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="abertura_processo_seletivo">Abertura do Processo Seletivo</Label>
+          <Input
+            id="abertura_processo_seletivo"
+            type="date"
+            {...form.register('abertura_processo_seletivo')}
+          />
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="fechamento_processo_seletivo">Fechamento do Processo Seletivo</Label>
-            <Input
-              id="fechamento_processo_seletivo"
-              type="date"
-              {...form.register('fechamento_processo_seletivo')}
-            />
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="fechamento_processo_seletivo">Fechamento do Processo Seletivo</Label>
+          <Input
+            id="fechamento_processo_seletivo"
+            type="date"
+            {...form.register('fechamento_processo_seletivo')}
+          />
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="link_processo_seletivo">Link do Processo Seletivo</Label>
-            <Input
-              id="link_processo_seletivo"
-              {...form.register('link_processo_seletivo')}
-              placeholder="https://forms.google.com/processo-seletivo"
-            />
-            {form.formState.errors.link_processo_seletivo && (
-              <p className="text-sm text-red-500">{form.formState.errors.link_processo_seletivo.message}</p>
-            )}
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="link_processo_seletivo">Link do Processo Seletivo</Label>
+          <Input
+            id="link_processo_seletivo"
+            {...form.register('link_processo_seletivo')}
+            placeholder="https://forms.google.com/processo-seletivo"
+          />
+          {form.formState.errors.link_processo_seletivo && (
+            <p className="text-sm text-red-500">{form.formState.errors.link_processo_seletivo.message}</p>
+          )}
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Grupos de fases alinhados à esquerda */}
+        <div className="space-y-6">
+          {/* Primeira Fase */}
+          <div className="flex justify-start items-center gap-8">
             <div className="space-y-2">
-              <Label htmlFor="data_primeira_fase">Data da Primeira Fase</Label>
+              <Label htmlFor="data_primeira_fase">Início 1ª Fase</Label>
               <Input
                 id="data_primeira_fase"
                 type="date"
@@ -405,25 +400,19 @@ export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="data_primeira_fase_2">Primeira Fase 2º Dia</Label>
+              <Label htmlFor="encerramento_primeira_fase">Encerramento 1ª Fase</Label>
               <Input
-                id="data_primeira_fase_2"
+                id="encerramento_primeira_fase"
                 type="date"
-                {...form.register('data_primeira_fase_2')}
+                {...form.register('encerramento_primeira_fase')}
               />
             </div>
+          </div>
 
+          {/* Segunda Fase */}
+          <div className="flex justify-start items-center gap-8">
             <div className="space-y-2">
-              <Label htmlFor="data_primeira_fase_3">Primeira Fase 3º Dia</Label>
-              <Input
-                id="data_primeira_fase_3"
-                type="date"
-                {...form.register('data_primeira_fase_3')}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="data_segunda_fase">Data da Segunda Fase</Label>
+              <Label htmlFor="data_segunda_fase">Início 2ª Fase</Label>
               <Input
                 id="data_segunda_fase"
                 type="date"
@@ -432,25 +421,19 @@ export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="data_segunda_fase_2">Segunda Fase 2º Dia</Label>
+              <Label htmlFor="encerramento_segunda_fase">Encerramento 2ª Fase</Label>
               <Input
-                id="data_segunda_fase_2"
+                id="encerramento_segunda_fase"
                 type="date"
-                {...form.register('data_segunda_fase_2')}
+                {...form.register('encerramento_segunda_fase')}
               />
             </div>
+          </div>
 
+          {/* Terceira Fase */}
+          <div className="flex justify-start items-center gap-8">
             <div className="space-y-2">
-              <Label htmlFor="data_segunda_fase_3">Segunda Fase 3º Dia</Label>
-              <Input
-                id="data_segunda_fase_3"
-                type="date"
-                {...form.register('data_segunda_fase_3')}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="data_terceira_fase">Data da Terceira Fase</Label>
+              <Label htmlFor="data_terceira_fase">Início 3ª Fase</Label>
               <Input
                 id="data_terceira_fase"
                 type="date"
@@ -459,25 +442,19 @@ export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="data_terceira_fase_2">Terceira Fase 2º Dia</Label>
+              <Label htmlFor="encerramento_terceira_fase">Encerramento 3ª Fase</Label>
               <Input
-                id="data_terceira_fase_2"
+                id="encerramento_terceira_fase"
                 type="date"
-                {...form.register('data_terceira_fase_2')}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="data_terceira_fase_3">Terceira Fase 3º Dia</Label>
-              <Input
-                id="data_terceira_fase_3"
-                type="date"
-                {...form.register('data_terceira_fase_3')}
+                {...form.register('encerramento_terceira_fase')}
               />
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </CardContent>
+    </Card>
+
+
 
       <div className="flex justify-end">
         <Button type="submit" disabled={loading}>

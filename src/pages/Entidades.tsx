@@ -506,25 +506,28 @@ const Entidades = () => {
                                 <span className="text-sm font-semibold text-insper-red">Processo Seletivo</span>
                               </div>
                               <div className="space-y-2 text-sm">
-                                {entity.abertura_processo_seletivo && (
+                                {/* {entity.abertura_processo_seletivo && (
                                   <div className="flex items-center gap-2 text-insper-red">
                                     <Calendar size={14} className="text-insper-red flex-shrink-0" />
                                     <span className="font-medium">Abertura Inscrições: {entity.abertura_processo_seletivo}</span>
                                   </div>
-                                )}
+                                )} */}
                                 {entity.fechamento_processo_seletivo && (
                                   <div className="flex items-center gap-2 text-insper-red">
                                     <Calendar size={14} className="text-insper-red flex-shrink-0" />
-                                    <span className="font-medium">Fechamento Inscrições: {entity.fechamento_processo_seletivo}</span>
+                                    <span className="font-medium">
+                                      Inscrições abertas até: {entity.fechamento_processo_seletivo?.split('-').reverse().join('-')}
+                                    </span> 
                                   </div>
                                 )}
-                                {entity.data_primeira_fase && (
+                                <div className="flex items-center gap-2 text-insper-red">Para mais informações do processo seletivo, veja o perfil da organização.</div>
+                                {/* {entity.data_primeira_fase && (
                                   <div className="flex items-center gap-2 text-insper-red">
                                     <CalendarDays size={14} className="text-insper-red flex-shrink-0" />
                                     <span>Primeira Fase: {entity.data_primeira_fase}</span>
                                   </div>
-                                )}
-                                {entity.data_primeira_fase_2 && (
+                                )} */}
+                                {/* {entity.data_primeira_fase_2 && (
                                   <div className="flex items-center gap-2 text-insper-red">
                                     <CalendarDays size={14} className="text-insper-red flex-shrink-0" />
                                     <span>Primeira Fase 2º Dia: {entity.data_primeira_fase_2}</span>
@@ -571,7 +574,7 @@ const Entidades = () => {
                                     <CalendarDays size={14} className="text-insper-red flex-shrink-0" />
                                     <span>Terceira Fase 3º Dia: {entity.data_terceira_fase_3}</span>
                                   </div>
-                                )}
+                                )} */}
                               </div>
                             </div>
                           )}
