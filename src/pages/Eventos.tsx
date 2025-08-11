@@ -21,7 +21,7 @@ const Eventos = () => {
   
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedFilters, setSelectedFilters] = useState<string[]>(['todos']);
+  const [selectedFilters, setSelectedFilters] = useState<string[]>(['futuro', 'proximo']);
   const [selectedEntityFilters, setSelectedEntityFilters] = useState<string[]>([]);
   const [filteredByEntity, setFilteredByEntity] = useState<string | null>(null);
   const [showFiltersPopover, setShowFiltersPopover] = useState(false);
@@ -44,7 +44,7 @@ const Eventos = () => {
     isLoadingMore, 
     loadMore 
   } = useEventos({ 
-    pageSize: 8, 
+    pageSize: 10000, 
     enablePagination: true,
     statusAprovacao: 'aprovado',
     entidadeId: filteredByEntity ? parseInt(filteredByEntity) : undefined
@@ -135,7 +135,7 @@ const Eventos = () => {
 
   const toggleStatusFilter = (filterId: string) => {
     if (filterId === 'todos') {
-      setSelectedFilters(['todos']);
+      setSelectedFilters(['futuro', `proximo`]);
     } else {
       setSelectedFilters(prev => 
         prev.includes('todos') 
@@ -287,7 +287,9 @@ const Eventos = () => {
           <div className="text-center mb-12">
             <div className="inline-flex items-center px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-sm font-medium mb-6">
               <Sparkles className="w-4 h-4 mr-2" />
-              {eventos.length} Eventos Disponíveis
+              {/* {eventos.length} Eventos Disponíveis */}
+              {eventos.filter(e => new Date(e.data) > new Date()).length} Eventos Disponíveis
+
             </div>
             
             <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">

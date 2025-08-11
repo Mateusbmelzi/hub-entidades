@@ -213,7 +213,7 @@ const Entidades = () => {
           <div className="text-center mb-12">
             <div className="inline-flex items-center px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-sm font-medium mb-6">
               <Sparkles className="w-4 h-4 mr-2" />
-              {entidades.length} Organizações Estudantis Disponíveis
+              44 Organizações Estudantis Disponíveis
             </div>
             
             <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
