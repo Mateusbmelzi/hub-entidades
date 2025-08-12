@@ -8,6 +8,7 @@ interface UpdateEventoData {
   local?: string;
   data_evento?: string;
   capacidade?: number;
+  link_evento?: string;
   status?: string;
 }
 

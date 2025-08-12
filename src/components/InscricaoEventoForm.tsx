@@ -9,10 +9,12 @@ import { useInscricaoEvento } from '@/hooks/useInscricaoEvento';
 interface InscricaoEventoFormProps {
   eventoId: string;
   eventoNome: string;
+  link_evento: string; 
   onSuccess: () => void;
 }
+// console.log(link_evento)
 
-export default function InscricaoEventoForm({ eventoId, eventoNome, onSuccess }: InscricaoEventoFormProps) {
+export default function InscricaoEventoForm({ eventoId, eventoNome, onSuccess, link_evento }: InscricaoEventoFormProps) {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
@@ -36,11 +38,20 @@ export default function InscricaoEventoForm({ eventoId, eventoNome, onSuccess }:
       email: email || undefined,
       telefone: telefone || undefined
     });
+    if (link_evento) {
+      
+      window.open(link_evento, "_blanck");
+    }
+    console.log(link_evento)
 
     if (result.success) {
       onSuccess();
     }
   };
+
+  const handleGotoExternalLink = () => {
+  };
+
 
   return (
     <>
@@ -96,8 +107,13 @@ export default function InscricaoEventoForm({ eventoId, eventoNome, onSuccess }:
         </div>
 
         <div className="flex gap-3 pt-4">
-          <Button type="submit" disabled={loading} className="flex-1">
-            {loading ? 'Inscrevendo...' : 'Confirmar Inscrição'}
+          <Button
+            onClick={handleSubmit}
+            // type="button" // 
+            // disabled={loading}
+            className="flex-1"
+          >
+            {loading ? 'Abrindo...' : 'Ir para Página do Evento'}
           </Button>
         </div>
       </form>

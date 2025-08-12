@@ -21,10 +21,10 @@ export default function CriarEventoEntidade({ onSuccess }: CriarEventoEntidadePr
   const [local, setLocal] = useState('');
   const [dataEvento, setDataEvento] = useState('');
   const [capacidade, setCapacidade] = useState('');
+  const [link_evento, setLinkevento] = useState('');
   const [open, setOpen] = useState(false);
   const [showNameWarning, setShowNameWarning] = useState(false);
   const [pendingEventData, setPendingEventData] = useState<any>(null);
-  
   const { createEvento, loading } = useCreateEventoAsEntity();
   const { entidadeId, isAuthenticated } = useEntityAuth();
 
@@ -56,7 +56,8 @@ export default function CriarEventoEntidade({ onSuccess }: CriarEventoEntidadePr
         _data_evento: new Date().toISOString(),
         _descricao: 'Teste de função',
         _local: 'Teste',
-        _capacidade: 10
+        _capacidade: 10,
+        _link_evento: ''
       });
       
       console.log('📊 Teste RPC:', { rpcTest, rpcError });
@@ -75,7 +76,8 @@ export default function CriarEventoEntidade({ onSuccess }: CriarEventoEntidadePr
       descricao,
       local,
       dataEvento,
-      capacidade
+      capacidade,
+      link_evento
     });
     
     if (!entidadeId) {

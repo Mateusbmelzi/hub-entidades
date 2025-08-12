@@ -31,6 +31,8 @@ export default function EditarEventoEntidade({ evento, entidadeId, onSuccess }: 
     return data.toISOString().slice(0, 16);
   });
   const [capacidade, setCapacidade] = useState(evento.capacidade?.toString() || '');
+
+  const [link_evento, setLinkevento] = useState(evento.link_evento?.toString() || '');
   
   const { updateEvento, loading } = useUpdateEventoAsEntity();
 
@@ -41,8 +43,9 @@ export default function EditarEventoEntidade({ evento, entidadeId, onSuccess }: 
       nome,
       descricao,
       local,
-              data_evento: dataEvento, // Mantemos para compatibilidade com a função RPC
-      capacidade: capacidade ? parseInt(capacidade) : undefined
+      data_evento: dataEvento, // Mantemos para compatibilidade com a função RPC
+      capacidade: capacidade ? parseInt(capacidade) : undefined,
+      link_evento: link_evento
     });
 
     if (result.success) {
@@ -82,6 +85,17 @@ export default function EditarEventoEntidade({ evento, entidadeId, onSuccess }: 
             value={descricao}
             onChange={(e) => setDescricao(e.target.value)}
             placeholder="Descreva o evento, objetivos e o que os participantes podem esperar..."
+            rows={4}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="link_evento">Link do evento</Label>
+          <Textarea
+            id="link_evento"
+            value={link_evento}
+            onChange={(e) => setLinkevento(e.target.value)}
+            placeholder="Link para inscrição oficial do evento"
             rows={4}
           />
         </div>

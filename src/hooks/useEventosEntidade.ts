@@ -9,6 +9,7 @@ export interface Evento {
   data: string;
   horario?: string;
   capacidade?: number;
+  link_evento?: string;
   status: string;
   entidade_id: number;
   created_at: string;

@@ -8,6 +8,7 @@ interface CreateEventoData {
   local?: string;
   data_evento: string; // Mantemos para compatibilidade com o frontend
   capacidade?: number;
+  link_evento?: string
 }
 
 export const useCreateEventoAsEntity = () => {
@@ -54,7 +55,8 @@ export const useCreateEventoAsEntity = () => {
         _data_evento: data.data_evento,
         _descricao: data.descricao,
         _local: data.local,
-        _capacidade: data.capacidade
+        _capacidade: data.capacidade,
+        _link_evento: data.link_evento
       });
       
       // Usar a nova função que cria eventos com status pendente
@@ -64,7 +66,8 @@ export const useCreateEventoAsEntity = () => {
         _data_evento: data.data_evento,
         _descricao: data.descricao,
         _local: data.local,
-        _capacidade: data.capacidade
+        _capacidade: data.capacidade,
+        _link_evento: data.link_evento
       });
 
       console.log('📊 Resultado da RPC:', { result, error });

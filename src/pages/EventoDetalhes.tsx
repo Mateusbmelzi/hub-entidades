@@ -70,7 +70,7 @@ const EventoDetalhes = () => {
 
   // Verificar se a entidade atual é a organizadora do evento
   const isEventOrganizer = isAuthenticated && evento?.entidades?.id === entidadeId;
-
+ 
   // Função para exportar participantes como CSV
   const handleExportCSV = () => {
     try {
@@ -289,6 +289,7 @@ const EventoDetalhes = () => {
                           <InscricaoEventoForm 
                             eventoId={evento.id}
                             eventoNome={evento.nome}
+                            link_evento={evento.link_evento} 
                             onSuccess={() => {
                               setShowInscricaoDialog(false);
                               refetchParticipantes();

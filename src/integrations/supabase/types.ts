@@ -266,6 +266,7 @@ export type Database = {
           local: string | null
           nome: string
           status: string | null
+          link_evento: string | null
           status_aprovacao: string | null
           comentario_aprovacao: string | null
           data_aprovacao: string | null
@@ -282,6 +283,7 @@ export type Database = {
           id?: string
           local?: string | null
           nome: string
+          link_evento: string | null
           status?: string | null
           status_aprovacao?: string | null
           comentario_aprovacao?: string | null
@@ -299,6 +301,7 @@ export type Database = {
           id?: string
           local?: string | null
           nome?: string
+          link_evento: string | null
           status?: string | null
           status_aprovacao?: string | null
           comentario_aprovacao?: string | null
@@ -647,6 +650,7 @@ export type Database = {
           _descricao?: string
           _local?: string
           _capacidade?: number
+          _link_evento?: string
         }
         Returns: string
       }
@@ -741,6 +745,7 @@ export type Database = {
           _data_evento?: string
           _capacidade?: number
           _status?: string
+          _link_evento?: string
         }
         Returns: boolean
       }
