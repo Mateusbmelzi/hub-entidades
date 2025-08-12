@@ -211,7 +211,7 @@ const EventoDetalhes = () => {
                   </div>
                   <div className="flex items-center">
                     <Clock className="mr-2 h-5 w-5" />
-                    {format(combineDataHorario(evento.data, evento.horario), "HH:mm", { locale: ptBR })}
+                    {format(combineDataHorario(evento.data, evento.horario), "hh:mm a", { locale: ptBR })}
                   </div>
                   {evento.local && (
                     <div className="flex items-center">
@@ -235,8 +235,11 @@ const EventoDetalhes = () => {
                 <CardHeader className="pb-4">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-xl text-gray-900">Informações do Evento</CardTitle>
-                                    <Badge className={`${getStatusColor(evento.status, evento.data, evento.horario)} text-sm px-3 py-1`}>
-                  {getStatusLabel(evento.status, evento.data, evento.horario)}
+                    <Badge
+                      className={`${getStatusColor(evento.status, evento.data, evento.horario)} text-sm px-3 py-1`}
+                    >
+                      {getStatusLabel(evento.status, evento.data, evento.horario)}{" "}
+                      {format(combineDataHorario(evento.data, evento.horario), "hh:mm a", { locale: ptBR })}
                     </Badge>
                   </div>
                 </CardHeader>
