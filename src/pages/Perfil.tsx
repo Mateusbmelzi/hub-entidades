@@ -69,7 +69,18 @@ export default function Perfil() {
   useEffect(() => {
     if (profile) {
       setNome(profile.nome || '');
-      setDataNascimento(profile.data_nascimento ? formatDateFromISO(profile.data_nascimento) : '');
+      setDataNascimento(profile.data_nascimento 
+        ? (() => {
+            const [y, m, d] = profile.data_nascimento.split("-");
+            // forçando horário meio-dia para evitar problema do timezone
+            const date = new Date(+y, +m - 1, +d + 1, 12, 0);
+            // aqui você pode formatar para dd/mm/yyyy para exibir, por exemplo:
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return `${day}/${month}/${year}`;
+          })()
+        : '');
       setCurso(profile.curso || '');
       setSemestre(profile.semestre || 1);
       setAreaInteresse(profile.area_interesse || '');
@@ -171,12 +182,12 @@ export default function Perfil() {
           throw error;
         }
 
-        console.log('✅ Inscrições encontradas:', data?.length || 0);
+        // console.log('✅ Inscrições encontradas:', data?.length || 0);
 
         // Buscar informações dos eventos separadamente
         if (data && data.length > 0) {
           const eventoIds = [...new Set(data.map(d => d.evento_id))];
-          console.log('🔍 Buscando eventos:', eventoIds);
+          // console.log('🔍 Buscando eventos:', eventoIds);
           
           const { data: eventosData, error: eventosError } = await supabase
             .from('eventos')
@@ -270,7 +281,16 @@ export default function Perfil() {
     setIsEditing(false);
     if (profile) {
       setNome(profile.nome || '');
-      setDataNascimento(profile.data_nascimento ? formatDateFromISO(profile.data_nascimento) : '');
+      setDataNascimento(profile.data_nascimento
+        ? (() => {
+            const [y, m, d] = profile.data_nascimento.split("-");
+            const date = new Date(+y, +m - 1, +d + 1, 12, 0);
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return `${day}/${month}/${year}`;
+          })()
+        : '');      
       setCurso(profile.curso || '');
       setSemestre(profile.semestre || 1);
       setAreaInteresse(profile.area_interesse || '');
@@ -302,7 +322,12 @@ export default function Perfil() {
         .from('profiles')
         .update({
           nome,
-          data_nascimento: dataNascimento ? formatDateToISO(dataNascimento) : null,
+          data_nascimento: dataNascimento
+            ? (() => {
+                const [day, month, year] = dataNascimento.split('/');
+                return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+              })()
+            : null,
           curso,
           semestre,
           area_interesse: areaInteresse,

@@ -49,7 +49,14 @@ const EntidadeDetalhes = () => {
   const { entidade, loading, error, refetch: refetchEntidade } = useEntidade(id, handleEntidadeUpdate);
   // console.log(entidade.encerramento_primeira_fase) 
   const { projetos, loading: projetosLoading, refetch: refetchProjetos } = useProjetos(entidade?.id);
-  const { eventos, loading: eventosLoading, refetch: refetchEventos } = useEventosEntidade(entidade?.id);
+  // const { eventos, loading: eventosLoading, refetch: refetchEventos } = useEventosEntidade(entidade?.id);
+  
+  const { eventos: allEventos, loading: eventosLoading, refetch: refetchEventos } = useEventosEntidade(entidade?.id);
+  const eventos = allEventos?.filter(ev => {
+  const hoje = new Date();
+  const dataEvento = new Date(ev.data); // garanta que 'ev.data' seja no formato ISO ou válido
+  return dataEvento >= hoje;
+});
   const { entidadeId, isAuthenticated, logout } = useEntityAuth();
   const { user, profile } = useAuth();
   const { deleteProjeto, loading: deleteLoading } = useDeleteProjeto();
