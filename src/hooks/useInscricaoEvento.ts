@@ -7,6 +7,7 @@ interface InscricaoEventoData {
   nome_participante: string;
   email?: string;
   telefone?: string;
+  link_inscricao?: string;
 }
 
 export const useInscricaoEvento = () => {

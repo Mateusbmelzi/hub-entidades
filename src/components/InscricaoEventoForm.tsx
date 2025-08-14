@@ -14,7 +14,7 @@ interface InscricaoEventoFormProps {
 }
 // console.log(link_evento)
 
-export default function InscricaoEventoForm({ eventoId, eventoNome, onSuccess, link_evento }: InscricaoEventoFormProps) {
+export default function InscricaoEventoForm({ eventoId, eventoNome, link_evento, onSuccess}: InscricaoEventoFormProps) {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
@@ -38,11 +38,8 @@ export default function InscricaoEventoForm({ eventoId, eventoNome, onSuccess, l
       email: email || undefined,
       telefone: telefone || undefined
     });
-    if (link_evento) {
-      
-      window.open(link_evento, "_blanck");
-    }
-    console.log(link_evento)
+    
+    window.open(link_evento, '_blank');
 
     if (result.success) {
       onSuccess();
@@ -107,12 +104,7 @@ export default function InscricaoEventoForm({ eventoId, eventoNome, onSuccess, l
         </div>
 
         <div className="flex gap-3 pt-4">
-          <Button
-            onClick={handleSubmit}
-            // type="button" // 
-            // disabled={loading}
-            className="flex-1"
-          >
+          <Button type='submit'  className='flex-1'>
             {loading ? 'Abrindo...' : 'Ir para Página do Evento'}
           </Button>
         </div>

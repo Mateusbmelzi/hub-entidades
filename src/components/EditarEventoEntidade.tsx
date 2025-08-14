@@ -19,33 +19,42 @@ export default function EditarEventoEntidade({ evento, entidadeId, onSuccess }: 
   const [descricao, setDescricao] = useState(evento.descricao || '');
   const [local, setLocal] = useState(evento.local || '');
   const [dataEvento, setDataEvento] = useState(() => {
-    // Combinar data e horário para criar um datetime-local
     const data = new Date(evento.data);
     const horario = evento.horario;
-    
     if (horario) {
       const [horas, minutos] = horario.split(':');
       data.setHours(parseInt(horas), parseInt(minutos), 0, 0);
     }
-    
-    return data.toISOString().slice(0, 16);
+    return data.toISOString().slice(0, 16); // YYYY-MM-DDTHH:mm
   });
   const [capacidade, setCapacidade] = useState(evento.capacidade?.toString() || '');
+  const [link_evento, setLinkevento] = useState(evento.link_evento || '');
 
-  const [link_evento, setLinkevento] = useState(evento.link_evento?.toString() || '');
-  
   const { updateEvento, loading } = useUpdateEventoAsEntity();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    // Separar data e horário para compatibilidade com a tabela
+    let dataStr: string | undefined;
+    let horarioStr: string | undefined;
+
+    if (dataEvento) {
+      const d = new Date(dataEvento);
+      if (!isNaN(d.getTime())) {
+        dataStr = d.toISOString().slice(0, 10);   // YYYY-MM-DD
+        horarioStr = d.toISOString().slice(11, 19); // HH:mm:ss
+      }
+    }
+
     const result = await updateEvento(evento.id, entidadeId, {
       nome,
       descricao,
+      link_evento,
       local,
-      data_evento: dataEvento, // Mantemos para compatibilidade com a função RPC
       capacidade: capacidade ? parseInt(capacidade) : undefined,
-      link_evento: link_evento
+      data: dataStr,
+      horario: horarioStr,
     });
 
     if (result.success) {
@@ -64,7 +73,7 @@ export default function EditarEventoEntidade({ evento, entidadeId, onSuccess }: 
           Edite as informações do evento "{evento.nome}"
         </DialogDescription>
       </DialogHeader>
-      
+
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-2">
           <Label htmlFor="nome">Nome do Evento</Label>
@@ -96,7 +105,7 @@ export default function EditarEventoEntidade({ evento, entidadeId, onSuccess }: 
             value={link_evento}
             onChange={(e) => setLinkevento(e.target.value)}
             placeholder="Link para inscrição oficial do evento"
-            rows={4}
+            rows={1}
           />
         </div>
 

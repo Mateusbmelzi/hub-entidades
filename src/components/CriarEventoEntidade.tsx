@@ -29,12 +29,12 @@ export default function CriarEventoEntidade({ onSuccess }: CriarEventoEntidadePr
   const { entidadeId, isAuthenticated } = useEntityAuth();
 
   // Debug logs
-  console.log('🔍 CriarEventoEntidade Debug:', {
-    entidadeId,
-    isAuthenticated,
-    open,
-    loading
-  });
+  // console.log('🔍 CriarEventoEntidade Debug:', {
+  //   entidadeId,
+  //   isAuthenticated,
+  //   open,
+  //   loading
+  // });
 
   // Função para testar a conexão com o banco
   const testDatabaseConnection = async () => {
