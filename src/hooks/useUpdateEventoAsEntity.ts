@@ -21,32 +21,51 @@ export const useUpdateEventoAsEntity = () => {
     try {
       setLoading(true);
       
-      // Converter data_evento de string para Date se fornecida
-      let dataEventoProcessada = null;
-
+      console.log('🔄 Atualizando evento diretamente na tabela...');
+      console.log('📝 Dados recebidos:', data);
+      
+      // Preparar dados para update direto na tabela
+      const updateData: any = {};
+      
+      if (data.nome !== undefined) updateData.nome = data.nome;
+      if (data.descricao !== undefined) updateData.descricao = data.descricao;
+      if (data.local !== undefined) updateData.local = data.local;
+      if (data.capacidade !== undefined) updateData.capacidade = data.capacidade;
+      if (data.link_evento !== undefined) updateData.link_evento = data.link_evento;
+      if (data.status !== undefined) updateData.status = data.status;
+      
+      // Processar data e horário se fornecidos
       if (data.data) {
         const dataLocal = new Date(data.data);
         if (isNaN(dataLocal.getTime())) throw new Error('Data inválida fornecida');
-      
-        // Formatos corretos para a tabela
-        const dataCampo = dataLocal.toISOString().slice(0, 10); // YYYY-MM-DD
-        const horarioCampo = dataLocal.toISOString().slice(11, 19); // HH:mm:ss
-      
-        const { error } = await supabase.rpc('update_event_as_entity', {
-          _evento_id: eventoId,
-          _entidade_id: entidadeId,
-          _data: dataCampo,
-          _horario: horarioCampo,
-          _capacidade: data.capacidade,
-          _link_evento: data.link_evento,
-          _nome: data.nome,
-          _descricao: data.descricao,
-          _local: data.local,
-          _status: data.status,
-        });
-      
-        if (error) throw error;
+        
+        updateData.data = dataLocal.toISOString().slice(0, 10); // YYYY-MM-DD
+        updateData.horario = dataLocal.toISOString().slice(11, 19); // HH:mm:ss
       }
+      
+      // Se horário foi fornecido separadamente, usar ele
+      if (data.horario && !data.data) {
+        updateData.horario = data.horario;
+      }
+      
+      // Adicionar timestamp de atualização
+      updateData.updated_at = new Date().toISOString();
+      
+      console.log('📤 Dados para update direto:', updateData);
+      
+      // Atualizar diretamente na tabela eventos
+      const { error } = await supabase
+        .from('eventos')
+        .update(updateData)
+        .eq('id', eventoId)
+        .eq('entidade_id', entidadeId);
+      
+      if (error) {
+        console.error('❌ Erro no update direto:', error);
+        throw error;
+      }
+      
+      console.log('✅ Evento atualizado com sucesso na tabela!');
       
       toast({
         title: "Evento atualizado com sucesso!",
@@ -56,6 +75,7 @@ export const useUpdateEventoAsEntity = () => {
       return { success: true };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Erro ao atualizar evento';
+      console.error('❌ Erro completo ao atualizar evento:', error);
       toast({
         title: "Erro ao atualizar evento",
         description: message,

@@ -5,6 +5,7 @@ import { AuthProvider } from '@/hooks/useAuth';
 import { EntityAuthProvider } from '@/hooks/useEntityAuth';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { SuperAdminRoute } from '@/components/SuperAdminRoute';
+import { WelcomeRoute } from '@/components/WelcomeRoute';
 
 import Navigation from '@/components/Navigation';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -158,8 +159,12 @@ function AppRouter() {
           {/* Rota de verificação de email */}
           <Route path="/email-verification" element={<EmailVerification />} />
           
-          {/* Rota de boas-vindas */}
-          <Route path="/welcome" element={<Welcome />} />
+          {/* Rota de boas-vindas - protegida para usuários com destino de redirecionamento */}
+          <Route path="/welcome" element={
+            <WelcomeRoute>
+              <Welcome />
+            </WelcomeRoute>
+          } />
           
           {/* Rota 404 */}
           <Route path="*" element={<NotFound />} />

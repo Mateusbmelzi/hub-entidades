@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Check, X, Clock, Calendar, Filter, Building, Users } from 'lucide-react';
+import { ArrowLeft, Check, X, Clock, Calendar, Filter, Building, Users, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthStateContext } from '@/components/AuthStateProvider';
 import { useAprovarEventos, EventoParaAprovacao } from '@/hooks/useAprovarEventos';
+import { useDeleteEventoAsEntity } from '@/hooks/useDeleteEventoAsEntity';
 import { toast } from 'sonner';
 import { combineDataHorario, formatData } from '@/lib/date-utils';
 
@@ -20,11 +21,14 @@ const AprovarEventos = () => {
   const { user } = useAuth();
   const { type } = useAuthStateContext();
   const { eventos, loading, aprovarEvento } = useAprovarEventos();
+  const { deleteEvento, loading: deleteLoading } = useDeleteEventoAsEntity();
   const [statusFilter, setStatusFilter] = useState<string>('todos');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [rejectionComment, setRejectionComment] = useState('');
   const [showRejectionDialog, setShowRejectionDialog] = useState(false);
   const [selectedEvento, setSelectedEvento] = useState<EventoParaAprovacao | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [eventoParaExcluir, setEventoParaExcluir] = useState<EventoParaAprovacao | null>(null);
 
   // Verificar se o usuário é super admin (múltiplas formas)
   const isSuperAdmin = 
@@ -82,6 +86,26 @@ const AprovarEventos = () => {
     setShowRejectionDialog(true);
   };
 
+  const openDeleteDialog = (evento: EventoParaAprovacao) => {
+    setEventoParaExcluir(evento);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteEvento = async (evento: EventoParaAprovacao) => {
+    try {
+      const result = await deleteEvento(evento.id, evento.entidade_id);
+      if (result.success) {
+        toast.success(`Evento "${evento.nome}" excluído com sucesso!`);
+        setShowDeleteDialog(false);
+        setEventoParaExcluir(null);
+      } else {
+        toast.error('Erro ao excluir evento');
+      }
+    } catch (error) {
+      toast.error('Erro ao excluir evento');
+    }
+  };
+
   const filteredEventos = eventos.filter(e => {
     if (statusFilter === 'todos') return true;
     return e.status_aprovacao === statusFilter;
@@ -90,13 +114,13 @@ const AprovarEventos = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pendente':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        return 'bg-insper-yellow/10 text-insper-yellow border-insper-yellow/20';
       case 'aprovado':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'bg-insper-green/10 text-insper-green border-insper-green/20';
       case 'rejeitado':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-insper-error-red/10 text-insper-error-red border-insper-error-red/20';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-insper-light-gray text-insper-dark-gray border-insper-light-gray-1';
     }
   };
 
@@ -115,15 +139,15 @@ const AprovarEventos = () => {
 
   if (!isSuperAdmin) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-insper-light-gray to-white flex items-center justify-center">
         <Card className="w-full max-w-md">
           <CardContent className="pt-6">
             <div className="text-center">
-              <h2 className="text-xl font-semibold mb-2">Acesso Negado</h2>
-              <p className="text-muted-foreground mb-4">
+              <h2 className="text-xl font-semibold mb-2 text-insper-black">Acesso Negado</h2>
+              <p className="text-insper-dark-gray mb-4">
                 Você precisa ser super admin para acessar esta página.
               </p>
-              <Button onClick={() => navigate('/')}>
+              <Button onClick={() => navigate('/')} className="bg-insper-red hover:bg-red-700 text-white">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Voltar
               </Button>
@@ -136,7 +160,7 @@ const AprovarEventos = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-gradient-to-br from-insper-light-gray to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="space-y-6">
             <Skeleton className="h-8 w-64" />
@@ -148,18 +172,18 @@ const AprovarEventos = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-insper-light-gray to-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="text-insper-dark-gray hover:bg-insper-light-gray">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Voltar ao Dashboard
           </Button>
         </div>
 
         <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">Aprovar Eventos</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-3xl font-bold mb-2 text-insper-black">Aprovar Eventos</h1>
+          <p className="text-insper-dark-gray">
             Gerencie a aprovação de eventos criados pelas entidades
           </p>
         </div>
@@ -230,7 +254,7 @@ const AprovarEventos = () => {
                         <div>
                           <p className="text-sm text-muted-foreground">Data do Evento</p>
                           <p className="text-sm">
-                            {formatData(evento.data)}
+                            {formatData(evento.data_evento)}
                           </p>
                         </div>
                         <div>
@@ -291,7 +315,7 @@ const AprovarEventos = () => {
                                   <p className="text-sm text-muted-foreground">
                                     <strong>Detalhes do evento:</strong><br/>
                                     • Entidade: {evento.entidade_nome}<br/>
-                                    • Data: {formatData(evento.data)}<br/>
+                                    • Data: {formatData(evento.data_evento)}<br/>
                                     • Local: {evento.local || 'Não informado'}<br/>
                                     • Capacidade: {evento.capacidade || 'Ilimitada'}
                                   </p>
@@ -322,6 +346,56 @@ const AprovarEventos = () => {
                           <X className="w-4 h-4 mr-1" />
                           Rejeitar Evento
                         </Button>
+
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button 
+                              size="sm" 
+                              variant="destructive"
+                              disabled={updatingId === evento.id || deleteLoading}
+                              className="bg-red-700 hover:bg-red-800"
+                            >
+                              <Trash2 className="w-4 h-4 mr-1" />
+                              Excluir Evento
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Excluir Evento</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                <div className="space-y-2">
+                                  <p className="text-red-600 font-semibold">
+                                    ⚠️ ATENÇÃO: Esta ação é irreversível!
+                                  </p>
+                                  <p>Tem certeza que deseja excluir permanentemente o evento "{evento.nome}"?</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    <strong>Detalhes do evento:</strong><br/>
+                                    • Entidade: {evento.entidade_nome}<br/>
+                                    • Data: {formatData(evento.data_evento)}<br/>
+                                    • Local: {evento.local || 'Não informado'}<br/>
+                                    • Capacidade: {evento.capacidade || 'Ilimitada'}
+                                  </p>
+                                  <p className="text-sm text-red-600 mt-2">
+                                    <strong>Consequências:</strong><br/>
+                                    • O evento será removido permanentemente da plataforma<br/>
+                                    • Todas as inscrições serão perdidas<br/>
+                                    • Esta ação não pode ser desfeita
+                                  </p>
+                                </div>
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeleteEvento(evento)}
+                                className="bg-red-700 hover:bg-red-800"
+                                disabled={deleteLoading}
+                              >
+                                {deleteLoading ? 'Excluindo...' : 'Excluir Permanentemente'}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     )}
                     
@@ -339,6 +413,57 @@ const AprovarEventos = () => {
                             : 'O evento foi rejeitado.'
                           }
                         </p>
+
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button 
+                              size="sm" 
+                              variant="destructive"
+                              disabled={deleteLoading}
+                              className="bg-red-700 hover:bg-red-800"
+                            >
+                              <Trash2 className="w-4 h-4 mr-1" />
+                              Excluir
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Excluir Evento</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                <div className="space-y-2">
+                                  <p className="text-red-600 font-semibold">
+                                    ⚠️ ATENÇÃO: Esta ação é irreversível!
+                                  </p>
+                                  <p>Tem certeza que deseja excluir permanentemente o evento "{evento.nome}"?</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    <strong>Detalhes do evento:</strong><br/>
+                                    • Entidade: {evento.entidade_nome}<br/>
+                                    • Data: {formatData(evento.data_evento)}<br/>
+                                    • Local: {evento.local || 'Não informado'}<br/>
+                                    • Capacidade: {evento.capacidade || 'Ilimitada'}<br/>
+                                    • Status: {evento.status_aprovacao}
+                                  </p>
+                                  <p className="text-sm text-red-600 mt-2">
+                                    <strong>Consequências:</strong><br/>
+                                    • O evento será removido permanentemente da plataforma<br/>
+                                    • Todas as inscrições serão perdidas<br/>
+                                    • Esta ação não pode ser desfeita
+                                  </p>
+                                </div>
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeleteEvento(evento)}
+                                className="bg-red-700 hover:bg-red-800"
+                                disabled={deleteLoading}
+                              >
+                                {deleteLoading ? 'Excluindo...' : 'Excluir Permanentemente'}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     )}
                   </div>

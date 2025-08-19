@@ -198,9 +198,9 @@ const Entidades = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+    <div className="min-h-screen bg-gradient-to-br from-insper-light-gray to-white">
       {/* Hero Header */}
-      <div className="relative bg-gradient-to-r from-red-600 to-red-700 text-white overflow-hidden">
+      <div className="relative bg-insper-red text-white overflow-hidden">
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0" style={{

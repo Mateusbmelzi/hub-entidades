@@ -34,6 +34,16 @@ export default function EditarEventoEntidade({ evento, entidadeId, onSuccess }: 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    console.log('🔄 Submetendo formulário de edição de evento...');
+    console.log('📝 Dados do formulário:', {
+      nome,
+      descricao,
+      link_evento,
+      local,
+      capacidade,
+      dataEvento
+    });
 
     // Separar data e horário para compatibilidade com a tabela
     let dataStr: string | undefined;
@@ -44,10 +54,11 @@ export default function EditarEventoEntidade({ evento, entidadeId, onSuccess }: 
       if (!isNaN(d.getTime())) {
         dataStr = d.toISOString().slice(0, 10);   // YYYY-MM-DD
         horarioStr = d.toISOString().slice(11, 19); // HH:mm:ss
+        console.log('📅 Data processada:', { dataStr, horarioStr });
       }
     }
 
-    const result = await updateEvento(evento.id, entidadeId, {
+    const updateData = {
       nome,
       descricao,
       link_evento,
@@ -55,10 +66,20 @@ export default function EditarEventoEntidade({ evento, entidadeId, onSuccess }: 
       capacidade: capacidade ? parseInt(capacidade) : undefined,
       data: dataStr,
       horario: horarioStr,
-    });
+    };
+
+    console.log('📤 Dados para update:', updateData);
+    console.log('🆔 IDs:', { eventoId: evento.id, entidadeId });
+
+    const result = await updateEvento(evento.id, entidadeId, updateData);
+
+    console.log('📥 Resultado do update:', result);
 
     if (result.success) {
+      console.log('✅ Update realizado com sucesso, chamando onSuccess');
       onSuccess();
+    } else {
+      console.error('❌ Falha no update:', result.error);
     }
   };
 

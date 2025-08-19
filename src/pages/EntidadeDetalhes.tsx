@@ -108,8 +108,11 @@ const EntidadeDetalhes = () => {
   };
 
   const handleEditEvent = (evento: Evento) => {
+    console.log('🔄 Abrindo modal de edição para evento:', evento);
+    console.log('🆔 IDs:', { eventoId: evento.id, entidadeId: entidade?.id });
     setSelectedEvent(evento);
     setShowEditEventDialog(true);
+    console.log('✅ Modal de edição aberto');
   };
 
   const handleFotoUpdated = (url: string) => {
@@ -178,7 +181,7 @@ const EntidadeDetalhes = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+      <div className="min-h-screen bg-gradient-to-br from-insper-light-gray to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="space-y-6">
             <Skeleton className="h-8 w-32" />
@@ -198,19 +201,19 @@ const EntidadeDetalhes = () => {
 
   if (error || !entidade) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-insper-light-gray to-white flex items-center justify-center">
         <Card className="w-full max-w-md">
           <CardContent className="pt-6">
             <div className="text-center">
-              <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Building2 className="w-10 h-10 text-red-600" />
+              <div className="w-20 h-20 bg-insper-red/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Building2 className="w-10 h-10 text-insper-red" />
               </div>
-              <h2 className="text-xl font-semibold mb-2">Organização não encontrada</h2>
-              <p className="text-gray-600 mb-6">
+              <h2 className="text-xl font-semibold mb-2 text-insper-black">Organização não encontrada</h2>
+              <p className="text-insper-dark-gray mb-6">
                 {error || 'A organização que você está procurando não existe ou foi removida.'}
               </p>
               <Link to="/entidades">
-                <Button className="bg-red-600 hover:bg-red-700">
+                <Button className="bg-insper-red hover:bg-red-700 text-white">
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Voltar para Organizações
                 </Button>
@@ -232,9 +235,9 @@ const EntidadeDetalhes = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+    <div className="min-h-screen bg-gradient-to-br from-insper-light-gray to-white">
       {/* Hero Header */}
-      <div className="relative bg-gradient-to-r from-red-600 to-red-700 text-white overflow-hidden">
+      <div className="relative bg-insper-red text-white overflow-hidden">
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0" style={{
@@ -1036,9 +1039,12 @@ const EntidadeDetalhes = () => {
                 evento={selectedEvent}
                 entidadeId={entidade?.id || 0}
                 onSuccess={() => {
+                  console.log('🎉 onSuccess chamado - fechando modal e recarregando eventos');
                   setShowEditEventDialog(false);
                   setSelectedEvent(null);
+                  console.log('🔄 Recarregando eventos...');
                   refetchEventos();
+                  console.log('✅ Modal fechado e eventos recarregados');
                 }}
               />
             </DialogContent>

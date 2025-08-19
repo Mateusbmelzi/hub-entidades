@@ -244,7 +244,7 @@ const Eventos = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-insper-light-gray to-white flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-4 border-insper-red/20 border-t-insper-red mx-auto mb-6"></div>
           <p className="text-insper-dark-gray text-lg">Carregando eventos...</p>
@@ -256,7 +256,7 @@ const Eventos = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-insper-light-gray to-white flex items-center justify-center">
         <div className="text-center max-w-md mx-auto px-4">
           <div className="w-20 h-20 bg-insper-red/10 rounded-full flex items-center justify-center mx-auto mb-6">
             <X className="w-10 h-10 text-insper-red" />
@@ -272,9 +272,9 @@ const Eventos = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+    <div className="min-h-screen bg-gradient-to-br from-insper-light-gray to-white">
       {/* Hero Header */}
-      <div className="relative bg-gradient-to-r from-red-600 to-red-700 text-white overflow-hidden">
+      <div className="relative bg-insper-red text-white overflow-hidden">
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0" style={{
@@ -493,15 +493,14 @@ const Eventos = () => {
                         <div className="space-y-2">
                           <div className="flex items-center text-sm text-gray-500">
                             <Calendar className="mr-2 h-4 w-4" />
-                            {format(
-                              new Date(
-                                ...((evento as any).data as string)
-                                  .split("-")
-                                  .map((v, i) => (i === 1 ? +v - 1 : +v))
-                              ),
-                              "dd 'de' MMMM, yyyy",
-                              { locale: ptBR }
-                            )}
+                                                         {format(
+                               (() => {
+                                 const [y, m, d] = ((evento as any).data as string).split("-");
+                                 return new Date(+y, +m - 1, +d);
+                               })(),
+                               "dd 'de' MMMM, yyyy",
+                               { locale: ptBR }
+                             )}
                           </div>
                           <div className="flex items-center text-sm text-gray-500">
                             <Clock className="mr-2 h-4 w-4" />
@@ -656,16 +655,17 @@ const Eventos = () => {
       {selectedEvento && (
         <Dialog open={showInscricaoDialog} onOpenChange={setShowInscricaoDialog}>
           <DialogContent>
-            <InscricaoEventoForm 
-              eventoId={selectedEvento.id}
-              eventoNome={selectedEvento.nome}
-              onSuccess={() => {
-                setShowInscricaoDialog(false);
-                setSelectedEvento(null);
-                // Recarregar participantes
-                window.location.reload();
-              }}
-            />
+                         <InscricaoEventoForm 
+               eventoId={selectedEvento.id}
+               eventoNome={selectedEvento.nome}
+               link_evento={selectedEvento.link_evento || ''}
+               onSuccess={() => {
+                 setShowInscricaoDialog(false);
+                 setSelectedEvento(null);
+                 // Recarregar participantes
+                 window.location.reload();
+               }}
+             />
           </DialogContent>
         </Dialog>
       )}
