@@ -54,6 +54,7 @@ export function useUserRole() {
   useEffect(() => {
     // Se não há usuário, limpa o estado
     if (!user) {
+      console.log('❌ Nenhum usuário fornecido, limpando estado');
       setUserRole(null);
       setEntityLeaderships([]);
       setLoading(false);
@@ -63,7 +64,7 @@ export function useUserRole() {
 
     // Se é super admin, não precisa verificar role no banco
     if (type === 'superAdmin') {
-      console.log('Super admin detectado, definindo role como admin');
+      console.log('✅ Super admin detectado, definindo role como admin');
       setUserRole('admin');
       setEntityLeaderships([]);
       setLoading(false);
@@ -71,11 +72,25 @@ export function useUserRole() {
       return;
     }
 
+    // Se é aluno, definir role como aluno imediatamente
+    if (type === 'student') {
+      console.log('✅ Aluno detectado, definindo role como aluno');
+      setUserRole('aluno');
+      setEntityLeaderships([]);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
+    console.log('🔍 Tipo de usuário não reconhecido, buscando role no banco...');
+    console.log('🔍 Tipo atual:', type);
+    console.log('🔍 Usuário:', user);
+
     const fetchUserRole = async () => {
       try {
         setError(null);
         
-        console.log('Buscando role do usuário:', user.id);
+        console.log('🔍 Buscando role do usuário:', user.id);
         
         // Fetch user role with retry logic
         const roleData = await retryWithDelay(async () => {
@@ -92,17 +107,17 @@ export function useUserRole() {
         });
 
         if (roleData) {
-          console.log('Role encontrado:', roleData.role);
+          console.log('✅ Role encontrado:', roleData.role);
           setUserRole(roleData.role as UserRole);
         } else {
-          console.log('Nenhum role encontrado, assumindo aluno');
+          console.log('✅ Nenhum role encontrado, assumindo aluno');
           // Se não tem role definido, assume aluno
           setUserRole('aluno');
         }
 
         // Fetch entity leaderships if user is a leader
         if (roleData?.role === 'lider_entidade' || roleData?.role === 'admin') {
-          console.log('Buscando lideranças da entidade');
+          console.log('🔍 Buscando lideranças da entidade');
           const leadershipData = await retryWithDelay(async () => {
             const { data, error } = await supabase
               .from('entity_leaders')
@@ -118,10 +133,11 @@ export function useUserRole() {
           setEntityLeaderships(leadershipData);
         }
       } catch (error: any) {
-        console.error('Erro ao buscar role do usuário:', error);
+        console.error('❌ Erro ao buscar role do usuário:', error);
         setError(error?.message || 'Erro ao carregar dados do usuário');
         
         // Fallback: assume aluno se houver erro
+        console.log('✅ Fallback: assumindo aluno devido a erro');
         setUserRole('aluno');
         setEntityLeaderships([]);
       } finally {

@@ -5,10 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useRedirectDestination } from '@/hooks/useRedirectDestination';
+import { useStatsExtended } from '@/hooks/useStatsExtended';
 
 export default function Welcome() {
   const { destination, clearDestination } = useRedirectDestination();
   const navigate = useNavigate();
+  const { totalAlunos, totalEntidades, totalEventos, totalProcessosSeletivos, loading: statsLoading } = useStatsExtended();
 
   const handleStartExploration = () => {
     if (destination) {
@@ -85,7 +87,7 @@ export default function Welcome() {
               </div>
               <h3 className="text-lg font-semibold mb-2">Processos Seletivos</h3>
               <p className="text-red-100 text-sm">
-                Demonstre interesse e participe dos processos seletivos
+                Inscreva-se e participe dos processos seletivos
               </p>
             </div>
           </div>
@@ -125,8 +127,8 @@ export default function Welcome() {
             },
             {
               icon: ClipboardCheck,
-              title: 'Demonstrar Interesse',
-              description: 'Mostre que está pronto para fazer parte! Indique seu interesse nas organizações estudantis que mais te inspiraram e avance no processo seletivo.',
+              title: 'Inscrição',
+              description: 'Mostre que está pronto para fazer parte! Inscreva-se nas organizações estudantis que mais te inspiraram e avance no processo seletivo.',
               link: '/processo-seletivo',
               color: 'bg-purple-50 text-purple-600',
               bgColor: 'bg-purple-100',
@@ -184,13 +186,33 @@ export default function Welcome() {
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            {[
-              { icon: Building2, label: 'Organizações Ativas', value: '25+', color: 'text-red-600' },
-              { icon: Users, label: 'Membros', value: '500+', color: 'text-blue-600' },
-              { icon: Calendar, label: 'Eventos/Ano', value: '50+', color: 'text-green-600' },
-              { icon: Award, label: 'Processos Seletivos', value: '15+', color: 'text-purple-600' }
-            ].map((stat, index) => {
+                     <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+             {[
+               { 
+                 icon: Building2, 
+                 label: 'Organizações Ativas', 
+                 value: statsLoading ? '...' : `${totalEntidades}+`, 
+                 color: 'text-red-600' 
+               },
+               { 
+                 icon: Users, 
+                 label: 'Membros', 
+                 value: statsLoading ? '...' : `${totalAlunos}+`, 
+                 color: 'text-blue-600' 
+               },
+               { 
+                 icon: Calendar, 
+                 label: 'Eventos/Ano', 
+                 value: statsLoading ? '...' : `${totalEventos}+`, 
+                 color: 'text-green-600' 
+               },
+               { 
+                 icon: Award, 
+                 label: 'Processos Seletivos', 
+                 value: statsLoading ? '...' : `${totalProcessosSeletivos}+`, 
+                 color: 'text-purple-600' 
+               }
+             ].map((stat, index) => {
               const Icon = stat.icon;
               return (
                 <div key={index} className="text-center">

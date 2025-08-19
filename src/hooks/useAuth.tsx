@@ -122,18 +122,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('🔄 Auth state change:', event, session?.user?.email);
+        console.log('🔍 Evento específico:', event);
+        console.log('🔍 Sessão completa:', session);
+        
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
+          console.log('✅ Usuário autenticado via Supabase, chamando loginAsStudent');
+          console.log('🔍 User ID:', session.user.id);
+          console.log('🔍 User Email:', session.user.email);
+          
           // Notificar o sistema de autenticação exclusivo
           loginAsStudent(session.user);
+          
+          // Verificar localStorage após login
+          setTimeout(() => {
+            const supabaseKeys = Object.keys(localStorage).filter(key => key.includes('supabase'));
+            console.log('🔍 Chaves Supabase após loginAsStudent:', supabaseKeys);
+            supabaseKeys.forEach(key => {
+              console.log(`  - ${key}:`, localStorage.getItem(key) ? '✅' : '❌');
+            });
+          }, 200);
           
           // Buscar perfil com delay
           setTimeout(() => {
             fetchUserProfile(session.user.id);
           }, 2000);
         } else {
+          console.log('❌ Sessão removida, limpando perfil');
           setProfile(null);
           setLoading(false);
         }
@@ -142,15 +160,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('🔍 Verificando sessão existente:', session?.user?.email);
+      console.log('🔍 Sessão completa:', session);
+      
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
+        console.log('✅ Sessão existente encontrada, chamando loginAsStudent');
+        console.log('🔍 User ID:', session.user.id);
+        console.log('🔍 User Email:', session.user.email);
+        
         loginAsStudent(session.user);
+        
+        // Verificar localStorage após loginAsStudent
+        setTimeout(() => {
+          const supabaseKeys = Object.keys(localStorage).filter(key => key.includes('supabase'));
+          console.log('🔍 Chaves Supabase após loginAsStudent (sessão existente):', supabaseKeys);
+          supabaseKeys.forEach(key => {
+            console.log(`  - ${key}:`, localStorage.getItem(key) ? '✅' : '❌');
+          });
+        }, 200);
         
         // Buscar perfil imediatamente se já há sessão
         fetchUserProfile(session.user.id);
       } else {
+        console.log('❌ Nenhuma sessão existente encontrada');
         setLoading(false);
       }
     });

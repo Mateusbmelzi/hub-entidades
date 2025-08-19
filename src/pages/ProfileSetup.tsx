@@ -40,7 +40,7 @@ export default function ProfileSetup() {
     if (destination) {
       return <Navigate to={destination} replace />;
     }
-    return <Navigate to="/welcome" replace />;
+    return <Navigate to="/" replace />;
   }
 
   // Redirect after profile completion in this session
@@ -48,7 +48,7 @@ export default function ProfileSetup() {
     if (destination) {
       return <Navigate to={destination} replace />;
     }
-    return <Navigate to="/welcome" replace />;
+    return <Navigate to="/" replace />;
   }
 
   const areas = [
@@ -163,7 +163,7 @@ export default function ProfileSetup() {
           if (destination) {
             navigate(destination);
           } else {
-            navigate('/welcome');
+            navigate('/');
           }
         }, 1000);
       }
