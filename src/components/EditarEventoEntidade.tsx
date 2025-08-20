@@ -79,9 +79,18 @@ export default function EditarEventoEntidade({ evento, entidadeId, onSuccess }: 
           console.warn('⚠️ Data do evento está no passado');
         }
         
-        dataStr = d.toISOString().slice(0, 10);   // YYYY-MM-DD
-        horarioStr = d.toISOString().slice(11, 19); // HH:mm:ss
+        // Extrair data no formato YYYY-MM-DD
+        dataStr = d.toISOString().slice(0, 10);
+        
+        // Extrair horário no formato HH:mm:ss
+        const horas = d.getHours().toString().padStart(2, '0');
+        const minutos = d.getMinutes().toString().padStart(2, '0');
+        const segundos = d.getSeconds().toString().padStart(2, '0');
+        horarioStr = `${horas}:${minutos}:${segundos}`;
+        
         console.log('📅 Data processada:', { dataStr, horarioStr });
+        console.log('📅 Data original:', d.toISOString());
+        console.log('📅 Data local:', d.toLocaleString('pt-BR'));
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Data inválida';

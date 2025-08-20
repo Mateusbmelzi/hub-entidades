@@ -1046,11 +1046,35 @@ const EntidadeDetalhes = () => {
                 entidadeId={entidade?.id || 0}
                 onSuccess={() => {
                   console.log('🎉 onSuccess chamado - fechando modal e recarregando eventos');
+                  console.log('🔍 Estado antes de fechar:', { 
+                    showEditEventDialog, 
+                    selectedEvent, 
+                    entidadeId: entidade?.id,
+                    eventosCount: eventos?.length 
+                  });
+                  
+                  // Fechar o modal primeiro
                   setShowEditEventDialog(false);
                   setSelectedEvent(null);
-                  console.log('🔄 Recarregando eventos...');
-                  refetchEventos();
-                  console.log('✅ Modal fechado e eventos recarregados');
+                  
+                  // Aguardar um pouco antes de recarregar os eventos
+                  setTimeout(() => {
+                    console.log('🔄 Recarregando eventos após delay...');
+                    console.log('🔍 Função refetchEventos:', typeof refetchEventos);
+                    
+                    try {
+                      if (typeof refetchEventos === 'function') {
+                        refetchEventos();
+                        console.log('✅ refetchEventos chamado com sucesso');
+                      } else {
+                        console.error('❌ refetchEventos não é uma função:', refetchEventos);
+                      }
+                    } catch (error) {
+                      console.error('❌ Erro ao chamar refetchEventos:', error);
+                    }
+                  }, 100);
+                  
+                  console.log('✅ Modal fechado e agendado recarregamento de eventos');
                 }}
               />
             </DialogContent>

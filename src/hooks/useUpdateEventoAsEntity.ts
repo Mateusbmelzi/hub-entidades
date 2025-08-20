@@ -34,6 +34,18 @@ export const useUpdateEventoAsEntity = () => {
         throw new Error('Nome do evento é obrigatório');
       }
       
+      // Validar capacidade se fornecida
+      if (data.capacidade !== undefined && data.capacidade !== null) {
+        if (data.capacidade <= 0) {
+          throw new Error('Capacidade deve ser maior que 0');
+        }
+      }
+      
+      // Validar status se fornecido
+      if (data.status && !['ativo', 'cancelado', 'finalizado'].includes(data.status)) {
+        throw new Error('Status deve ser: ativo, cancelado ou finalizado');
+      }
+      
       // Preparar dados para update direto na tabela
       const updateData: any = {};
       
@@ -50,13 +62,21 @@ export const useUpdateEventoAsEntity = () => {
           const dataLocal = new Date(data.data);
           if (isNaN(dataLocal.getTime())) throw new Error('Data inválida fornecida');
           
-          updateData.data = dataLocal.toISOString().slice(0, 10); // YYYY-MM-DD
-          updateData.horario = dataLocal.toISOString().slice(11, 19); // HH:mm:ss
+          // Extrair data no formato YYYY-MM-DD
+          updateData.data = dataLocal.toISOString().slice(0, 10);
+          
+          // Extrair horário no formato HH:mm:ss
+          const horas = dataLocal.getHours().toString().padStart(2, '0');
+          const minutos = dataLocal.getMinutes().toString().padStart(2, '0');
+          const segundos = dataLocal.getSeconds().toString().padStart(2, '0');
+          updateData.horario = `${horas}:${minutos}:${segundos}`;
           
           console.log('📅 Data e horário processados:', { 
             data: updateData.data, 
             horario: updateData.horario 
           });
+          console.log('📅 Data original:', dataLocal.toISOString());
+          console.log('📅 Data local:', dataLocal.toLocaleString('pt-BR'));
         } catch (error) {
           throw new Error(`Erro ao processar data: ${error instanceof Error ? error.message : 'Data inválida'}`);
         }

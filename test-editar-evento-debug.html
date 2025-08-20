@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Editar Evento</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; }
+        .error { color: #d32f2f; background: #ffebee; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .success { color: #388e3c; background: #e8f5e8; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .warning { color: #f57c00; background: #fff3e0; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; background: #1976d2; color: white; border: none; border-radius: 4px; }
+        button:hover { background: #1565c0; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        input, textarea, select { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        label { display: block; margin-top: 10px; font-weight: bold; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .log { background: #f5f5f5; padding: 10px; border-radius: 4px; margin: 10px 0; font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: auto; }
+        .status { padding: 10px; border-radius: 4px; margin: 10px 0; font-weight: bold; }
+        .status.success { background: #e8f5e8; color: #2e7d32; }
+        .status.error { background: #ffebee; color: #c62828; }
+        .status.loading { background: #e3f2fd; color: #1565c0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Debug da Edição de Eventos</h1>
+        <p>Este arquivo testa a funcionalidade de edição de eventos para identificar problemas.</p>
+        
+        <div class="test-section">
+            <h2>📝 Teste de Validação de Dados</h2>
+            <form id="testForm">
+                <label>Nome do Evento:</label>
+                <input type="text" id="nome" value="Workshop de React" required>
+                
+                <label>Descrição:</label>
+                <textarea id="descricao" rows="3">Descrição do workshop de React</textarea>
+                
+                <label>Local:</label>
+                <input type="text" id="local" value="Auditório A">
+                
+                <div class="form-row">
+                    <div>
+                        <label>Capacidade:</label>
+                        <input type="number" id="capacidade" value="50" min="1">
+                    </div>
+                    <div>
+                        <label>Status:</label>
+                        <select id="status">
+                            <option value="ativo">Ativo</option>
+                            <option value="cancelado">Cancelado</option>
+                            <option value="finalizado">Finalizado</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <label>Link do Evento:</label>
+                <input type="url" id="link_evento" value="https://example.com">
+                
+                <label>Data e Hora:</label>
+                <input type="datetime-local" id="dataEvento" value="2025-01-20T14:30">
+                
+                <button type="submit">✅ Validar Dados</button>
+                <button type="button" onclick="limparLog()">🗑️ Limpar Log</button>
+            </form>
+            
+            <div id="resultadoValidacao"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🔄 Teste de Processamento de Data</h2>
+            <button onclick="testarProcessamentoData()">📅 Testar Processamento</button>
+            <div id="resultadoData"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>📤 Simulação de Update</h2>
+            <button onclick="simularUpdate()">🚀 Simular Update</button>
+            <div id="resultadoUpdate"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🔍 Log de Debug</h2>
+            <div id="log" class="log"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>📊 Status do Sistema</h2>
+            <div id="statusSistema"></div>
+        </div>
+    </div>
+
+    <script>
+        let logCount = 0;
+        
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}`;
+            logDiv.innerHTML += logEntry + '\n';
+            logDiv.scrollTop = logDiv.scrollHeight;
+            logCount++;
+            
+            // Limitar log a 100 entradas
+            if (logCount > 100) {
+                const lines = logDiv.innerHTML.split('\n');
+                logDiv.innerHTML = lines.slice(-50).join('\n');
+                logCount = 50;
+            }
+        }
+        
+        function limparLog() {
+            document.getElementById('log').innerHTML = '';
+            logCount = 0;
+        }
+        
+        function atualizarStatus(message, type = 'success') {
+            const statusDiv = document.getElementById('statusSistema');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+        
+        // Teste de validação
+        document.getElementById('testForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            log('🔄 Iniciando validação de dados...');
+            
+            const nome = document.getElementById('nome').value.trim();
+            const descricao = document.getElementById('descricao').value.trim();
+            const local = document.getElementById('local').value.trim();
+            const capacidade = parseInt(document.getElementById('capacidade').value);
+            const status = document.getElementById('status').value;
+            const link_evento = document.getElementById('link_evento').value.trim();
+            const dataEvento = document.getElementById('dataEvento').value;
+            
+            const erros = [];
+            const warnings = [];
+            
+            // Validações obrigatórias
+            if (!nome) erros.push('Nome é obrigatório');
+            if (!dataEvento) erros.push('Data e hora são obrigatórios');
+            
+            // Validações de formato
+            if (nome.length < 3) warnings.push('Nome muito curto (mínimo 3 caracteres)');
+            if (nome.length > 100) erros.push('Nome muito longo (máximo 100 caracteres)');
+            
+            if (descricao && descricao.length > 2000) erros.push('Descrição muito longa (máximo 2000 caracteres)');
+            
+            if (capacidade && capacidade <= 0) erros.push('Capacidade deve ser maior que 0');
+            if (capacidade && capacidade > 10000) warnings.push('Capacidade muito alta');
+            
+            if (link_evento && !link_evento.startsWith('http')) erros.push('Link deve começar com http');
+            
+            // Validação de data
+            if (dataEvento) {
+                const data = new Date(dataEvento);
+                if (isNaN(data.getTime())) {
+                    erros.push('Data inválida');
+                } else {
+                    const agora = new Date();
+                    if (data < agora) {
+                        warnings.push('Data do evento está no passado');
+                    }
+                }
+            }
+            
+            // Exibir resultados
+            const resultado = document.getElementById('resultadoValidacao');
+            if (erros.length === 0 && warnings.length === 0) {
+                resultado.innerHTML = '<div class="success">✅ Todos os dados são válidos!</div>';
+                log('✅ Validação concluída com sucesso');
+                atualizarStatus('Dados válidos', 'success');
+            } else {
+                let html = '';
+                if (erros.length > 0) {
+                    html += '<div class="error"><strong>❌ Erros encontrados:</strong><br>' + erros.join('<br>') + '</div>';
+                }
+                if (warnings.length > 0) {
+                    html += '<div class="warning"><strong>⚠️ Avisos:</strong><br>' + warnings.join('<br>') + '</div>';
+                }
+                resultado.innerHTML = html;
+                log(`❌ Validação falhou: ${erros.length} erros, ${warnings.length} avisos`);
+                atualizarStatus(`Validação falhou: ${erros.length} erros`, 'error');
+            }
+        });
+        
+        function testarProcessamentoData() {
+            log('🔄 Testando processamento de data...');
+            
+            const dataEvento = document.getElementById('dataEvento').value;
+            const resultado = document.getElementById('resultadoData');
+            
+            if (!dataEvento) {
+                resultado.innerHTML = '<div class="error">❌ Nenhuma data selecionada</div>';
+                log('❌ Nenhuma data selecionada');
+                return;
+            }
+            
+            try {
+                const d = new Date(dataEvento);
+                if (isNaN(d.getTime())) {
+                    throw new Error('Data inválida fornecida');
+                }
+                
+                // Extrair data no formato YYYY-MM-DD
+                const dataStr = d.toISOString().slice(0, 10);
+                
+                // Extrair horário no formato HH:mm:ss
+                const horas = d.getHours().toString().padStart(2, '0');
+                const minutos = d.getMinutes().toString().padStart(2, '0');
+                const segundos = d.getSeconds().toString().padStart(2, '0');
+                const horarioStr = `${horas}:${minutos}:${segundos}`;
+                
+                // Verificar se a data não é no passado
+                const agora = new Date();
+                const isPassado = d < agora;
+                
+                resultado.innerHTML = `
+                    <div class="success">
+                        <strong>✅ Data processada com sucesso!</strong><br>
+                        <strong>Data:</strong> ${dataStr}<br>
+                        <strong>Horário:</strong> ${horarioStr}<br>
+                        <strong>Data original:</strong> ${d.toLocaleString('pt-BR')}<br>
+                        <strong>ISO:</strong> ${d.toISOString()}<br>
+                        <strong>No passado:</strong> ${isPassado ? '⚠️ Sim' : '✅ Não'}
+                    </div>
+                `;
+                
+                log(`✅ Data processada: ${dataStr} ${horarioStr}`);
+                log(`📅 Data original: ${d.toLocaleString('pt-BR')}`);
+                log(`🌍 ISO: ${d.toISOString()}`);
+                log(`⏰ No passado: ${isPassado}`);
+                
+                atualizarStatus('Data processada com sucesso', 'success');
+            } catch (error) {
+                resultado.innerHTML = `<div class="error">❌ Erro: ${error.message}</div>`;
+                log(`❌ Erro ao processar data: ${error.message}`);
+                atualizarStatus('Erro ao processar data', 'error');
+            }
+        }
+        
+        function simularUpdate() {
+            log('🔄 Simulando update de evento...');
+            
+            const nome = document.getElementById('nome').value.trim();
+            const descricao = document.getElementById('descricao').value.trim();
+            const local = document.getElementById('local').value.trim();
+            const capacidade = parseInt(document.getElementById('capacidade').value) || null;
+            const status = document.getElementById('status').value;
+            const link_evento = document.getElementById('link_evento').value.trim() || null;
+            const dataEvento = document.getElementById('dataEvento').value;
+            
+            if (!nome || !dataEvento) {
+                document.getElementById('resultadoUpdate').innerHTML = '<div class="error">❌ Nome e data são obrigatórios</div>';
+                log('❌ Nome e data são obrigatórios');
+                return;
+            }
+            
+            try {
+                const d = new Date(dataEvento);
+                const dataStr = d.toISOString().slice(0, 10);
+                const horas = d.getHours().toString().padStart(2, '0');
+                const minutos = d.getMinutes().toString().padStart(2, '0');
+                const segundos = d.getSeconds().toString().padStart(2, '0');
+                const horarioStr = `${horas}:${minutos}:${segundos}`;
+                
+                const updateData = {
+                    nome: nome,
+                    descricao: descricao || null,
+                    link_evento: link_evento,
+                    local: local || null,
+                    capacidade: capacidade,
+                    status: status,
+                    data: dataStr,
+                    horario: horarioStr,
+                    updated_at: new Date().toISOString()
+                };
+                
+                document.getElementById('resultadoUpdate').innerHTML = `
+                    <div class="success">
+                        <strong>✅ Dados preparados para update:</strong><br>
+                        <pre>${JSON.stringify(updateData, null, 2)}</pre>
+                    </div>
+                `;
+                
+                log('✅ Dados preparados para update');
+                log(`📤 Nome: ${updateData.nome}`);
+                log(`📤 Data: ${updateData.data}`);
+                log(`📤 Horário: ${updateData.horario}`);
+                log(`📤 Status: ${updateData.status}`);
+                
+                atualizarStatus('Dados preparados para update', 'success');
+            } catch (error) {
+                document.getElementById('resultadoUpdate').innerHTML = `<div class="error">❌ Erro: ${error.message}</div>`;
+                log(`❌ Erro ao preparar dados: ${error.message}`);
+                atualizarStatus('Erro ao preparar dados', 'error');
+            }
+        }
+        
+        // Inicialização
+        log('🚀 Sistema de debug inicializado');
+        atualizarStatus('Sistema pronto', 'success');
+        
+        // Log de mudanças nos campos
+        const campos = ['nome', 'descricao', 'local', 'capacidade', 'status', 'link_evento', 'dataEvento'];
+        campos.forEach(campo => {
+            const element = document.getElementById(campo);
+            if (element) {
+                element.addEventListener('change', function() {
+                    log(`📝 Campo ${campo} alterado: "${this.value}"`);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
