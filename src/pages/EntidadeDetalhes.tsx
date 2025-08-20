@@ -51,18 +51,14 @@ const EntidadeDetalhes = () => {
   const { projetos, loading: projetosLoading, refetch: refetchProjetos } = useProjetos(entidade?.id);
   // const { eventos, loading: eventosLoading, refetch: refetchEventos } = useEventosEntidade(entidade?.id);
   
-  const { eventos: allEventos, loading: eventosLoading, refetch: refetchEventos } = useEventosEntidade(entidade?.id);
-  const eventos = allEventos?.filter(ev => {
-  const hoje = new Date();
-  const dataEvento = new Date(ev.data); // garanta que 'ev.data' seja no formato ISO ou válido
-  return dataEvento >= hoje;
-});
   const { entidadeId, isAuthenticated, logout } = useEntityAuth();
   const { user, profile } = useAuth();
   const { deleteProjeto, loading: deleteLoading } = useDeleteProjeto();
   const { deleteEvento, loading: deleteEventoLoading } = useDeleteEventoAsEntity();
   const { hasDemonstratedInterest, loading: interestCheckLoading } = useCheckInterestDemonstration(entidade?.id);
   const { toast } = useToast();
+  
+  const isOwner = isAuthenticated && entidadeId === entidade?.id;
   
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -75,7 +71,12 @@ const EntidadeDetalhes = () => {
   const [participationLoading, setParticipationLoading] = useState(false);
   const [currentFotoUrl, setCurrentFotoUrl] = useState<string | null>(null);
   
-  const isOwner = isAuthenticated && entidadeId === entidade?.id;
+  const { eventos: allEventos, loading: eventosLoading, refetch: refetchEventos } = useEventosEntidade(entidade?.id, isOwner);
+  const eventos = allEventos?.filter(ev => {
+  const hoje = new Date();
+  const dataEvento = new Date(ev.data); // garanta que 'ev.data' seja no formato ISO ou válido
+  return dataEvento >= hoje;
+});
 
   // Sincronizar foto de perfil quando entidade for carregada
   useEffect(() => {
