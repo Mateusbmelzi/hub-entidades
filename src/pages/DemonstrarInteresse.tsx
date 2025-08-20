@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AreaAtuacaoDisplay } from '@/components/ui/area-atuacao-display';
 import { useAuth } from '@/hooks/useAuth';
 import { useEntidade } from '@/hooks/useEntidade';
 import { supabase } from '@/integrations/supabase/client';
@@ -371,8 +372,13 @@ const DemonstrarInteresse: React.FC = () => {
 
                 {entidade.area_atuacao && (
                   <div>
-                    <h4 className="font-medium text-sm text-gray-700">Área de Atuação</h4>
-                    <p className="text-sm text-gray-600">{entidade.area_atuacao}</p>
+                    <h4 className="font-medium text-sm text-gray-700">Áreas de Atuação</h4>
+                    <AreaAtuacaoDisplay
+                      area_atuacao={entidade.area_atuacao}
+                      variant="outline"
+                      className="mt-1"
+                      compact={true}
+                    />
                   </div>
                 )}
 

@@ -12,6 +12,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { AreaAtuacaoDisplay } from '@/components/ui/area-atuacao-display';
 import { AREAS_ATUACAO, getFirstAreaColor, getAreaColor } from '@/lib/constants';
 import { FotoPerfilEntidade } from '@/components/FotoPerfilEntidade';
+import { parseAreasAtuacao, getFirstArea } from '@/lib/area-utils';
 import { supabase } from '@/integrations/supabase/client';
 
 const Entidades = () => {
@@ -87,19 +88,14 @@ const Entidades = () => {
     console.log('🔍 Aplicando filtros no servidor:', selectedFilters);
     
     try {
-      // Buscar entidades filtradas por área no servidor
-      const { data, error } = await supabase
-        .from('entidades')
-        .select('*')
-        .in('area_atuacao', selectedFilters)
-        .order('nome')
-        .limit(100); // Limite razoável para filtros
+      // Como area_atuacao agora é um array JSON, precisamos usar uma abordagem diferente
+      // Por enquanto, vamos desabilitar o filtro do servidor e usar apenas filtros locais
+      // TODO: Implementar filtro JSON quando o Supabase suportar melhor arrays JSON
+      console.log('🔍 Filtro do servidor desabilitado temporariamente para arrays JSON');
+      setFilteredFromServer(false);
       
-      if (error) throw error;
-      
-      console.log('🔍 Resultados do servidor:', data?.length || 0);
-      setServerFilterResults(data || []);
-      setFilteredFromServer(true);
+      // Fallback para filtros locais
+      setServerFilterResults([]);
       
     } catch (err) {
       console.error('❌ Erro ao filtrar no servidor:', err);
@@ -116,21 +112,11 @@ const Entidades = () => {
       return null;
     }
     
-    let area = entity.area_atuacao;
-    
-    // Se for array, pegar a primeira área válida
-    if (Array.isArray(area)) {
-      area = area.find(a => a && a.trim()) || null;
-    }
-    
-    // Se for string, verificar se não está vazia
-    if (typeof area === 'string') {
-      area = area.trim() || null;
-    }
+    const firstArea = getFirstArea(entity.area_atuacao);
     
     // Verificar se a área está na lista de áreas válidas
-    if (area && AREAS_ATUACAO.includes(area as any)) {
-      return area;
+    if (firstArea && AREAS_ATUACAO.includes(firstArea as any)) {
+      return firstArea;
     }
     
     // Se não estiver na lista, retornar null
@@ -155,12 +141,18 @@ const Entidades = () => {
       stats[area] = 0;
     });
     
-    // Contar entidades por área
+    // Contar entidades por área (uma entidade pode ser contada em múltiplas áreas)
     entidades.forEach(entity => {
-      const area = getEntityArea(entity);
-      if (area && AREAS_ATUACAO.includes(area as any)) {
-        stats[area]++;
-      }
+      if (!entity.area_atuacao) return;
+      
+      const areas = parseAreasAtuacao(entity.area_atuacao);
+      
+      // Contar em cada área válida
+      areas.forEach(area => {
+        if (AREAS_ATUACAO.includes(area as any)) {
+          stats[area]++;
+        }
+      });
     });
     
     console.log('🔍 Estatísticas das áreas:', stats);
@@ -194,11 +186,23 @@ const Entidades = () => {
       console.log('🔍 Entidades antes dos filtros:', entitiesToFilter.length);
       
       filtered = entitiesToFilter.filter(entity => {
-        const area = getEntityArea(entity);
-        const matchesFilter = area && selectedFilters.includes(area);
+        if (!entity.area_atuacao) return false;
         
-        if (!matchesFilter && area) {
-          console.log(`🔍 Entidade "${entity.nome}" não passou no filtro: área="${area}" não está em`, selectedFilters);
+        let areas: string[] = [];
+        
+        // Se for array, usar diretamente
+        if (Array.isArray(entity.area_atuacao)) {
+          areas = entity.area_atuacao.filter((area: any) => area && area.trim());
+        } else if (typeof entity.area_atuacao === 'string') {
+                  // Se for string, separar por vírgulas
+        areas = parseAreasAtuacao(entity.area_atuacao);
+        }
+        
+        // Verificar se alguma das áreas da entidade está nos filtros selecionados
+        const matchesFilter = areas.some(area => selectedFilters.includes(area));
+        
+        if (!matchesFilter && areas.length > 0) {
+          console.log(`🔍 Entidade "${entity.nome}" não passou no filtro: áreas="${areas.join(', ')}" não estão em`, selectedFilters);
         }
         
         return matchesFilter;
@@ -720,16 +724,13 @@ const Entidades = () => {
 
                       <CardContent className="pt-0 flex-1 flex flex-col">
                         <div className="space-y-4 flex-1">
-                          {/* Área de Atuação - Destacada */}
-                          {entityArea && (
-                            <div className="flex items-center gap-2">
-                              <Badge 
-                                className={`${getAreaColor(entityArea)} text-white font-medium text-xs px-3 py-1`}
-                              >
-                                {entityArea}
-                              </Badge>
-                            </div>
-                          )}
+                          {/* Áreas de Atuação - Destacadas */}
+                          <AreaAtuacaoDisplay
+                            area_atuacao={entity.area_atuacao}
+                            variant="secondary"
+                            className="bg-white/10 text-white border-white/20 hover:bg-white/20 transition-colors"
+                            compact={true}
+                          />
 
                           <p className="text-insper-dark-gray text-sm leading-relaxed line-clamp-3">
                             {entity.descricao_curta || 'Descrição não disponível'}

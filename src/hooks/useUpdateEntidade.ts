@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { Entidade } from './useEntidade';
+import { stringifyAreasAtuacao } from '@/lib/area-utils';
 
 interface UpdateEntidadeData {
   nome?: string;
@@ -16,7 +17,7 @@ interface UpdateEntidadeData {
   horario_apresentacao?: string;
   local_feira?: string;
   ano_criacao?: number;
-  area_atuacao?: string;
+  area_atuacao?: string[] | string;
   areas_internas?: string[];
   feira_ativa?: boolean;
   processo_seletivo_ativo?: boolean;
@@ -60,7 +61,7 @@ export const useUpdateEntidade = () => {
           horario_apresentacao: data.horario_apresentacao,
           local_feira: data.local_feira,
           ano_criacao: data.ano_criacao,
-          area_atuacao: data.area_atuacao,
+          area_atuacao: stringifyAreasAtuacao(data.area_atuacao as string[]),
           areas_internas: data.areas_internas,
           feira_ativa: data.feira_ativa,
           processo_seletivo_ativo: data.processo_seletivo_ativo,
@@ -96,7 +97,7 @@ export const useUpdateEntidade = () => {
            _instagram: data.instagram_url,
            _local_palestra: data.local_apresentacao,
            _informacoes_feira: data.local_feira,
-           _area_atuacao: data.area_atuacao,
+           _area_atuacao: stringifyAreasAtuacao(data.area_atuacao as string[]),
           //  _data_primeira_fase: data.data_primeira_fase,
           //  _encerramento_primeira_fase: data.encerramento_primeira_fase,
           //  _data_segunda_fase: data.data_segunda_fase,

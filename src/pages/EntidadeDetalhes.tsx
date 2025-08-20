@@ -307,10 +307,10 @@ const EntidadeDetalhes = () => {
                     <Calendar className="mr-2 h-5 w-5" />
                     <span>Criada em {entidade.ano_criacao || new Date(entidade.created_at).getFullYear()}</span>
                   </div>
-                  <AreaAtuacaoDisplay 
-                    area_atuacao={Array.isArray(entidade.area_atuacao) ? entidade.area_atuacao[0] : entidade.area_atuacao}
-                    variant="secondary"
-                    className="text-sm bg-white/20 text-white border-white/30"
+                  <AreaAtuacaoDisplay
+                    area_atuacao={entidade.area_atuacao}
+                    className="text-xs"
+                    compact={true}
                   />
                 </div>
               </div>
@@ -462,9 +462,10 @@ const EntidadeDetalhes = () => {
                 
                 <div className="flex flex-wrap gap-3 items-center">
                   <AreaAtuacaoDisplay 
-                    area_atuacao={Array.isArray(entidade.area_atuacao) ? entidade.area_atuacao[0] : entidade.area_atuacao}
+                    area_atuacao={entidade.area_atuacao}
                     variant="secondary"
                     className="text-sm font-medium"
+                    compact={true}
                   />
                   {/* {entidade.nivel_exigencia && (
                     <Badge 

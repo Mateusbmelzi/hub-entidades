@@ -15,6 +15,7 @@ import { ptBR } from 'date-fns/locale';
 import { useAuth } from '@/hooks/useAuth';
 import { useEventos } from '@/hooks/useEventos';
 import InscricaoEventoForm from '@/components/InscricaoEventoForm';
+import { FotoPerfilEntidade } from '@/components/FotoPerfilEntidade';
 
 const Eventos = () => {
 
@@ -336,9 +337,9 @@ const Eventos = () => {
                 <PopoverContent className="w-80 z-50 bg-white border shadow-xl rounded-xl">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <h4 className="font-semibold text-gray-900">Filtros de Eventos</h4>
+                      <h4 className="font-semibold text-insper-black">Filtros de Eventos</h4>
                       {getActiveFiltersCount() > 0 && (
-                        <Button variant="ghost" size="sm" onClick={clearAllFilters} className="text-red-600 hover:text-red-700">
+                        <Button variant="ghost" size="sm" onClick={clearAllFilters} className="text-insper-red hover:text-insper-red/80">
                           Limpar tudo
                         </Button>
                       )}
@@ -346,7 +347,7 @@ const Eventos = () => {
                     
                     <div className="space-y-4">
                       <div>
-                        <label className="text-sm font-medium mb-3 block text-gray-900">Status do Evento</label>
+                        <label className="text-sm font-medium mb-3 block text-insper-dark-gray">Status do Evento</label>
                         <div className="space-y-3">
                           {['todos', 'futuro', 'proximo', 'finalizado'].map((status) => (
                             <div key={status} className="flex items-center space-x-3">
@@ -354,9 +355,9 @@ const Eventos = () => {
                                 id={status}
                                 checked={selectedFilters.includes(status)}
                                 onCheckedChange={() => toggleStatusFilter(status)}
-                                className="text-red-600"
+                                className="text-insper-red"
                               />
-                              <label htmlFor={status} className="text-sm cursor-pointer hover:text-red-600 transition-colors capitalize">
+                              <label htmlFor={status} className="text-sm cursor-pointer hover:text-insper-red transition-colors capitalize">
                                 {status === 'todos' ? 'Todos os eventos' : status}
                               </label>
                             </div>
@@ -365,7 +366,7 @@ const Eventos = () => {
                       </div>
 
                       <div>
-                        <label className="text-sm font-medium mb-3 block text-gray-900">Organizações Estudantis</label>
+                        <label className="text-sm font-medium mb-3 block text-insper-dark-gray">Organizações Estudantis</label>
                         <div className="space-y-3 max-h-48 overflow-y-auto">
                           {!loadingEntidades && entidades.slice(0, 10).map((entidade) => (
                             <div key={entidade.id} className="flex items-center space-x-3">
@@ -373,9 +374,9 @@ const Eventos = () => {
                                 id={entidade.id.toString()}
                                 checked={selectedEntityFilters.includes(entidade.id.toString())}
                                 onCheckedChange={() => toggleEntityFilter(entidade.id.toString())}
-                                className="text-red-600"
+                                className="text-insper-red"
                               />
-                              <label htmlFor={entidade.id.toString()} className="text-sm cursor-pointer hover:text-red-600 transition-colors">
+                              <label htmlFor={entidade.id.toString()} className="text-sm cursor-pointer hover:text-insper-red transition-colors">
                                 {entidade.nome}
                               </label>
                             </div>
@@ -385,7 +386,7 @@ const Eventos = () => {
                     </div>
 
                     <div className="flex justify-end pt-4 border-t">
-                      <Button size="sm" onClick={() => setShowFiltersPopover(false)} className="bg-red-600 hover:bg-red-700">
+                      <Button size="sm" onClick={() => setShowFiltersPopover(false)} className="bg-insper-red hover:bg-insper-red/90">
                         Aplicar Filtros
                       </Button>
                     </div>
@@ -439,17 +440,17 @@ const Eventos = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         {/* Entity Filter Banner */}
         {filteredByEntity && entidadeFiltrada && (
-          <div className="mb-8 bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-xl p-6">
+          <div className="mb-8 bg-gradient-to-r from-insper-red/10 to-insper-yellow/10 border border-insper-red/20 rounded-xl p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                  <Building2 className="w-5 h-5 text-red-600" />
+                <div className="w-10 h-10 bg-insper-red/20 rounded-full flex items-center justify-center">
+                  <Building2 className="w-5 h-5 text-insper-red" />
                 </div>
                 <div>
-                  <Badge variant="secondary" className="text-sm bg-red-100 text-red-800 border-red-200 mb-1">
+                  <Badge variant="secondary" className="text-sm bg-insper-red/20 text-insper-red border-insper-red/30 mb-1">
                     Filtrado por entidade
                   </Badge>
-                  <div className="text-sm font-semibold text-gray-900">
+                  <div className="text-sm font-semibold text-insper-dark-gray">
                     Mostrando eventos de: {entidadeFiltrada.nome}
                   </div>
                 </div>
@@ -458,7 +459,7 @@ const Eventos = () => {
                 variant="outline" 
                 size="sm" 
                 onClick={clearEntityFilter}
-                className="border-red-200 text-red-600 hover:bg-red-50"
+                className="border-insper-red/30 text-insper-red hover:bg-insper-red/10"
               >
                 <X className="h-4 w-4 mr-2" />
                 Limpar filtro
@@ -469,8 +470,8 @@ const Eventos = () => {
 
         <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Target className="w-5 h-5 text-red-600" />
-            <p className="text-gray-600 font-medium">
+            <Target className="w-5 h-5 text-insper-red" />
+            <p className="text-insper-dark-gray font-medium">
               {filteredEventos.length} evento{filteredEventos.length !== 1 ? 's' : ''} encontrado{filteredEventos.length !== 1 ? 's' : ''}
             </p>
           </div>
@@ -478,121 +479,186 @@ const Eventos = () => {
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {filteredEventos.map((evento) => (
-            <Card key={evento.id} className="group hover:shadow-2xl transition-all duration-500 hover:-translate-y-3 cursor-pointer border-0 shadow-lg bg-white overflow-hidden">
-              <Link to={`/eventos/${evento.id}`} className="block">
-                <div className="relative">
+            <div key={evento.id} className="group">
+              <Card className="h-full hover:shadow-2xl transition-all duration-500 hover:-translate-y-3 border-0 shadow-lg bg-white overflow-hidden flex flex-col">
+                <div className="relative flex flex-col h-full">
                   {/* Gradient overlay on hover */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-red-600/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <div className="absolute inset-0 bg-gradient-to-br from-insper-red/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
                   
-                  <CardHeader className="pb-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <CardTitle className="text-xl group-hover:text-red-600 transition-colors duration-300 font-bold mb-3">
-                          {evento.nome}
-                        </CardTitle>
-                        <div className="space-y-2">
-                          <div className="flex items-center text-sm text-gray-500">
-                            <Calendar className="mr-2 h-4 w-4" />
-                                                         {format(
-                               (() => {
-                                 const [y, m, d] = ((evento as any).data as string).split("-");
-                                 return new Date(+y, +m - 1, +d);
-                               })(),
-                               "dd 'de' MMMM, yyyy",
-                               { locale: ptBR }
-                             )}
+                  {/* Área clicável do card - leva para página do evento */}
+                  <div 
+                    className="flex-1 cursor-pointer z-10 relative"
+                    onClick={() => {
+                      window.location.href = `/eventos/${evento.id}`;
+                    }}
+                  >
+                    <CardHeader className="pb-4 flex-shrink-0">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <CardTitle className="text-xl group-hover:text-insper-red transition-colors duration-300 font-bold mb-3">
+                            {evento.nome}
+                          </CardTitle>
+                          
+                          {/* Status do evento com design melhorado */}
+                          <div className="flex items-center gap-2 mb-3">
+                            <Badge 
+                              className={`${
+                                getStatusColor('', (evento as any).data, (evento as any).horario) === 'bg-green-100 text-green-700' 
+                                  ? 'bg-green-100 text-green-700 border-green-200' 
+                                  : getStatusColor('', (evento as any).data, (evento as any).horario) === 'bg-orange-100 text-orange-700'
+                                  ? 'bg-orange-100 text-orange-700 border-orange-200'
+                                  : 'bg-gray-100 text-gray-700 border-gray-200'
+                              } font-medium text-xs px-3 py-1`}
+                            >
+                              {getStatusLabel('', (evento as any).data, (evento as any).horario)}
+                            </Badge>
+                            
+                            {/* Badge da entidade organizadora */}
+                            {evento.entidades && (
+                              <Badge 
+                                variant="outline" 
+                                className="text-xs bg-insper-red/10 text-insper-red border-insper-red/20 font-medium px-3 py-1"
+                              >
+                                {evento.entidades.nome}
+                              </Badge>
+                            )}
                           </div>
-                          <div className="flex items-center text-sm text-gray-500">
-                            <Clock className="mr-2 h-4 w-4" />
-                            {(evento as any).horario || 'Horário não definido'}
+                          
+                          {/* Informações de data e horário */}
+                          <div className="space-y-2">
+                            <div className="flex items-center text-sm text-insper-dark-gray/70">
+                              <Calendar className="mr-2 h-4 w-4 text-insper-red" />
+                              <span className="font-medium">
+                                {format(
+                                  (() => {
+                                    const [y, m, d] = ((evento as any).data as string).split("-");
+                                    return new Date(+y, +m - 1, +d);
+                                  })(),
+                                  "dd 'de' MMMM, yyyy",
+                                  { locale: ptBR }
+                                )}
+                              </span>
+                            </div>
+                            <div className="flex items-center text-sm text-insper-dark-gray/70">
+                              <Clock className="mr-2 h-4 w-4 text-insper-red" />
+                              <span className="font-medium">
+                                {(evento as any).horario || 'Horário não definido'}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <Badge 
-                        variant={getStatusColor('', (evento as any).data, (evento as any).horario) === 'bg-green-100 text-green-700' ? 'success' : 
-                               getStatusColor('', (evento as any).data, (evento as any).horario) === 'bg-orange-100 text-orange-700' ? 'secondary' : 'secondary'} 
-                        className={`text-xs font-medium ${
-                          getStatusColor('', (evento as any).data, (evento as any).horario) === 'bg-green-100 text-green-700' 
-                            ? 'bg-green-100 text-green-700 border-green-200' 
-                            : getStatusColor('', (evento as any).data, (evento as any).horario) === 'bg-orange-100 text-orange-700'
-                            ? 'bg-orange-100 text-orange-700 border-orange-200'
-                            : 'bg-gray-100 text-gray-700 border-gray-200'
-                        }`}
-                      >
-                        {getStatusLabel('', (evento as any).data, (evento as any).horario)}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-
-                  <CardContent className="pt-0">
-                    <div className="space-y-4">
-                      <p className="text-gray-600 text-sm leading-relaxed line-clamp-3">
-                        {evento.descricao}
-                      </p>
-
-                      <div className="space-y-3">
-                        {evento.local && (
-                          <div className="flex items-center text-sm text-gray-500">
-                            <MapPin className="mr-2 h-4 w-4" />
-                            {evento.local}
-                          </div>
-                        )}
                         
-                        {evento.capacidade && (
-                          <div className="flex items-center text-sm text-gray-500">
-                            <Users className="mr-2 h-4 w-4" />
-                            Capacidade: {evento.capacidade} pessoas
-                          </div>
-                        )}
-
+                        {/* Logo da entidade organizadora */}
                         {evento.entidades && (
-                          <div className="flex items-center">
-                            <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
-                              {evento.entidades.nome}
-                            </Badge>
+                          <div className="ml-4 flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
+                            <FotoPerfilEntidade 
+                              fotoUrl={evento.entidades.foto_perfil_url}
+                              nome={evento.entidades.nome}
+                              size="lg"
+                              className="shadow-lg"
+                            />
                           </div>
                         )}
                       </div>
+                    </CardHeader>
 
-                      <div className="flex space-x-3 pt-4 border-t border-gray-100" onClick={(e) => e.stopPropagation()}>
-                        {(() => {
-                          if (isUserInscrito(evento.id)) {
-                            return (
-                              <Button className="flex-1" variant="outline" disabled>
-                                ✓ Já inscrito
-                              </Button>
-                            );
-                          } else if (!user) {
-                            return (
-                              <Button className="flex-1" variant="outline" asChild>
-                                <Link to="/auth">
-                                  Fazer login
-                                </Link>
-                              </Button>
-                            );
-                          } else {
-                            return (
-                              <Button 
-                                className="flex-1 bg-red-600 hover:bg-red-700 shadow-lg hover:shadow-xl transition-all duration-300"
-                                onClick={() => handleInscricao(evento)}
-                              >
-                                Inscrever-se
-                              </Button>
-                            );
-                          }
-                        })()}
-                        <Button variant="outline" size="sm" className="group-hover:bg-gray-50 border-gray-200 hover:border-gray-300" asChild>
-                          <Link to={`/eventos/${evento.id}`}>
-                            Ver Mais
-                            <ArrowRight size={14} className="ml-1" />
-                          </Link>
-                        </Button>
+                    <CardContent className="pt-0 flex-1 flex flex-col">
+                      <div className="space-y-4 flex-1">
+                        {/* Descrição do evento */}
+                        <p className="text-insper-dark-gray text-sm leading-relaxed line-clamp-3">
+                          {evento.descricao || 'Descrição não disponível'}
+                        </p>
+
+                        {/* Informações adicionais em cards destacados */}
+                        <div className="space-y-3">
+                          {evento.local && (
+                            <div className="bg-gradient-to-r from-insper-light-gray/50 to-insper-light-gray/30 border border-insper-light-gray-1 rounded-lg p-3">
+                              <div className="flex items-center gap-2">
+                                <MapPin className="w-4 h-4 text-insper-red flex-shrink-0" />
+                                <span className="text-sm font-medium text-insper-dark-gray">
+                                  {evento.local}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {evento.capacidade && (
+                            <div className="bg-gradient-to-r from-insper-yellow/10 to-insper-yellow/5 border border-insper-yellow/20 rounded-lg p-3">
+                              <div className="flex items-center gap-2">
+                                <Users className="w-4 h-4 text-insper-yellow-600 flex-shrink-0" />
+                                <span className="text-sm font-medium text-insper-dark-gray">
+                                  Capacidade: {evento.capacidade} pessoas
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Link do evento se disponível */}
+                        {evento.link_evento && (
+                          <div className="bg-gradient-to-r from-insper-blue/10 to-insper-blue/5 border border-insper-blue/20 rounded-lg p-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-4 h-4 bg-insper-blue rounded-full flex-shrink-0"></div>
+                              <span className="text-sm font-medium text-insper-dark-gray">
+                                Link do evento disponível
+                              </span>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  </CardContent>
+                    </CardContent>
+                  </div>
+
+                  {/* Área dos botões - não clicável para navegação do card */}
+                  <div className="flex space-x-3 pt-6 mt-6 border-t border-gray-100 flex-shrink-0 px-6 pb-6">
+                    {/* Botão de inscrição */}
+                    {(() => {
+                      if (isUserInscrito(evento.id)) {
+                        return (
+                          <Button className="flex-1 bg-green-600 hover:bg-green-700 shadow-lg hover:shadow-xl transition-all duration-300" disabled>
+                            ✓ Já inscrito
+                          </Button>
+                        );
+                      } else if (!user) {
+                        return (
+                          <Button className="flex-1 bg-insper-red hover:bg-insper-red/90 shadow-lg hover:shadow-xl transition-all duration-300" asChild>
+                            <Link to="/auth">
+                              Fazer login
+                            </Link>
+                          </Button>
+                        );
+                      } else {
+                        return (
+                          <Button 
+                            className="flex-1 bg-insper-red hover:bg-insper-red/90 shadow-lg hover:shadow-xl transition-all duration-300"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleInscricao(evento);
+                            }}
+                          >
+                            Inscrever-se
+                          </Button>
+                        );
+                      }
+                    })()}
+                    
+                    {/* Botão de ver mais */}
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="group-hover:bg-insper-light-gray border-insper-light-gray-1 hover:border-insper-light-gray-1" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.location.href = `/eventos/${evento.id}`;
+                      }}
+                    >
+                      Ver Mais
+                      <ArrowRight size={14} className="ml-1" />
+                    </Button>
+                  </div>
                 </div>
-              </Link>
-            </Card>
+              </Card>
+            </div>
           ))}
         </div>
 
@@ -604,11 +670,11 @@ const Eventos = () => {
               disabled={isLoadingMore}
               variant="outline"
               size="lg"
-              className="border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 px-8 py-3"
+              className="border-insper-red/30 text-insper-red hover:bg-insper-red/10 hover:border-insper-red/50 px-8 py-3"
             >
               {isLoadingMore ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-red-600 border-t-transparent mr-2"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-insper-red border-t-transparent mr-2"></div>
                   Carregando...
                 </>
               ) : (
@@ -623,26 +689,26 @@ const Eventos = () => {
 
         {filteredEventos.length === 0 && (
           <div className="text-center py-20">
-            <div className="w-32 h-32 bg-gradient-to-br from-red-100 to-red-200 rounded-full flex items-center justify-center mx-auto mb-8">
-              <Calendar size={48} className="text-red-600" />
+            <div className="w-32 h-32 bg-gradient-to-br from-insper-red/20 to-insper-red/10 rounded-full flex items-center justify-center mx-auto mb-8">
+              <Calendar size={48} className="text-insper-red" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-4">
+            <h3 className="text-2xl font-bold text-insper-black mb-4">
               Nenhum evento encontrado
             </h3>
-            <p className="text-gray-600 text-lg max-w-md mx-auto mb-8">
+            <p className="text-insper-dark-gray text-lg max-w-md mx-auto mb-8">
               Tente ajustar os filtros ou usar outros termos de busca para encontrar os eventos que você procura
             </p>
             <div className="flex gap-4 justify-center">
               <Button 
                 variant="outline" 
                 onClick={() => setSearchTerm('')}
-                className="border-red-200 text-red-600 hover:bg-red-50"
+                className="border-insper-red/30 text-insper-red hover:bg-insper-red/10"
               >
                 Limpar busca
               </Button>
               <Button 
                 onClick={clearAllFilters}
-                className="bg-red-600 hover:bg-red-700"
+                className="bg-insper-red hover:bg-insper-red/90"
               >
                 Limpar filtros
               </Button>

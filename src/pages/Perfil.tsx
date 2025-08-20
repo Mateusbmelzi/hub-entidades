@@ -26,7 +26,7 @@ interface DemonstracaoInteresse {
   created_at: string;
   updated_at: string;
   entidade_nome: string;
-  entidade_area_atuacao?: string;
+  entidade_area_atuacao?: string[] | string;
 }
 
 interface InscricaoEvento {

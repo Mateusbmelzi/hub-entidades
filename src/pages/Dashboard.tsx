@@ -171,7 +171,7 @@ interface AcaoComumPosLogin {
 
 interface EventosPorEntidade {
   nome_entidade: string;
-  area_atuacao: string;
+  area_atuacao: string[] | string;
   total_eventos: number;
   eventos_ativos: number;
   eventos_concluidos: number;
@@ -184,7 +184,7 @@ interface EventosPorEntidade {
 
 interface TaxaVisualizacaoInteresse {
   nome_entidade: string;
-  area_atuacao: string;
+  area_atuacao: string[] | string;
   total_visualizacoes: number;
   total_interesses: number;
   taxa_conversao: number;
@@ -196,7 +196,7 @@ interface TaxaVisualizacaoInteresse {
 
 interface AtratividadePorCurso {
   nome_entidade: string;
-  area_atuacao: string;
+  area_atuacao: string[] | string;
   curso_mais_atraido: string;
   total_interesses_curso_principal: number;
   percentual_curso_principal: number;
@@ -213,7 +213,7 @@ interface AtratividadePorCurso {
 interface EventosMaisInscritos {
   nome_evento: string;
   nome_entidade: string;
-  area_atuacao: string;
+  area_atuacao: string[] | string;
   total_inscritos: number;
   capacidade_evento: number;
   taxa_ocupacao: number;
@@ -1644,7 +1644,7 @@ const Dashboard = () => {
       totalAlunos: Set<string>;
       demonstracoes: Array<{
         entidade_id: number;
-        area_atuacao: string;
+        area_atuacao: string[] | string;
       }>;
     }>();
 

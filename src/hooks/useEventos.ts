@@ -7,6 +7,7 @@ export type Evento = Tables<'eventos'> & {
   entidades?: {
     id: number;
     nome: string;
+    foto_perfil_url?: string | null;
   };
 };
 
@@ -121,7 +122,7 @@ export const useEventos = (options: UseEventosOptions = {}) => {
         .from('eventos')
         .select(`
           *,
-          entidades(id, nome)
+          entidades(id, nome, foto_perfil_url)
         `)
         .eq('status_aprovacao', statusAprovacao)
         .order('data', { ascending: true })

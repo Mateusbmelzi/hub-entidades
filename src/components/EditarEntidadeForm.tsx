@@ -9,6 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import { X } from 'lucide-react';
 import { useUpdateEntidade } from '@/hooks/useUpdateEntidade';
 import { useToast } from '@/hooks/use-toast';
 import { AREAS_ATUACAO } from '@/lib/constants';
@@ -19,7 +21,7 @@ const formSchema = z.object({
   descricao_detalhada: z.string().min(1, 'Descrição detalhada é obrigatória').max(2000, 'Descrição detalhada deve ter no máximo 2000 caracteres'),
   numero_membros: z.number().min(1, 'Deve ter pelo menos 1 membro').max(1000, 'Máximo 1000 membros'),
   ano_criacao: z.number().min(1900, 'Ano deve ser maior que 1900').max(new Date().getFullYear() + 1, 'Ano não pode ser no futuro').optional(),
-  area_atuacao: z.string().min(1, 'Área de atuação é obrigatória'),
+  area_atuacao: z.array(z.string()).min(1, 'Pelo menos uma área de atuação é obrigatória'),
   contato: z.string().optional(),
   site_url: z.string().url('Site deve ser uma URL válida').optional().or(z.literal('')),
   linkedin_url: z.string().url('LinkedIn deve ser uma URL válida').optional().or(z.literal('')),
@@ -52,6 +54,13 @@ export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade
   const { updateEntidade, loading } = useUpdateEntidade();
   const { toast } = useToast();
 
+  // Converter area_atuacao para array se for string
+  const getInitialAreaAtuacao = () => {
+    if (!entidade.area_atuacao) return [];
+    if (Array.isArray(entidade.area_atuacao)) return entidade.area_atuacao;
+    return [entidade.area_atuacao];
+  };
+
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -60,7 +69,7 @@ export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade
       descricao_detalhada: entidade.descricao_detalhada || '',
       numero_membros: entidade.numero_membros || 10,
       ano_criacao: entidade.ano_criacao || new Date().getFullYear(),
-      area_atuacao: entidade.area_atuacao || '',
+      area_atuacao: getInitialAreaAtuacao(),
       contato: entidade.contato || '',
       site_url: entidade.site_url || '',
       linkedin_url: entidade.linkedin_url || '',
@@ -142,6 +151,21 @@ export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade
     }
   };
 
+  const addAreaAtuacao = (area: string) => {
+    const currentAreas = form.watch('area_atuacao');
+    if (!currentAreas.includes(area)) {
+      form.setValue('area_atuacao', [...currentAreas, area]);
+    }
+  };
+
+  const removeAreaAtuacao = (areaToRemove: string) => {
+    const currentAreas = form.watch('area_atuacao');
+    form.setValue('area_atuacao', currentAreas.filter(area => area !== areaToRemove));
+  };
+
+  const selectedAreas = form.watch('area_atuacao');
+  const availableAreas = AREAS_ATUACAO.filter(area => !selectedAreas.includes(area));
+
   return (
     <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
       console.log('❌ Erros de validação:', errors);
@@ -219,27 +243,53 @@ export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade
             )}
           </div>
 
-                     <div className="space-y-2">
-             <Label htmlFor="area_atuacao">Área de Atuação</Label>
-             <Select 
-               value={form.watch('area_atuacao')} 
-               onValueChange={(value) => form.setValue('area_atuacao', value)}
-             >
-               <SelectTrigger>
-                 <SelectValue placeholder="Selecione uma área de atuação" />
-               </SelectTrigger>
-               <SelectContent>
-                 {AREAS_ATUACAO.map((area) => (
-                   <SelectItem key={area} value={area}>
-                     {area}
-                   </SelectItem>
-                 ))}
-               </SelectContent>
-             </Select>
-             {form.formState.errors.area_atuacao && (
-               <p className="text-sm text-red-500">{form.formState.errors.area_atuacao.message}</p>
-             )}
-           </div>
+          <div className="space-y-2">
+            <Label htmlFor="area_atuacao">Áreas de Atuação</Label>
+            
+            {/* Áreas selecionadas */}
+            {selectedAreas.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {selectedAreas.map((area) => (
+                  <Badge key={area} variant="secondary" className="flex items-center gap-1">
+                    {area}
+                    <button
+                      type="button"
+                      onClick={() => removeAreaAtuacao(area)}
+                      className="ml-1 hover:bg-red-100 rounded-full p-0.5"
+                    >
+                      <X size={12} />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+
+            {/* Seletor de novas áreas */}
+            {availableAreas.length > 0 && (
+              <Select onValueChange={addAreaAtuacao}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Adicionar área de atuação" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableAreas.map((area) => (
+                    <SelectItem key={area} value={area}>
+                      {area}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
+            {selectedAreas.length === 0 && (
+              <p className="text-sm text-gray-500">
+                Selecione pelo menos uma área de atuação
+              </p>
+            )}
+
+            {form.formState.errors.area_atuacao && (
+              <p className="text-sm text-red-500">{form.formState.errors.area_atuacao.message}</p>
+            )}
+          </div>
         </CardContent>
       </Card>
 
