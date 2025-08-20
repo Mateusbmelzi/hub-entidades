@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste - Exclusão de Processo Seletivo</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success { border-color: #4caf50; background-color: #f1f8e9; }
+        .error { border-color: #f44336; background-color: #ffebee; }
+        .info { border-color: #2196f3; background-color: #e3f2fd; }
+        button {
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #1976d2; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .log {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+        input, select {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 200px;
+        }
+        .status {
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status.pendente { background: #fff3cd; color: #856404; }
+        .status.aprovada { background: #d4edda; color: #155724; }
+        .status.rejeitada { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Teste - Exclusão de Processo Seletivo</h1>
+        
+        <div class="test-section info">
+            <h3>📋 Configuração</h3>
+            <p>Este teste verifica a funcionalidade de exclusão de processos seletivos na página de perfil.</p>
+            
+            <div>
+                <label>URL do Supabase:</label>
+                <input type="text" id="supabaseUrl" placeholder="https://seu-projeto.supabase.co" style="width: 300px;">
+            </div>
+            <div>
+                <label>Chave Anônima:</label>
+                <input type="text" id="supabaseKey" placeholder="sua-chave-anonima" style="width: 300px;">
+            </div>
+            <div>
+                <label>Email do Usuário:</label>
+                <input type="email" id="userEmail" placeholder="usuario@exemplo.com">
+            </div>
+            <button onclick="testarConexao()">🔗 Testar Conexão</button>
+        </div>
+
+        <div class="test-section info">
+            <h3>🔍 Verificar Processos Seletivos</h3>
+            <p>Primeiro, vamos verificar quais processos seletivos existem para o usuário.</p>
+            <button onclick="buscarProcessosSeletivos()" id="btnBuscar">🔍 Buscar Processos Seletivos</button>
+            <div id="processosSeletivos"></div>
+        </div>
+
+        <div class="test-section info">
+            <h3>🗑️ Testar Exclusão</h3>
+            <p>Selecione um processo seletivo para testar a exclusão:</p>
+            <select id="processoSeletivoSelect">
+                <option value="">Selecione um processo seletivo...</option>
+            </select>
+            <button onclick="testarExclusao()" id="btnExcluir" disabled>🗑️ Testar Exclusão</button>
+            <div id="resultadoExclusao"></div>
+        </div>
+
+        <div class="test-section info">
+            <h3>📊 Logs de Teste</h3>
+            <div class="log" id="logs"></div>
+            <button onclick="limparLogs()">🧹 Limpar Logs</button>
+        </div>
+    </div>
+
+    <script>
+        let supabase;
+        let processosSeletivos = [];
+
+        function log(message, type = 'info') {
+            const logsDiv = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            logEntry.style.color = type === 'error' ? '#f44336' : type === 'success' ? '#4caf50' : '#2196f3';
+            logsDiv.appendChild(logEntry);
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+
+        function testarConexao() {
+            const url = document.getElementById('supabaseUrl').value;
+            const key = document.getElementById('supabaseKey').value;
+            
+            if (!url || !key) {
+                log('❌ Por favor, preencha a URL e chave do Supabase', 'error');
+                return;
+            }
+
+            try {
+                supabase = window.supabase.createClient(url, key);
+                log('✅ Cliente Supabase criado com sucesso');
+                log(`🔗 URL: ${url}`);
+                
+                // Testar conexão fazendo uma consulta simples
+                testarConsultaSimples();
+            } catch (error) {
+                log(`❌ Erro ao criar cliente Supabase: ${error.message}`, 'error');
+            }
+        }
+
+        async function testarConsultaSimples() {
+            try {
+                log('🔄 Testando conexão com consulta simples...');
+                const { data, error } = await supabase
+                    .from('demonstracoes_interesse')
+                    .select('count')
+                    .limit(1);
+                
+                if (error) {
+                    log(`❌ Erro na consulta de teste: ${error.message}`, 'error');
+                    log(`❌ Código do erro: ${error.code}`, 'error');
+                } else {
+                    log('✅ Conexão com Supabase funcionando corretamente');
+                }
+            } catch (error) {
+                log(`❌ Erro inesperado: ${error.message}`, 'error');
+            }
+        }
+
+        async function buscarProcessosSeletivos() {
+            const email = document.getElementById('userEmail').value;
+            
+            if (!email) {
+                log('❌ Por favor, informe o email do usuário', 'error');
+                return;
+            }
+
+            if (!supabase) {
+                log('❌ Cliente Supabase não inicializado', 'error');
+                return;
+            }
+
+            try {
+                log(`🔍 Buscando processos seletivos para: ${email}`);
+                
+                const { data, error } = await supabase
+                    .from('demonstracoes_interesse')
+                    .select(`
+                        *,
+                        entidades(nome, area_atuacao)
+                    `)
+                    .eq('email_estudante', email)
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    log(`❌ Erro ao buscar processos seletivos: ${error.message}`, 'error');
+                    log(`❌ Código do erro: ${error.code}`, 'error');
+                    return;
+                }
+
+                processosSeletivos = data || [];
+                log(`✅ Encontrados ${processosSeletivos.length} processos seletivos`);
+
+                // Exibir processos seletivos
+                exibirProcessosSeletivos();
+                
+                // Preencher select para exclusão
+                preencherSelectExclusao();
+                
+            } catch (error) {
+                log(`❌ Erro inesperado: ${error.message}`, 'error');
+            }
+        }
+
+        function exibirProcessosSeletivos() {
+            const div = document.getElementById('processosSeletivos');
+            
+            if (processosSeletivos.length === 0) {
+                div.innerHTML = '<p>Nenhum processo seletivo encontrado.</p>';
+                return;
+            }
+
+            let html = '<h4>📋 Processos Seletivos Encontrados:</h4>';
+            html += '<div style="display: grid; gap: 10px;">';
+            
+            processosSeletivos.forEach((processo, index) => {
+                const entidadeNome = processo.entidades?.nome || 'N/A';
+                const statusClass = `status ${processo.status}`;
+                
+                html += `
+                    <div style="border: 1px solid #ddd; padding: 10px; border-radius: 5px;">
+                        <strong>ID: ${processo.id}</strong><br>
+                        <strong>Entidade:</strong> ${entidadeNome}<br>
+                        <strong>Status:</strong> <span class="${statusClass}">${processo.status}</span><br>
+                        <strong>Área:</strong> ${processo.area_interesse || 'N/A'}<br>
+                        <strong>Data:</strong> ${new Date(processo.created_at).toLocaleDateString('pt-BR')}<br>
+                        <strong>Email:</strong> ${processo.email_estudante}
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            div.innerHTML = html;
+        }
+
+        function preencherSelectExclusao() {
+            const select = document.getElementById('processoSeletivoSelect');
+            const btnExcluir = document.getElementById('btnExcluir');
+            
+            // Limpar opções existentes
+            select.innerHTML = '<option value="">Selecione um processo seletivo...</option>';
+            
+            // Adicionar apenas processos pendentes (que podem ser cancelados)
+            const processosPendentes = processosSeletivos.filter(p => p.status === 'pendente');
+            
+            if (processosPendentes.length === 0) {
+                select.innerHTML = '<option value="">Nenhum processo pendente para cancelar</option>';
+                btnExcluir.disabled = true;
+                return;
+            }
+            
+            processosPendentes.forEach(processo => {
+                const option = document.createElement('option');
+                option.value = processo.id;
+                option.textContent = `ID ${processo.id} - ${processo.entidades?.nome || 'N/A'} (${processo.status})`;
+                select.appendChild(option);
+            });
+            
+            btnExcluir.disabled = false;
+        }
+
+        async function testarExclusao() {
+            const processoId = document.getElementById('processoSeletivoSelect').value;
+            const email = document.getElementById('userEmail').value;
+            
+            if (!processoId) {
+                log('❌ Por favor, selecione um processo seletivo', 'error');
+                return;
+            }
+
+            if (!supabase) {
+                log('❌ Cliente Supabase não inicializado', 'error');
+                return;
+            }
+
+            try {
+                log(`🗑️ Tentando excluir processo seletivo ID: ${processoId}`);
+                log(`👤 Email do usuário: ${email}`);
+                
+                // Verificar se o processo existe e pertence ao usuário
+                const processo = processosSeletivos.find(p => p.id == processoId);
+                if (!processo) {
+                    log('❌ Processo seletivo não encontrado', 'error');
+                    return;
+                }
+                
+                if (processo.email_estudante !== email) {
+                    log('❌ Processo seletivo não pertence ao usuário informado', 'error');
+                    return;
+                }
+                
+                if (processo.status !== 'pendente') {
+                    log('❌ Apenas processos pendentes podem ser cancelados', 'error');
+                    return;
+                }
+                
+                log('✅ Validações passaram, tentando exclusão...');
+                
+                // Tentar exclusão com retry
+                let deleteResult;
+                let retryCount = 0;
+                const maxRetries = 3;
+                
+                while (retryCount < maxRetries) {
+                    try {
+                        log(`🔄 Tentativa ${retryCount + 1} de exclusão...`);
+                        
+                        deleteResult = await supabase
+                            .from('demonstracoes_interesse')
+                            .delete()
+                            .eq('id', processoId)
+                            .eq('email_estudante', email)
+                            .select();
+
+                        log('📥 Resposta do Supabase:', 'info');
+                        log(`   Data: ${JSON.stringify(deleteResult.data)}`, 'info');
+                        log(`   Error: ${deleteResult.error ? JSON.stringify(deleteResult.error) : 'null'}`, 'info');
+                        
+                        if (deleteResult.error) {
+                            throw deleteResult.error;
+                        }
+                        
+                        log('✅ Exclusão bem-sucedida!');
+                        break;
+                        
+                    } catch (error) {
+                        retryCount++;
+                        log(`❌ Tentativa ${retryCount} falhou: ${error.message}`, 'error');
+                        
+                        if (retryCount >= maxRetries) {
+                            throw error;
+                        }
+                        
+                        log(`⏳ Aguardando ${retryCount} segundo(s) antes de tentar novamente...`);
+                        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+                    }
+                }
+
+                if (!deleteResult || deleteResult.error) {
+                    throw new Error('Falha na exclusão após múltiplas tentativas');
+                }
+
+                log('🎉 Processo seletivo excluído com sucesso!', 'success');
+                
+                // Atualizar lista local
+                processosSeletivos = processosSeletivos.filter(p => p.id != processoId);
+                
+                // Atualizar interface
+                exibirProcessosSeletivos();
+                preencherSelectExclusao();
+                
+                // Mostrar resultado
+                const resultadoDiv = document.getElementById('resultadoExclusao');
+                resultadoDiv.innerHTML = `
+                    <div style="background: #d4edda; color: #155724; padding: 10px; border-radius: 5px; margin: 10px 0;">
+                        ✅ Processo seletivo excluído com sucesso!<br>
+                        ID: ${processoId}<br>
+                        Entidade: ${processo.entidades?.nome || 'N/A'}
+                    </div>
+                `;
+                
+            } catch (error) {
+                log(`❌ Erro ao excluir processo seletivo: ${error.message}`, 'error');
+                
+                if (error.code) {
+                    log(`❌ Código do erro: ${error.code}`, 'error');
+                }
+                
+                if (error.details) {
+                    log(`❌ Detalhes: ${error.details}`, 'error');
+                }
+                
+                if (error.hint) {
+                    log(`❌ Dica: ${error.hint}`, 'error');
+                }
+                
+                // Mostrar resultado de erro
+                const resultadoDiv = document.getElementById('resultadoExclusao');
+                resultadoDiv.innerHTML = `
+                    <div style="background: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px; margin: 10px 0;">
+                        ❌ Erro ao excluir processo seletivo<br>
+                        Mensagem: ${error.message}<br>
+                        ${error.code ? `Código: ${error.code}` : ''}
+                    </div>
+                `;
+            }
+        }
+
+        function limparLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+
+        // Auto-inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            log('🚀 Teste de Exclusão de Processo Seletivo iniciado');
+            log('📝 Preencha as configurações e clique em "Testar Conexão"');
+        });
+    </script>
+</body>
+</html>

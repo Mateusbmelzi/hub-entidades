@@ -430,56 +430,95 @@ export default function Perfil() {
       if (demonstracao.email_estudante !== user?.email) {
         throw new Error('Você não tem permissão para cancelar esta inscrição');
       }
+
+      // Verificar se o status permite cancelamento
+      if (demonstracao.status !== 'pendente') {
+        throw new Error('Apenas processos seletivos pendentes podem ser cancelados');
+      }
       
-      const { data, error } = await supabase
-        .from('demonstracoes_interesse')
-        .delete()
-        .eq('id', demonstracaoId)
-        .select(); // Adicionar .select() para ver o que foi deletado
+      // Tentar exclusão com retry e melhor tratamento de erro
+      let deleteResult;
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (retryCount < maxRetries) {
+        try {
+          console.log(`🔄 Tentativa ${retryCount + 1} de exclusão...`);
+          
+          deleteResult = await supabase
+            .from('demonstracoes_interesse')
+            .delete()
+            .eq('id', demonstracaoId)
+            .eq('email_estudante', user.email) // Dupla verificação de segurança
+            .select();
 
-      console.log('📥 Resposta do Supabase:', { data, error });
+          console.log('📥 Resposta do Supabase:', deleteResult);
+          
+          if (deleteResult.error) {
+            throw deleteResult.error;
+          }
+          
+          // Se chegou aqui, a exclusão foi bem-sucedida
+          break;
+          
+        } catch (error: any) {
+          retryCount++;
+          console.error(`❌ Tentativa ${retryCount} falhou:`, error);
+          
+          if (retryCount >= maxRetries) {
+            throw error;
+          }
+          
+          // Aguardar antes de tentar novamente
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        }
+      }
 
-      if (error) {
-        console.error('❌ Erro do Supabase:', error);
-        console.error('❌ Código do erro:', error.code);
-        console.error('❌ Mensagem do erro:', error.message);
-        console.error('❌ Detalhes do erro:', error.details);
-        console.error('❌ Hint do erro:', error.hint);
-        
-        // Verificar se é um erro de permissão
-        if (error.code === '42501' || error.message?.includes('permission')) {
-          throw new Error('Você não tem permissão para cancelar esta inscrição. Entre em contato com o suporte.');
-        }
-        
-        // Verificar se é um erro de RLS
-        if (error.code === 'PGRST116' || error.message?.includes('new row violates row-level security policy')) {
-          throw new Error('Política de segurança bloqueou a operação. Verifique suas permissões.');
-        }
-        
-        throw error;
+      if (!deleteResult || deleteResult.error) {
+        throw new Error('Falha na exclusão após múltiplas tentativas');
       }
 
       console.log('✅ Inscrição cancelada com sucesso');
-      console.log('📊 Dados deletados:', data);
+      console.log('📊 Dados deletados:', deleteResult.data);
       
       // Remover da lista local
       setDemonstracoes(prev => prev.filter(d => d.id !== demonstracaoId));
 
       toast.success('Inscrição cancelada com sucesso!');
       
-      // Forçar recarregamento da lista após 1 segundo
+      // Recarregar a lista para garantir sincronização
       setTimeout(() => {
-        console.log('🔄 Forçando recarregamento da lista...');
+        console.log('🔄 Recarregando lista após exclusão...');
         fetchDemonstracoes();
-      }, 1000);
+      }, 500);
+      
     } catch (error: any) {
       console.error('❌ Erro ao cancelar inscrição:', error);
       console.error('❌ Tipo do erro:', typeof error);
       console.error('❌ Stack trace:', error.stack);
       
-      // Mensagem de erro mais específica
-      const errorMessage = error.message || 'Erro ao cancelar inscrição. Tente novamente.';
+      // Mensagens de erro mais específicas baseadas no tipo de erro
+      let errorMessage = 'Erro ao cancelar inscrição. Tente novamente.';
+      
+      if (error.code === '42501') {
+        errorMessage = 'Você não tem permissão para cancelar esta inscrição. Entre em contato com o suporte.';
+      } else if (error.code === 'PGRST116') {
+        errorMessage = 'Política de segurança bloqueou a operação. Verifique suas permissões.';
+      } else if (error.code === '23503') {
+        errorMessage = 'Esta inscrição não pode ser cancelada devido a restrições do sistema.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast.error(errorMessage);
+      
+      // Se for erro de permissão, tentar recarregar a lista
+      if (error.code === '42501' || error.code === 'PGRST116') {
+        setTimeout(() => {
+          console.log('🔄 Recarregando lista após erro de permissão...');
+          fetchDemonstracoes();
+        }, 1000);
+      }
     } finally {
       setLoadingAction(false);
     }
