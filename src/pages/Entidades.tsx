@@ -12,6 +12,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { AreaAtuacaoDisplay } from '@/components/ui/area-atuacao-display';
 import { AREAS_ATUACAO, getFirstAreaColor, getAreaColor } from '@/lib/constants';
 import { FotoPerfilEntidade } from '@/components/FotoPerfilEntidade';
+import { supabase } from '@/integrations/supabase/client';
 
 const Entidades = () => {
 
@@ -29,8 +30,8 @@ const Entidades = () => {
     isSearching,
     searchError
   } = useEntidades({ 
-    pageSize: 12, 
-    enablePagination: true,
+    pageSize: 1000, // Carregar todas as entidades de uma vez
+    enablePagination: false, // Desabilitar paginação
     enableCache: true,
     cacheTimeout: 5 * 60 * 1000
   });
@@ -42,6 +43,15 @@ const Entidades = () => {
   const [sortBy, setSortBy] = useState<'nome' | 'ano_criacao'>('nome');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
+  // Estados para filtros híbridos
+  const [filteredFromServer, setFilteredFromServer] = useState<boolean>(false);
+  const [serverFilterResults, setServerFilterResults] = useState<any[]>([]);
+  const [isFilteringFromServer, setIsFilteringFromServer] = useState<boolean>(false);
+
+  // Estados para paginação visual
+  const [visibleCount, setVisibleCount] = useState<number>(12);
+  const [showAll, setShowAll] = useState<boolean>(false);
+
   // Debounce para a pesquisa
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
@@ -52,74 +62,188 @@ const Entidades = () => {
     }
   }, [debouncedSearchTerm, searchEntidades]);
 
+  // Effect para aplicar filtros no servidor quando necessário
+  useEffect(() => {
+    if (selectedFilters.length > 0 && !filteredFromServer) {
+      applyServerFilters();
+    } else if (selectedFilters.length === 0 && filteredFromServer) {
+      // Limpar filtros do servidor
+      setFilteredFromServer(false);
+      setServerFilterResults([]);
+    }
+  }, [selectedFilters, filteredFromServer]);
+
+  // Effect para resetar paginação visual quando filtros mudam
+  useEffect(() => {
+    setVisibleCount(12);
+    setShowAll(false);
+  }, [selectedFilters, debouncedSearchTerm]);
+
+  // Função para aplicar filtros no servidor
+  const applyServerFilters = async () => {
+    if (selectedFilters.length === 0) return;
+    
+    setIsFilteringFromServer(true);
+    console.log('🔍 Aplicando filtros no servidor:', selectedFilters);
+    
+    try {
+      // Buscar entidades filtradas por área no servidor
+      const { data, error } = await supabase
+        .from('entidades')
+        .select('*')
+        .in('area_atuacao', selectedFilters)
+        .order('nome')
+        .limit(100); // Limite razoável para filtros
+      
+      if (error) throw error;
+      
+      console.log('🔍 Resultados do servidor:', data?.length || 0);
+      setServerFilterResults(data || []);
+      setFilteredFromServer(true);
+      
+    } catch (err) {
+      console.error('❌ Erro ao filtrar no servidor:', err);
+      // Fallback para filtros locais
+      setFilteredFromServer(false);
+    } finally {
+      setIsFilteringFromServer(false);
+    }
+  };
+
+  // Função para obter a área de atuação de uma entidade
+  const getEntityArea = (entity: any): string | null => {
+    if (!entity || !entity.area_atuacao) {
+      return null;
+    }
+    
+    let area = entity.area_atuacao;
+    
+    // Se for array, pegar a primeira área válida
+    if (Array.isArray(area)) {
+      area = area.find(a => a && a.trim()) || null;
+    }
+    
+    // Se for string, verificar se não está vazia
+    if (typeof area === 'string') {
+      area = area.trim() || null;
+    }
+    
+    // Verificar se a área está na lista de áreas válidas
+    if (area && AREAS_ATUACAO.includes(area as any)) {
+      return area;
+    }
+    
+    // Se não estiver na lista, retornar null
+    return null;
+  };
+
   // Calcular estatísticas das áreas de atuação (memoizado)
   const areaStats = useMemo(() => {
     const stats: Record<string, number> = {};
+    
+    // Debug: verificar estrutura dos dados
+    if (entidades.length > 0) {
+      console.log('🔍 Primeira entidade:', {
+        id: entidades[0].id,
+        nome: entidades[0].nome,
+        area_atuacao: entidades[0].area_atuacao
+      });
+    }
+    
+    // Inicializar todas as áreas com 0
     AREAS_ATUACAO.forEach(area => {
-      stats[area] = entidades.filter(entity => {
-        const entityArea = Array.isArray(entity.area_atuacao) 
-          ? entity.area_atuacao[0] 
-          : entity.area_atuacao;
-        return entityArea === area;
-      }).length;
+      stats[area] = 0;
     });
+    
+    // Contar entidades por área
+    entidades.forEach(entity => {
+      const area = getEntityArea(entity);
+      if (area && AREAS_ATUACAO.includes(area as any)) {
+        stats[area]++;
+      }
+    });
+    
+    console.log('🔍 Estatísticas das áreas:', stats);
     return stats;
   }, [entidades]);
 
   // Filtros memoizados
   const filters = useMemo(() => [
-    { id: 'todas', label: 'Todas as Áreas', count: 0 },
+    { id: 'todas', label: 'Todas as Áreas', count: entidades.length },
     ...AREAS_ATUACAO.map(area => ({
       id: area,
       label: area,
       count: areaStats[area] || 0
     }))
-  ], [areaStats]);
+  ], [areaStats, entidades.length]);
 
   // Entidades filtradas e ordenadas (memoizado)
   const filteredEntities = useMemo(() => {
-    // Se há termo de busca, usar resultados da busca global
-    if (debouncedSearchTerm.trim()) {
-      return searchResults.filter(entity => {
-        const area = Array.isArray(entity.area_atuacao) 
-          ? entity.area_atuacao[0] 
-          : entity.area_atuacao;
-        
-        const matchesFilter = selectedFilters.length === 0 || 
-                             (area && selectedFilters.includes(area));
-        
-        return matchesFilter;
-      }).sort((a, b) => {
-        if (sortBy === 'nome') {
-          const aName = a.nome?.toLowerCase() || '';
-          const bName = b.nome?.toLowerCase() || '';
-          return sortOrder === 'asc' 
-            ? aName.localeCompare(bName)
-            : bName.localeCompare(aName);
-        } else {
-          const aYear = a.ano_criacao || 0;
-          const bYear = b.ano_criacao || 0;
-          return sortOrder === 'asc' ? aYear - bYear : bYear - aYear;
-        }
-      });
+    let entitiesToFilter = entidades;
+    
+    // Se há filtros ativos, usar resultados do servidor se disponível
+    if (selectedFilters.length > 0 && filteredFromServer) {
+      entitiesToFilter = serverFilterResults;
+      console.log('🔍 Usando filtros do servidor:', serverFilterResults.length, 'entidades');
     }
     
-    // Caso contrário, usar entidades carregadas normalmente
-    return entidades.filter(entity => {
-      const area = Array.isArray(entity.area_atuacao) 
-        ? entity.area_atuacao[0] 
-        : entity.area_atuacao;
+    // Aplicar filtros locais (para entidades já carregadas ou como fallback)
+    let filtered = entitiesToFilter;
+    if (selectedFilters.length > 0 && !filteredFromServer) {
+      console.log('🔍 Aplicando filtros locais:', selectedFilters);
+      console.log('🔍 Entidades antes dos filtros:', entitiesToFilter.length);
       
-      const matchesSearch = 
-        (entity.nome?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) ||
-        (entity.descricao_curta?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) ||
-        (area?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()));
+      filtered = entitiesToFilter.filter(entity => {
+        const area = getEntityArea(entity);
+        const matchesFilter = area && selectedFilters.includes(area);
+        
+        if (!matchesFilter && area) {
+          console.log(`🔍 Entidade "${entity.nome}" não passou no filtro: área="${area}" não está em`, selectedFilters);
+        }
+        
+        return matchesFilter;
+      });
       
-      const matchesFilter = selectedFilters.length === 0 || 
-                           (area && selectedFilters.includes(area));
-      
-      return matchesSearch && matchesFilter;
-    }).sort((a, b) => {
+      console.log('🔍 Entidades após filtros locais:', filtered.length);
+    }
+    
+    // DEPOIS aplicar busca (se houver)
+    if (debouncedSearchTerm.trim()) {
+      // Se há resultados de busca global, filtrar por eles
+      if (searchResults.length > 0) {
+        const searchResultIds = new Set(searchResults.map(e => e.id));
+        filtered = filtered.filter(entity => searchResultIds.has(entity.id));
+        console.log('🔍 Aplicando filtros de busca global, entidades restantes:', filtered.length);
+      } else {
+        // Busca local nos dados já filtrados
+        filtered = filtered.filter(entity => {
+          const area = getEntityArea(entity);
+          const searchLower = debouncedSearchTerm.toLowerCase();
+          
+          return (
+            (entity.nome?.toLowerCase().includes(searchLower)) ||
+            (entity.descricao_curta?.toLowerCase().includes(searchLower)) ||
+            (area?.toLowerCase().includes(searchLower))
+          );
+        });
+        console.log('🔍 Aplicando busca local, entidades restantes:', filtered.length);
+      }
+    }
+    
+    // Debug: log dos filtros aplicados
+    console.log('🔍 Filtros aplicados:', {
+      totalEntidades: entidades.length,
+      filtrosSelecionados: selectedFilters,
+      termoBusca: debouncedSearchTerm,
+      resultadosBusca: searchResults.length,
+      entidadesFiltradas: filtered.length,
+      entidadesAntesFiltros: entitiesToFilter.length,
+      filtrosDoServidor: filteredFromServer,
+      resultadosServidor: serverFilterResults.length
+    });
+    
+    // Ordenar
+    return filtered.sort((a, b) => {
       if (sortBy === 'nome') {
         const aName = a.nome?.toLowerCase() || '';
         const bName = b.nome?.toLowerCase() || '';
@@ -132,7 +256,28 @@ const Entidades = () => {
         return sortOrder === 'asc' ? aYear - bYear : bYear - aYear;
       }
     });
-  }, [entidades, searchResults, debouncedSearchTerm, selectedFilters, sortBy, sortOrder]);
+  }, [entidades, searchResults, debouncedSearchTerm, selectedFilters, sortBy, sortOrder, filteredFromServer, serverFilterResults]);
+
+  // Entidades visíveis na tela (com paginação visual)
+  const visibleEntities = useMemo(() => {
+    if (showAll) {
+      return filteredEntities;
+    }
+    return filteredEntities.slice(0, visibleCount);
+  }, [filteredEntities, visibleCount, showAll]);
+
+  // Função para mostrar mais entidades
+  const showMoreEntities = () => {
+    if (showAll) {
+      setShowAll(false);
+      setVisibleCount(12);
+    } else {
+      setVisibleCount(prev => Math.min(prev + 12, filteredEntities.length));
+      if (visibleCount + 12 >= filteredEntities.length) {
+        setShowAll(true);
+      }
+    }
+  };
 
   if (loading) {
     return (
@@ -164,20 +309,61 @@ const Entidades = () => {
   }
 
   const toggleFilter = (filterId: string) => {
+    console.log('🔍 toggleFilter:', filterId, 'Filtros atuais:', selectedFilters);
+    
     if (filterId === 'todas') {
+      console.log('🔍 Limpando todos os filtros');
       setSelectedFilters([]);
+      setFilteredFromServer(false);
+      setServerFilterResults([]);
+      setVisibleCount(12);
+      setShowAll(false);
     } else {
-      setSelectedFilters(prev => 
-        prev.includes(filterId) 
-          ? prev.filter(f => f !== filterId)
-          : [...prev, filterId]
-      );
+      setSelectedFilters(prev => {
+        if (prev.includes(filterId)) {
+          // Remover filtro
+          const newFilters = prev.filter(f => f !== filterId);
+          console.log('🔍 Removendo filtro:', filterId, 'Novos filtros:', newFilters);
+          
+          // Se não há mais filtros, limpar servidor e resetar paginação
+          if (newFilters.length === 0) {
+            setFilteredFromServer(false);
+            setServerFilterResults([]);
+            setVisibleCount(12);
+            setShowAll(false);
+          }
+          
+          return newFilters;
+        } else {
+          // Adicionar filtro
+          const newFilters = [...prev, filterId];
+          console.log('🔍 Adicionando filtro:', filterId, 'Novos filtros:', newFilters);
+          
+          // Resetar filtros do servidor e paginação para forçar nova busca
+          setFilteredFromServer(false);
+          setServerFilterResults([]);
+          setVisibleCount(12);
+          setShowAll(false);
+          
+          return newFilters;
+        }
+      });
     }
   };
 
   const clearAllFilters = () => {
     setSelectedFilters([]);
     setSearchTerm('');
+    setFilteredFromServer(false);
+    setServerFilterResults([]);
+    setVisibleCount(12);
+    setShowAll(false);
+    
+    // Limpar resultados de busca para voltar à lista completa
+    if (searchResults.length > 0) {
+      // Forçar re-render para limpar searchResults
+      setSearchTerm('');
+    }
   };
 
   const handleSort = (field: 'nome' | 'ano_criacao') => {
@@ -213,7 +399,12 @@ const Entidades = () => {
           <div className="text-center mb-12">
             <div className="inline-flex items-center px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-sm font-medium mb-6">
               <Sparkles className="w-4 h-4 mr-2" />
-              44 Organizações Estudantis Disponíveis
+              {entidades.length} Organizações Estudantis Disponíveis
+              {selectedFilters.length > 0 && (
+                <span className="ml-2 text-white/80">
+                  • {filteredEntities.length} filtradas
+                </span>
+              )}
             </div>
             
             <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
@@ -250,15 +441,19 @@ const Entidades = () => {
                   <Button 
                     variant="outline" 
                     size="lg"
-                    className={`bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 ${
-                      selectedFilters.length > 0 ? "ring-2 ring-white/50" : ""
+                    className={`bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 transition-all duration-200 ${
+                      selectedFilters.length > 0 ? "ring-2 ring-white/50 bg-white/20" : ""
                     }`}
+                    disabled={isFilteringFromServer}
                   >
                     <Filter className="mr-2 h-5 w-5" />
                     Filtrar por Área
-                    {selectedFilters.length > 0 && (
-                      <Badge variant="secondary" className="ml-2 px-2 py-0 text-xs bg-white/20 text-white border-white/30">
-                        {selectedFilters.length}
+                    {isFilteringFromServer && (
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent ml-2"></div>
+                    )}
+                    {selectedFilters.length > 0 && !isFilteringFromServer && (
+                      <Badge variant="secondary" className="ml-2 px-2 py-0 text-xs bg-white/20 text-white border-white/30 animate-pulse">
+                        {filteredFromServer ? 'Servidor' : 'Local'}
                       </Badge>
                     )}
                   </Button>
@@ -396,15 +591,16 @@ const Entidades = () => {
             {/* Filtros Ativos */}
             {selectedFilters.length > 0 && (
               <div className="flex flex-wrap gap-2 justify-center mt-6">
+                <span className="text-white/80 text-sm mr-2">Filtros ativos:</span>
                 {selectedFilters.map(filterId => {
                   const filter = filters.find(f => f.id === filterId);
                   return (
-                    <Badge key={filterId} variant="secondary" className="flex items-center gap-1 bg-white/20 text-white border-white/30">
+                    <Badge key={filterId} variant="secondary" className="flex items-center gap-1 bg-white/20 text-white border-white/30 hover:bg-white/30 transition-colors">
                       {filter?.label}
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-auto p-0 ml-1 hover:bg-white/20 text-white"
+                        className="h-auto p-0 ml-1 hover:bg-white/30 text-white rounded-full"
                         onClick={() => toggleFilter(filterId)}
                       >
                         <X className="h-3 w-3" />
@@ -412,6 +608,14 @@ const Entidades = () => {
                     </Badge>
                   );
                 })}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-white/80 hover:text-white hover:bg-white/20 text-sm"
+                  onClick={clearAllFilters}
+                >
+                  Limpar todos
+                </Button>
               </div>
             )}
           </div>
@@ -423,22 +627,55 @@ const Entidades = () => {
         <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Target className="w-5 h-5 text-insper-red" />
-            <p className="text-insper-dark-gray font-medium">
-              {filteredEntities.length} entidade{filteredEntities.length !== 1 ? 's' : ''} encontrada{filteredEntities.length !== 1 ? 's' : ''}
-              {debouncedSearchTerm && (
-                <span className="text-insper-dark-gray/60">
-                  {' '}para "{debouncedSearchTerm}"
-                </span>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+              <p className="text-insper-dark-gray font-medium">
+                {filteredEntities.length} entidade{filteredEntities.length !== 1 ? 's' : ''} encontrada{filteredEntities.length !== 1 ? 's' : ''}
+                {!showAll && visibleCount < filteredEntities.length && (
+                  <span className="text-insper-dark-gray/60">
+                    {' '}(mostrando {visibleCount} de {filteredEntities.length})
+                  </span>
+                )}
+                {debouncedSearchTerm && (
+                  <span className="text-insper-dark-gray/60">
+                    {' '}para "{debouncedSearchTerm}"
+                  </span>
+                )}
+                {selectedFilters.length > 0 && (
+                  <span className="text-insper-dark-gray/60">
+                    {' '}em {selectedFilters.length} área{selectedFilters.length !== 1 ? 's' : ''} selecionada{selectedFilters.length !== 1 ? 's' : ''}
+                    {filteredFromServer && (
+                      <span className="text-insper-blue font-medium"> (busca completa no servidor)</span>
+                    )}
+                  </span>
+                )}
+              </p>
+              {selectedFilters.length > 0 && (
+                <div className="flex items-center gap-1 text-xs text-insper-dark-gray/60">
+                  <Filter className="w-3 h-3" />
+                  <span>Filtros ativos</span>
+                  {filteredFromServer && (
+                    <span className="text-insper-blue font-medium"> • Servidor</span>
+                  )}
+                </div>
               )}
-            </p>
+            </div>
           </div>
+          {selectedFilters.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearAllFilters}
+              className="text-insper-red border-insper-red/30 hover:bg-insper-red/5"
+            >
+              <X className="w-3 h-3 mr-1" />
+              Limpar filtros
+            </Button>
+          )}
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredEntities.map((entity, index) => {
-            const entityArea = Array.isArray(entity.area_atuacao) 
-              ? entity.area_atuacao[0] 
-              : entity.area_atuacao;
+          {visibleEntities.map((entity, index) => {
+            const entityArea = getEntityArea(entity);
             
             return (
               <div key={entity.id} className="group">
@@ -627,28 +864,33 @@ const Entidades = () => {
           })}
         </div>
 
-        {/* Botão carregar mais - apenas quando não há busca ativa */}
-        {hasMore && !debouncedSearchTerm.trim() && (
+        {/* Botão de paginação visual - substitui o "carregar mais" */}
+        {filteredEntities.length > visibleCount && (
           <div className="text-center mt-12">
             <Button 
               variant="outline" 
               size="lg"
-              onClick={loadMore}
-              disabled={isLoadingMore}
+              onClick={showMoreEntities}
               className="border-insper-red/30 text-insper-red hover:bg-insper-red/5 hover:border-insper-red/50 px-8 py-3"
             >
-              {isLoadingMore ? (
+              {showAll ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-insper-red border-t-transparent mr-2"></div>
-                  Carregando...
+                  <ArrowUpDown size={18} className="mr-2" />
+                  Mostrar Menos
                 </>
               ) : (
                 <>
-                  Carregar mais entidades
+                  Mostrar Mais Entidades
                   <ArrowRight size={18} className="ml-2" />
                 </>
               )}
             </Button>
+            
+            {!showAll && (
+              <p className="text-sm text-insper-dark-gray/60 mt-3">
+                Mostrando {visibleCount} de {filteredEntities.length} entidades
+              </p>
+            )}
           </div>
         )}
 
@@ -661,7 +903,14 @@ const Entidades = () => {
               Nenhuma entidade encontrada
             </h3>
             <p className="text-insper-dark-gray text-lg max-w-md mx-auto mb-8">
-              Tente ajustar os filtros ou usar outros termos de busca para encontrar as entidades que você procura
+              {debouncedSearchTerm.trim() 
+                ? `Nenhuma entidade encontrada para "${debouncedSearchTerm}"`
+                : selectedFilters.length > 0
+                ? filteredFromServer
+                  ? `Nenhuma entidade encontrada no servidor para as áreas selecionadas`
+                  : `Nenhuma entidade encontrada localmente para as áreas selecionadas`
+                : 'Nenhuma entidade disponível no momento'
+              }
             </p>
             <div className="flex gap-4 justify-center">
               <Button 
@@ -686,3 +935,4 @@ const Entidades = () => {
 };
 
 export default Entidades;
+

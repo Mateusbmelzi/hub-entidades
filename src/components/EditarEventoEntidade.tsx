@@ -29,11 +29,15 @@ export default function EditarEventoEntidade({ evento, entidadeId, onSuccess }: 
   });
   const [capacidade, setCapacidade] = useState(evento.capacidade?.toString() || '');
   const [link_evento, setLinkevento] = useState(evento.link_evento || '');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const { updateEvento, loading } = useUpdateEventoAsEntity();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Limpar mensagens de erro anteriores
+    setErrorMessage(null);
     
     console.log('🔄 Submetendo formulário de edição de evento...');
     console.log('📝 Dados do formulário:', {
@@ -45,25 +49,53 @@ export default function EditarEventoEntidade({ evento, entidadeId, onSuccess }: 
       dataEvento
     });
 
+    // Validações básicas
+    if (!nome.trim()) {
+      setErrorMessage('Nome é obrigatório');
+      console.error('❌ Nome é obrigatório');
+      return;
+    }
+
+    if (!dataEvento) {
+      setErrorMessage('Data e hora são obrigatórios');
+      console.error('❌ Data e hora são obrigatórios');
+      return;
+    }
+
     // Separar data e horário para compatibilidade com a tabela
     let dataStr: string | undefined;
     let horarioStr: string | undefined;
 
-    if (dataEvento) {
-      const d = new Date(dataEvento);
-      if (!isNaN(d.getTime())) {
+    try {
+      if (dataEvento) {
+        const d = new Date(dataEvento);
+        if (isNaN(d.getTime())) {
+          throw new Error('Data inválida fornecida');
+        }
+        
+        // Verificar se a data não é no passado
+        const agora = new Date();
+        if (d < agora) {
+          console.warn('⚠️ Data do evento está no passado');
+        }
+        
         dataStr = d.toISOString().slice(0, 10);   // YYYY-MM-DD
         horarioStr = d.toISOString().slice(11, 19); // HH:mm:ss
         console.log('📅 Data processada:', { dataStr, horarioStr });
       }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Data inválida';
+      setErrorMessage(`Erro ao processar data: ${errorMsg}`);
+      console.error('❌ Erro ao processar data:', error);
+      return;
     }
 
     const updateData = {
-      nome,
-      descricao,
-      link_evento,
-      local,
-      capacidade: capacidade ? parseInt(capacidade) : undefined,
+      nome: nome.trim(),
+      descricao: descricao.trim() || null,
+      link_evento: link_evento.trim() || null,
+      local: local.trim() || null,
+      capacidade: capacidade ? parseInt(capacidade) : null,
       data: dataStr,
       horario: horarioStr,
     };
@@ -71,15 +103,22 @@ export default function EditarEventoEntidade({ evento, entidadeId, onSuccess }: 
     console.log('📤 Dados para update:', updateData);
     console.log('🆔 IDs:', { eventoId: evento.id, entidadeId });
 
-    const result = await updateEvento(evento.id, entidadeId, updateData);
+    try {
+      const result = await updateEvento(evento.id, entidadeId, updateData);
 
-    console.log('📥 Resultado do update:', result);
+      console.log('📥 Resultado do update:', result);
 
-    if (result.success) {
-      console.log('✅ Update realizado com sucesso, chamando onSuccess');
-      onSuccess();
-    } else {
-      console.error('❌ Falha no update:', result.error);
+      if (result.success) {
+        console.log('✅ Update realizado com sucesso, chamando onSuccess');
+        onSuccess();
+      } else {
+        console.error('❌ Falha no update:', result.error);
+        setErrorMessage(result.error || 'Erro desconhecido ao atualizar evento');
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
+      setErrorMessage(`Erro durante o update: ${errorMsg}`);
+      console.error('❌ Erro durante o update:', error);
     }
   };
 
@@ -171,6 +210,12 @@ export default function EditarEventoEntidade({ evento, entidadeId, onSuccess }: 
             required
           />
         </div>
+
+        {errorMessage && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-600 text-sm font-medium">{errorMessage}</p>
+          </div>
+        )}
 
         <div className="flex gap-3 pt-4">
           <Button type="submit" disabled={loading} className="flex-1">

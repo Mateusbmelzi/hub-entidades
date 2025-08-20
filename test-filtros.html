@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Filtros - Entidades</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ccc; border-radius: 8px; }
+        .entity { margin: 10px 0; padding: 10px; background: #f5f5f5; border-radius: 4px; }
+        .filter { margin: 5px; padding: 5px 10px; background: #e0e0e0; border-radius: 4px; cursor: pointer; }
+        .filter.active { background: #007bff; color: white; }
+        .stats { margin: 10px 0; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Teste de Filtros - Entidades</h1>
+    
+    <div class="test-section">
+        <h2>Dados de Teste</h2>
+        <div id="test-data"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Filtros</h2>
+        <div id="filters"></div>
+        <button onclick="clearFilters()">Limpar Filtros</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>Resultados Filtrados</h2>
+        <div class="stats">Total: <span id="total-count">0</span> | Filtradas: <span id="filtered-count">0</span></div>
+        <div id="filtered-results"></div>
+    </div>
+
+    <script>
+        // Dados de teste simulando entidades
+        const testEntidades = [
+            { id: 1, nome: "Entidade A", area_atuacao: "Tecnologia" },
+            { id: 2, nome: "Entidade B", area_atuacao: "Finanças" },
+            { id: 3, nome: "Entidade C", area_atuacao: "Tecnologia" },
+            { id: 4, nome: "Entidade D", area_atuacao: "Educação" },
+            { id: 5, nome: "Entidade E", area_atuacao: "Finanças" },
+            { id: 6, nome: "Entidade F", area_atuacao: "Cultura" },
+            { id: 7, nome: "Entidade G", area_atuacao: "Tecnologia" },
+            { id: 8, nome: "Entidade H", area_atuacao: "Esportes" }
+        ];
+
+        const AREAS_ATUACAO = [
+            "Consultoria e Negócios",
+            "Tecnologia", 
+            "Finanças",
+            "Direito",
+            "Educação",
+            "Cultura",
+            "Entretenimento",
+            "Humanidades",
+            "Esportes",
+            "Mercado de Luxo",
+            "Representatividade e Integração",
+            "Saúde"
+        ];
+
+        let selectedFilters = [];
+
+        // Função para obter área de atuação (simulando a função real)
+        function getEntityArea(entity) {
+            if (!entity || !entity.area_atuacao) return null;
+            
+            let area = entity.area_atuacao;
+            if (Array.isArray(area)) {
+                area = area.find(a => a && a.trim()) || null;
+            }
+            if (typeof area === 'string') {
+                area = area.trim() || null;
+            }
+            if (area && AREAS_ATUACAO.includes(area)) {
+                return area;
+            }
+            return null;
+        }
+
+        // Aplicar filtros
+        function applyFilters() {
+            let filtered = testEntidades;
+            
+            if (selectedFilters.length > 0) {
+                filtered = testEntidades.filter(entity => {
+                    const area = getEntityArea(entity);
+                    return area && selectedFilters.includes(area);
+                });
+            }
+            
+            document.getElementById('total-count').textContent = testEntidades.length;
+            document.getElementById('filtered-count').textContent = filtered.length;
+            
+            displayResults(filtered);
+        }
+
+        // Exibir resultados
+        function displayResults(entities) {
+            const container = document.getElementById('filtered-results');
+            container.innerHTML = '';
+            
+            entities.forEach(entity => {
+                const div = document.createElement('div');
+                div.className = 'entity';
+                div.innerHTML = `
+                    <strong>${entity.nome}</strong> - Área: ${entity.area_atuacao || 'Não informada'}
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // Toggle filtro
+        function toggleFilter(area) {
+            const index = selectedFilters.indexOf(area);
+            if (index > -1) {
+                selectedFilters.splice(index, 1);
+            } else {
+                selectedFilters.push(area);
+            }
+            
+            updateFilterDisplay();
+            applyFilters();
+        }
+
+        // Atualizar display dos filtros
+        function updateFilterDisplay() {
+            const container = document.getElementById('filters');
+            container.innerHTML = '';
+            
+            AREAS_ATUACAO.forEach(area => {
+                const span = document.createElement('span');
+                span.className = `filter ${selectedFilters.includes(area) ? 'active' : ''}`;
+                span.textContent = area;
+                span.onclick = () => toggleFilter(area);
+                container.appendChild(span);
+            });
+        }
+
+        // Limpar filtros
+        function clearFilters() {
+            selectedFilters = [];
+            updateFilterDisplay();
+            applyFilters();
+        }
+
+        // Inicializar
+        function init() {
+            document.getElementById('test-data').innerHTML = `
+                <p>Total de entidades: ${testEntidades.length}</p>
+                <div>${testEntidades.map(e => `<div class="entity">${e.nome} - ${e.area_atuacao}</div>`).join('')}</div>
+            `;
+            
+            updateFilterDisplay();
+            applyFilters();
+        }
+
+        // Executar teste
+        init();
+    </script>
+</body>
+</html>

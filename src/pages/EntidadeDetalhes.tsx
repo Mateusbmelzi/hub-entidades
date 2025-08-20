@@ -110,6 +110,12 @@ const EntidadeDetalhes = () => {
   const handleEditEvent = (evento: Evento) => {
     console.log('🔄 Abrindo modal de edição para evento:', evento);
     console.log('🆔 IDs:', { eventoId: evento.id, entidadeId: entidade?.id });
+    console.log('🔍 Estado atual:', { 
+      showEditEventDialog, 
+      selectedEvent, 
+      entidadeId: entidade?.id,
+      eventosCount: eventos?.length 
+    });
     setSelectedEvent(evento);
     setShowEditEventDialog(true);
     console.log('✅ Modal de edição aberto');
