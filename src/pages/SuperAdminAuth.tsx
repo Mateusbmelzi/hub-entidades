@@ -192,7 +192,7 @@ const SuperAdminAuth: React.FC = () => {
                   <Input
                     id="password"
                     type="password"
-                    placeholder="Insper@2025"
+                    placeholder="Digite a senha"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="border-gray-200 focus:border-red-500 focus:ring-red-500 pl-10"

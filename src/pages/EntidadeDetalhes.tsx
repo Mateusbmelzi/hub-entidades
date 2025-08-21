@@ -55,7 +55,7 @@ const EntidadeDetalhes = () => {
   const { user, profile } = useAuth();
   const { deleteProjeto, loading: deleteLoading } = useDeleteProjeto();
   const { deleteEvento, loading: deleteEventoLoading } = useDeleteEventoAsEntity();
-  const { hasDemonstratedInterest, loading: interestCheckLoading } = useCheckInterestDemonstration(entidade?.id);
+  const { hasDemonstratedInterest, loading: interestCheckLoading, refresh: refreshInterestCheck } = useCheckInterestDemonstration(entidade?.id);
   const { toast } = useToast();
   
   const isOwner = isAuthenticated && entidadeId === entidade?.id;
@@ -137,7 +137,7 @@ const EntidadeDetalhes = () => {
     }, 1000);
   };
 
-  const handleDemonstrarInteresse = () => {
+  const handleDemonstrarInteresse = async () => {
     if (!user || !profile || !entidade) {
       navigate('/auth');
       return;
@@ -163,25 +163,59 @@ const EntidadeDetalhes = () => {
     }
 
     // Verificar se existe um processo seletivo ativo com link de inscrição
-    // console.log('🔍 Debug - processo_seletivo_ativo:', entidade?.processo_seletivo_ativo);
-    // console.log('🔍 Debug - link_processo_seletivo:', entidade?.link_processo_seletivo);
-    // console.log('🔍 Debug - entidade.id:', entidade?.id);
-    
     if (entidade?.processo_seletivo_ativo && entidade?.link_processo_seletivo) {
-      // console.log('✅ Processo seletivo encontrado, abrindo link:', entidade.link_processo_seletivo);
-      // Abrir o link de inscrição em uma nova aba
-      window.open(entidade.link_processo_seletivo, '_blank');
-      
-      toast({
-        title: "Link de inscrição aberto",
-        description: "O formulário de inscrição foi aberto em uma nova aba.",
-        duration: 3000,
-      });
+      try {
+        // Salvar automaticamente as informações do usuário na tabela demonstracoes_interesse
+        const demonstrationData = {
+          entidade_id: entidade.id,
+          nome_estudante: profile.nome || '',
+          email_estudante: user.email || '',
+          curso_estudante: profile.curso || '',
+          semestre_estudante: profile.semestre || 1,
+          area_interesse: profile.area_interesse || '',
+          status: 'pendente' as const
+        };
+
+        const { error: insertError } = await supabase
+          .from('demonstracoes_interesse')
+          .insert(demonstrationData);
+
+        if (insertError) {
+          console.error('❌ Erro ao salvar demonstração de interesse:', insertError);
+          toast({
+            title: "⚠️ Aviso",
+            description: "Link de inscrição aberto, mas houve um erro ao salvar seu interesse. Entre em contato com o suporte.",
+            variant: "destructive",
+          });
+        } else {
+          console.log('✅ Demonstração de interesse salva automaticamente');
+          toast({
+            title: "✅ Interesse registrado!",
+            description: "Seu interesse foi registrado e o formulário de inscrição foi aberto.",
+            duration: 4000,
+          });
+          
+          // Atualizar o estado de interesse demonstrado
+          refreshInterestCheck();
+        }
+
+        // Abrir o link de inscrição em uma nova aba
+        window.open(entidade.link_processo_seletivo, '_blank');
+        
+      } catch (error) {
+        console.error('❌ Erro ao processar inscrição:', error);
+        toast({
+          title: "⚠️ Aviso",
+          description: "Link de inscrição aberto, mas houve um erro ao salvar seu interesse. Entre em contato com o suporte.",
+          variant: "destructive",
+        });
+        
+        // Mesmo com erro, abrir o link para não bloquear o usuário
+        window.open(entidade.link_processo_seletivo, '_blank');
+      }
       return;
     }
     
-    // console.log('❌ Nenhum processo seletivo encontrado, redirecionando para demonstração de interesse');
-
     // Se não há processo seletivo ativo, redirecionar para a página de demonstração de interesse
     navigate(`/demonstrar-interesse/${entidade.id}`);
   };

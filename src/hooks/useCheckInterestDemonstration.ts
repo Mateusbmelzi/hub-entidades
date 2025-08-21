@@ -54,6 +54,12 @@ export const useCheckInterestDemonstration = (entidadeId: number | undefined) =>
     }
   }, [entidadeId, user?.email, lastChecked, hasDemonstratedInterest]);
 
+  // Função para forçar refresh do estado
+  const refresh = useCallback(() => {
+    setLastChecked(''); // Resetar lastChecked para forçar nova verificação
+    checkInterestDemonstration();
+  }, [checkInterestDemonstration]);
+
   useEffect(() => {
     checkInterestDemonstration();
   }, [checkInterestDemonstration]);
@@ -61,6 +67,7 @@ export const useCheckInterestDemonstration = (entidadeId: number | undefined) =>
   return {
     hasDemonstratedInterest,
     loading,
-    error
+    error,
+    refresh
   };
 }; 

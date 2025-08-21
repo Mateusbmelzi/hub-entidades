@@ -1682,7 +1682,7 @@ const Dashboard = () => {
       const areasContagem = new Map<string, number>();
       cursoData.demonstracoes.forEach(demo => {
         const area = demo.area_atuacao;
-        areasContagem.set(area, (areasContagem.get(area) || 0) + 1);
+        // areasContagem.set(area, (areasContagem.get(area) || 0) + 1);
       });
 
       // Converter para array e calcular percentuais
