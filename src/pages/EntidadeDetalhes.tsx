@@ -32,6 +32,9 @@ import { AreaAtuacaoDisplay } from '@/components/ui/area-atuacao-display';
 import { getFirstAreaColor } from '@/lib/constants';
 import { FotoPerfilEntidade } from '@/components/FotoPerfilEntidade';
 import { UploadFotoPerfil } from '@/components/UploadFotoPerfil';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { combineDataHorario } from '@/lib/date-utils';
 import type { Projeto } from '@/hooks/useProjetos';
 import type { Evento } from '@/hooks/useEventosEntidade';
 
@@ -73,10 +76,10 @@ const EntidadeDetalhes = () => {
   
   const { eventos: allEventos, loading: eventosLoading, refetch: refetchEventos } = useEventosEntidade(entidade?.id, isOwner);
   const eventos = allEventos?.filter(ev => {
-  const hoje = new Date();
-  const dataEvento = new Date(ev.data); // garanta que 'ev.data' seja no formato ISO ou válido
-  return dataEvento >= hoje;
-});
+    const hoje = new Date();
+    const dataEvento = combineDataHorario(ev.data, ev.horario);
+    return dataEvento >= hoje;
+  });
 
   // Sincronizar foto de perfil quando entidade for carregada
   useEffect(() => {
@@ -1007,11 +1010,11 @@ const EntidadeDetalhes = () => {
                               <div className="space-y-1 text-sm text-gray-500">
                                 <div className="flex items-center">
                                   <Calendar className="mr-2 h-4 w-4" />
-                                  {new Date((evento as any).data).toLocaleDateString('pt-BR')}
+                                  {format(combineDataHorario(evento.data, evento.horario), "dd 'de' MMMM, yyyy", { locale: ptBR })}
                                 </div>
                                 <div className="flex items-center">
                                   <Clock className="mr-2 h-4 w-4" />
-                                                          {(evento as any).horario || 'Horário não definido'}
+                                  {evento.horario ? format(combineDataHorario(evento.data, evento.horario), "HH:mm", { locale: ptBR }) : 'Horário não definido'}
                                 </div>
                                 {evento.local && (
                                   <div className="flex items-center">

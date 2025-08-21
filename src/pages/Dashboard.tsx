@@ -18,21 +18,33 @@ import {
   Calendar,
   Target,
   TrendingDown,
-  BarChart
+  BarChart,
+  Clock,
+  CheckCircle,
+  XCircle,
+  AlertCircle
 } from 'lucide-react';
 import { useTopEventos } from '@/hooks/useTopEventos';
 import { useIndicadoresGerais } from '@/hooks/useIndicadoresGerais';
 import { useAfinidadeCursoArea } from '@/hooks/useAfinidadeCursoArea';
 import { useTaxaConversaoEntidades } from '@/hooks/useTaxaConversaoEntidades';
+import { useEventosAprovacaoStats } from '@/hooks/useEventosAprovacaoStats';
 import { useAuthStateContext } from '@/components/AuthStateProvider';
+import { EventosAprovacaoStats } from '@/components/EventosAprovacaoStats';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { logout } = useAuthStateContext();
+  const { logout, type } = useAuthStateContext();
   const { eventos, loading: eventosLoading, error: eventosError, refetch: refetchEventos } = useTopEventos();
   const { indicadores, loading: indicadoresLoading, error: indicadoresError, refetch: refetchIndicadores } = useIndicadoresGerais();
   const { afinidades, loading: afinidadesLoading, error: afinidadesError, refetch: refetchAfinidades } = useAfinidadeCursoArea();
   const { entidades: taxaConversaoEntidades, loading: taxaConversaoLoading, error: taxaConversaoError, refetch: refetchTaxaConversao } = useTaxaConversaoEntidades();
+  const { stats: eventosAprovacaoStats, eventosPendentes, loading: eventosAprovacaoLoading, error: eventosAprovacaoError, refetch: refetchEventosAprovacao } = useEventosAprovacaoStats();
+
+  // Verificar se o usuário é super admin
+  const isSuperAdmin = 
+    type === 'superAdmin' || 
+    localStorage.getItem('superAdmin') === 'true';
 
   const handleLogout = () => {
     logout();
@@ -44,9 +56,12 @@ const Dashboard = () => {
     refetchIndicadores();
     refetchAfinidades();
     refetchTaxaConversao();
+    if (isSuperAdmin) {
+      refetchEventosAprovacao();
+    }
   };
 
-  if (eventosLoading || indicadoresLoading || afinidadesLoading || taxaConversaoLoading) {
+  if (eventosLoading || indicadoresLoading || afinidadesLoading || taxaConversaoLoading || (isSuperAdmin && eventosAprovacaoLoading)) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
@@ -170,6 +185,15 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Seção de Aprovação de Eventos (apenas para super admins) */}
+        {isSuperAdmin && (
+          <EventosAprovacaoStats
+            stats={eventosAprovacaoStats}
+            eventosPendentes={eventosPendentes}
+            loading={eventosAprovacaoLoading}
+          />
+        )}
 
         {/* Seção de Análises */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">

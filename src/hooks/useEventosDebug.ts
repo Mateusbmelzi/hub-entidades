@@ -1,85 +1,83 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export const useEventosDebug = () => {
   const [eventos, setEventos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<any>({});
 
-  const fetchEventos = useCallback(async () => {
+  const fetchEventos = async () => {
     try {
+      console.log('🔍 DEBUG: Iniciando busca de eventos...');
       setLoading(true);
       setError(null);
-      
-      console.log('🔍 Iniciando busca de eventos...');
-      
-      // Teste 1: Buscar todos os eventos
-      console.log('📋 Teste 1: Buscando todos os eventos');
-      const { data: todosEventos, error: error1 } = await supabase
+
+      // Teste 1: Verificar se o cliente Supabase está funcionando
+      console.log('🔍 DEBUG: Cliente Supabase:', supabase);
+      console.log('🔍 DEBUG: URL:', import.meta.env.VITE_SUPABASE_URL);
+      console.log('🔍 DEBUG: Anon Key:', import.meta.env.VITE_SUPABASE_ANON_KEY ? 'Configurada' : 'NÃO CONFIGURADA');
+
+      // Teste 2: Tentar buscar eventos simples
+      console.log('🔍 DEBUG: Tentando buscar eventos...');
+      const { data, error: eventosError, count } = await supabase
         .from('eventos')
-        .select('*')
-        .limit(5);
-      
-      if (error1) {
-        console.error('❌ Erro ao buscar todos os eventos:', error1);
-        throw new Error(`Erro ao buscar todos os eventos: ${error1.message}`);
+        .select('*', { count: 'exact' });
+
+      console.log('🔍 DEBUG: Resultado da busca:', { data, error: eventosError, count });
+
+      if (eventosError) {
+        console.error('❌ DEBUG: Erro ao buscar eventos:', eventosError);
+        throw eventosError;
       }
-      
-      console.log('✅ Todos os eventos encontrados:', todosEventos);
-      
-      // Teste 2: Buscar eventos aprovados
-      console.log('📋 Teste 2: Buscando eventos aprovados');
-      const { data: eventosAprovados, error: error2 } = await supabase
-        .from('eventos')
-        .select('*')
-        .eq('status_aprovacao', 'aprovado')
-        .limit(5);
-      
-      if (error2) {
-        console.error('❌ Erro ao buscar eventos aprovados:', error2);
-        throw new Error(`Erro ao buscar eventos aprovados: ${error2.message}`);
+
+      console.log('✅ DEBUG: Eventos carregados com sucesso:', data?.length || 0);
+      setEventos(data || []);
+
+      // Teste 3: Verificar estrutura dos dados
+      if (data && data.length > 0) {
+        const primeiroEvento = data[0];
+        console.log('🔍 DEBUG: Estrutura do primeiro evento:', primeiroEvento);
+        console.log('🔍 DEBUG: Chaves disponíveis:', Object.keys(primeiroEvento));
+        
+        setDebugInfo({
+          totalEventos: data.length,
+          estrutura: Object.keys(primeiroEvento),
+          primeiroEvento,
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        console.log('⚠️ DEBUG: Nenhum evento encontrado na tabela');
+        setDebugInfo({
+          totalEventos: 0,
+          mensagem: 'Tabela vazia ou sem dados'
+        });
       }
-      
-      console.log('✅ Eventos aprovados encontrados:', eventosAprovados);
-      
-      // Teste 3: Buscar eventos com JOIN
-      console.log('📋 Teste 3: Buscando eventos com JOIN');
-      const { data: eventosComEntidades, error: error3 } = await supabase
-        .from('eventos')
-        .select(`
-          *,
-          entidades(id, nome)
-        `)
-        .eq('status_aprovacao', 'aprovado')
-        .order('data_evento', { ascending: true })
-        .limit(8);
-      
-      if (error3) {
-        console.error('❌ Erro ao buscar eventos com JOIN:', error3);
-        throw new Error(`Erro ao buscar eventos com JOIN: ${error3.message}`);
-      }
-      
-      console.log('✅ Eventos com entidades encontrados:', eventosComEntidades);
-      
-      // Usar os dados do teste 3
-      setEventos(eventosComEntidades || []);
-      
-    } catch (err) {
-      console.error('❌ Erro geral:', err);
-      setError(err instanceof Error ? err.message : 'Erro desconhecido');
+
+    } catch (err: any) {
+      console.error('❌ DEBUG: Erro geral:', err);
+      setError(err.message || 'Erro desconhecido');
+      setDebugInfo({
+        erro: err.message,
+        tipo: err.constructor.name,
+        timestamp: new Date().toISOString()
+      });
     } finally {
       setLoading(false);
+      console.log('🏁 DEBUG: Busca finalizada');
     }
-  }, []);
+  };
 
   useEffect(() => {
+    console.log('🚀 DEBUG: Hook useEventosDebug inicializado');
     fetchEventos();
-  }, [fetchEventos]);
+  }, []);
 
-  return { 
-    eventos, 
-    loading, 
+  return {
+    eventos,
+    loading,
     error,
+    debugInfo,
     refetch: fetchEventos
   };
 }; 

@@ -89,13 +89,17 @@ export const formatDateForDisplay = (date: string | Date): string => {
  * Combina data e horário em um timestamp
  */
 export function combineDataHorario(data: string, horario?: string | null): Date {
+  // Para evitar problemas de timezone, vamos criar a data usando componentes locais
+  const [year, month, day] = data.split('-').map(Number);
+  
   if (!horario) {
-    return new Date(data);
+    // Se não há horário, criar data com horário 00:00
+    return new Date(year, month - 1, day, 0, 0);
   }
   
-  // Combinar data e horário
-  const dataHorarioString = `${data}T${horario}`;
-  return new Date(dataHorarioString);
+  // Se há horário, criar data com o horário especificado
+  const [hour, minute] = horario.split(':').map(Number);
+  return new Date(year, month - 1, day, hour, minute);
 }
 
 /**
@@ -116,7 +120,10 @@ export function formatDataHorario(data: string, horario?: string | null): string
  * Formata apenas a data para exibição
  */
 export function formatData(data: string): string {
-  return new Date(data).toLocaleDateString('pt-BR');
+  // Para evitar problemas de timezone, vamos criar a data usando componentes locais
+  const [year, month, day] = data.split('-').map(Number);
+  const localDate = new Date(year, month - 1, day);
+  return localDate.toLocaleDateString('pt-BR');
 }
 
 /**
