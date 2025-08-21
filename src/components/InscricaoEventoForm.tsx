@@ -33,16 +33,25 @@ export default function InscricaoEventoForm({ eventoId, eventoNome, link_evento,
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const result = await inscreverEvento(eventoId, {
-      nome_participante: nome,
-      email: email || undefined,
-      telefone: telefone || undefined
-    });
-    
-    window.open(link_evento, '_blank');
-
-    if (result.success) {
-      onSuccess();
+    try {
+      // Primeiro, salvar na tabela participantes_evento
+      const result = await inscreverEvento(eventoId, {
+        nome_participante: nome,
+        email: email || undefined,
+        telefone: telefone || undefined
+      });
+      
+      if (result.success) {
+        // Após salvar com sucesso, abrir o link externo em uma nova aba
+        window.open(link_evento, '_blank');
+        
+        // Chamar onSuccess para fechar o modal e atualizar a interface
+        onSuccess();
+      }
+    } catch (error) {
+      console.error('❌ Erro ao processar inscrição:', error);
+      // Mesmo com erro, tentar abrir o link para não bloquear o usuário
+      window.open(link_evento, '_blank');
     }
   };
 

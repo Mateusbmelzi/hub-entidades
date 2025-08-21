@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,22 +20,8 @@ const SuperAdminAuth: React.FC = () => {
   const { type, loginAsSuperAdmin } = useAuthStateContext();
   const { destination, clearDestination } = useRedirectDestination();
 
-  // Verificar se já está autenticado como super admin
-  useEffect(() => {
-    if (type === 'superAdmin') {
-      console.log('🔄 Super admin já autenticado, redirecionando...');
-      
-      // Se há um destino salvo, redirecionar para ele
-      if (destination) {
-        const targetRoute = destination;
-        clearDestination();
-        navigate(targetRoute);
-      } else {
-        // Se não há destino, redirecionar para dashboard
-        navigate('/dashboard');
-      }
-    }
-  }, [type, navigate, destination, clearDestination]);
+  // Removido o useEffect que redirecionava automaticamente para o dashboard
+  // Agora a rota /super-admin-auth sempre mostra a tela de login
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

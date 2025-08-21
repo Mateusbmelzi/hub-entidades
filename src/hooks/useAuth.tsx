@@ -119,6 +119,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, fetchUserProfile]);
 
   useEffect(() => {
+    // Verificar se já está autenticado como super admin
+    const isSuperAdmin = localStorage.getItem('superAdminAuthenticated') === 'true';
+    
+    // Se já é super admin, não verificar sessão do Supabase
+    if (isSuperAdmin) {
+      console.log('🔍 Usuário já autenticado como super admin, pulando verificação do Supabase');
+      setLoading(false);
+      return;
+    }
+
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -160,6 +170,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      // Verificar novamente se já está autenticado como super admin
+      const isSuperAdmin = localStorage.getItem('superAdminAuthenticated') === 'true';
+      
+      // Se já é super admin, não verificar sessão do Supabase
+      if (isSuperAdmin) {
+        console.log('🔍 Usuário já autenticado como super admin, pulando verificação de sessão existente');
+        setLoading(false);
+        return;
+      }
+
       console.log('🔍 Verificando sessão existente:', session?.user?.email);
       console.log('🔍 Sessão completa:', session);
       

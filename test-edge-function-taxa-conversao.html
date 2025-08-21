@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste - Edge Function Taxa Conversão</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success { border-color: #4caf50; background-color: #f1f8e9; }
+        .error { border-color: #f44336; background-color: #ffebee; }
+        .info { border-color: #2196f3; background-color: #e3f2fd; }
+        .warning { border-color: #ff9800; background-color: #fff3e0; }
+        
+        button {
+            background-color: #2196f3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #1976d2; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .loading { color: #2196f3; }
+        .success-text { color: #4caf50; }
+        .error-text { color: #f44336; }
+        
+        .config-section {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Teste da Edge Function: Taxa Conversão Entidades</h1>
+        
+        <div class="config-section">
+            <h3>⚙️ Configuração</h3>
+            <label for="supabaseUrl">URL do Supabase:</label>
+            <input type="text" id="supabaseUrl" placeholder="https://seu-projeto.supabase.co" value="">
+            
+            <label for="anonKey">Chave Anônima:</label>
+            <input type="text" id="anonKey" placeholder="sua-anon-key" value="">
+            
+            <button onclick="loadConfig()">Carregar Configuração</button>
+            <button onclick="saveConfig()">Salvar Configuração</button>
+        </div>
+
+        <div class="test-section info">
+            <h3>📋 Informações</h3>
+            <p>Esta página testa a edge function <code>update-taxa-conversao-entidades</code> que atualiza a tabela de taxas de conversão das entidades.</p>
+            <p><strong>Status:</strong> <span id="status">Não configurado</span></p>
+        </div>
+
+        <div class="test-section">
+            <h3>🚀 Teste da Edge Function</h3>
+            <button onclick="testEdgeFunction()" id="testBtn">Testar Edge Function</button>
+            <button onclick="checkTableData()" id="checkBtn">Verificar Dados da Tabela</button>
+            <button onclick="clearResults()">Limpar Resultados</button>
+            
+            <div id="testResult" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 Dados da Tabela</h3>
+            <div id="tableData" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔍 Logs e Debug</h3>
+            <div id="debugLogs" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        let supabase;
+        let config = {};
+
+        // Carregar configuração salva
+        function loadConfig() {
+            const savedConfig = localStorage.getItem('supabaseConfig');
+            if (savedConfig) {
+                config = JSON.parse(savedConfig);
+                document.getElementById('supabaseUrl').value = config.url || '';
+                document.getElementById('anonKey').value = config.anonKey || '';
+                initializeSupabase();
+            }
+        }
+
+        // Salvar configuração
+        function saveConfig() {
+            config.url = document.getElementById('supabaseUrl').value.trim();
+            config.anonKey = document.getElementById('anonKey').value.trim();
+            
+            if (!config.url || !config.anonKey) {
+                alert('Por favor, preencha URL e Chave Anônima');
+                return;
+            }
+
+            localStorage.setItem('supabaseConfig', JSON.stringify(config));
+            initializeSupabase();
+        }
+
+        // Inicializar cliente Supabase
+        function initializeSupabase() {
+            try {
+                supabase = createClient(config.url, config.anonKey);
+                document.getElementById('status').textContent = 'Configurado';
+                document.getElementById('status').className = 'success-text';
+                log('✅ Cliente Supabase inicializado com sucesso');
+            } catch (error) {
+                document.getElementById('status').textContent = 'Erro na configuração';
+                document.getElementById('status').className = 'error-text';
+                log('❌ Erro ao inicializar Supabase: ' + error.message);
+            }
+        }
+
+        // Testar edge function
+        async function testEdgeFunction() {
+            if (!supabase) {
+                alert('Configure o Supabase primeiro');
+                return;
+            }
+
+            const testBtn = document.getElementById('testBtn');
+            const resultDiv = document.getElementById('testResult');
+            
+            testBtn.disabled = true;
+            resultDiv.innerHTML = '<div class="loading">🔄 Executando edge function...</div>';
+            
+            try {
+                log('🚀 Iniciando teste da edge function...');
+                
+                const { data, error } = await supabase.functions.invoke('update-taxa-conversao-entidades');
+                
+                if (error) {
+                    throw error;
+                }
+
+                resultDiv.innerHTML = `<div class="success-text">✅ Sucesso!</div><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                log('✅ Edge function executada com sucesso');
+                log('📊 Dados retornados: ' + JSON.stringify(data, null, 2));
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error-text">❌ Erro!</div><pre>${error.message}</pre>`;
+                log('❌ Erro na edge function: ' + error.message);
+                
+                if (error.details) {
+                    log('🔍 Detalhes do erro: ' + JSON.stringify(error.details, null, 2));
+                }
+            } finally {
+                testBtn.disabled = false;
+            }
+        }
+
+        // Verificar dados da tabela
+        async function checkTableData() {
+            if (!supabase) {
+                alert('Configure o Supabase primeiro');
+                return;
+            }
+
+            const checkBtn = document.getElementById('checkBtn');
+            const tableDiv = document.getElementById('tableData');
+            
+            checkBtn.disabled = true;
+            tableDiv.innerHTML = '<div class="loading">🔄 Buscando dados da tabela...</div>';
+            
+            try {
+                log('🔍 Verificando dados da tabela taxa_conversao_entidades...');
+                
+                const { data, error } = await supabase
+                    .from('taxa_conversao_entidades')
+                    .select('*')
+                    .order('taxa_conversao', { ascending: false });
+                
+                if (error) {
+                    throw error;
+                }
+
+                if (data && data.length > 0) {
+                    const formattedData = data.map(item => ({
+                        ...item,
+                        taxa_percentual: (item.taxa_conversao * 100).toFixed(2) + '%'
+                    }));
+                    
+                    tableDiv.innerHTML = `
+                        <div class="success-text">✅ Tabela encontrada com ${data.length} registros</div>
+                        <pre>${JSON.stringify(formattedData, null, 2)}</pre>
+                    `;
+                    
+                    log(`✅ Tabela encontrada com ${data.length} registros`);
+                } else {
+                    tableDiv.innerHTML = '<div class="warning">⚠️ Tabela vazia ou não encontrada</div>';
+                    log('⚠️ Tabela vazia ou não encontrada');
+                }
+                
+            } catch (error) {
+                tableDiv.innerHTML = `<div class="error-text">❌ Erro ao buscar dados!</div><pre>${error.message}</pre>`;
+                log('❌ Erro ao buscar dados da tabela: ' + error.message);
+            } finally {
+                checkBtn.disabled = false;
+            }
+        }
+
+        // Limpar resultados
+        function clearResults() {
+            document.getElementById('testResult').innerHTML = '';
+            document.getElementById('tableData').innerHTML = '';
+            document.getElementById('debugLogs').innerHTML = '';
+        }
+
+        // Função de log
+        function log(message) {
+            const logsDiv = document.getElementById('debugLogs');
+            const timestamp = new Date().toLocaleTimeString();
+            logsDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+
+        // Carregar configuração ao iniciar
+        window.onload = function() {
+            loadConfig();
+            log('🚀 Página de teste carregada');
+            log('📝 Configure o Supabase e teste a edge function');
+        };
+    </script>
+</body>
+</html>
