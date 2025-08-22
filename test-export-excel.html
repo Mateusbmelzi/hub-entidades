@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Exportação Excel - Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2563eb;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background-color: #f9fafb;
+        }
+        .test-section h2 {
+            color: #374151;
+            margin-bottom: 15px;
+        }
+        .data-preview {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #d1d5db;
+            font-family: monospace;
+            font-size: 12px;
+            overflow-x: auto;
+        }
+        .export-button {
+            background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            display: block;
+            margin: 20px auto;
+            transition: all 0.3s ease;
+        }
+        .export-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .export-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .status {
+            text-align: center;
+            margin: 20px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .status.success {
+            background-color: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        .status.error {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+        .status.info {
+            background-color: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #bfdbfe;
+        }
+        .excel-features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .feature-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            text-align: center;
+        }
+        .feature-icon {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Teste de Exportação Excel - Dashboard</h1>
+        
+        <div class="test-section">
+            <h2>📊 Dados de Exemplo para Exportação</h2>
+            <p>Este arquivo testa a funcionalidade de exportação Excel com dados simulados do Dashboard.</p>
+            
+            <div class="data-preview">
+// Dados simulados do Dashboard
+const dashboardData = {
+  totalAlunos: 422,
+  totalEntidades: 42,
+  totalDemonstracoes: 156,
+  totalEventos: 19,
+  taxaConversaoEntidades: [
+    {
+      nome: "Liga de Empreendedores Insper",
+      total_demonstracoes: 2,
+      total_participantes_eventos: 8,
+      taxa_conversao: 4.0
+    },
+    {
+      nome: "InsperLaw",
+      total_demonstracoes: 2,
+      total_participantes_eventos: 2,
+      taxa_conversao: 1.0
+    }
+  ],
+  topEventos: [
+    {
+      nome_evento: "Startup Week",
+      total_inscricoes: 15
+    },
+    {
+      nome_evento: "Feira de Entidades",
+      total_inscricoes: 12
+    }
+  ],
+  topEntidadesInteresse: [
+    {
+      nome: "Liga de Empreendedores",
+      total_interesses: 25
+    },
+    {
+      nome: "InsperLaw",
+      total_interesses: 18
+    }
+  ],
+  afinidadesCursoArea: [
+    {
+      curso_estudante: "Administração",
+      area_atuacao: "Empreendedorismo",
+      total_interesses: 45
+    },
+    {
+      curso_estudante: "Direito",
+      area_atuacao: "Consultoria",
+      total_interesses: 32
+    }
+  ],
+  eventosAprovacao: {
+    total: 19,
+    pendentes: 0,
+    aprovados: 18,
+    rejeitados: 1,
+    taxaAprovacao: "94.7%"
+  }
+};
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>📋 Funcionalidades do Excel</h2>
+            <div class="excel-features">
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>Múltiplas Abas</h3>
+                    <p>6 abas organizadas por categoria</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📏</div>
+                    <h3>Colunas Ajustadas</h3>
+                    <p>Largura automática das colunas</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎨</div>
+                    <h3>Formatação</h3>
+                    <p>Cabeçalhos destacados</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📅</div>
+                    <h3>Data e Hora</h3>
+                    <p>Timestamp de geração</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📈</div>
+                    <h3>Dados Estruturados</h3>
+                    <p>Fácil análise e filtros</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💾</div>
+                    <h3>Compatibilidade</h3>
+                    <p>Excel, Google Sheets, etc.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>🚀 Como Testar</h2>
+            <ol>
+                <li>Clique no botão "Exportar Relatório Excel" abaixo</li>
+                <li>O arquivo Excel será gerado e baixado automaticamente</li>
+                <li>Abra o arquivo no Excel ou Google Sheets</li>
+                <li>Verifique se todas as 6 abas estão presentes</li>
+                <li>Confirme se os dados estão organizados corretamente</li>
+            </ol>
+        </div>
+
+        <button id="exportBtn" class="export-button">
+            📊 Exportar Relatório Excel
+        </button>
+
+        <div id="status" class="status info">
+            Clique no botão acima para testar a exportação
+        </div>
+    </div>
+
+    <!-- Scripts necessários -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <script>
+        // Dados simulados do Dashboard
+        const dashboardData = {
+            totalAlunos: 422,
+            totalEntidades: 42,
+            totalDemonstracoes: 156,
+            totalEventos: 19,
+            taxaConversaoEntidades: [
+                {
+                    nome: "Liga de Empreendedores Insper",
+                    total_demonstracoes: 2,
+                    total_participantes_eventos: 8,
+                    taxa_conversao: 4.0
+                },
+                {
+                    nome: "InsperLaw",
+                    total_demonstracoes: 2,
+                    total_participantes_eventos: 2,
+                    taxa_conversao: 1.0
+                }
+            ],
+            topEventos: [
+                {
+                    nome_evento: "Startup Week",
+                    total_inscricoes: 15
+                },
+                {
+                    nome_evento: "Feira de Entidades",
+                    total_inscricoes: 12
+                }
+            ],
+            topEntidadesInteresse: [
+                {
+                    nome: "Liga de Empreendedores",
+                    total_interesses: 25
+                },
+                {
+                    nome: "InsperLaw",
+                    total_interesses: 18
+                }
+            ],
+            afinidadesCursoArea: [
+                {
+                    curso_estudante: "Administração",
+                    area_atuacao: "Empreendedorismo",
+                    total_interesses: 45
+                },
+                {
+                    curso_estudante: "Direito",
+                    area_atuacao: "Consultoria",
+                    total_interesses: 32
+                }
+            ],
+            eventosAprovacao: {
+                total: 19,
+                pendentes: 0,
+                aprovados: 18,
+                rejeitados: 1,
+                taxaAprovacao: "94.7%"
+            }
+        };
+
+        // Função de exportação Excel (versão simplificada para teste)
+        function exportDashboardToExcel(data) {
+            try {
+                // Criar um novo workbook
+                const workbook = XLSX.utils.book_new();
+                
+                // Data de geração
+                const dataAtual = new Date().toLocaleDateString('pt-BR');
+                
+                // 1. Aba: Indicadores Principais
+                const indicadoresData = [
+                    ['📊 INDICADORES PRINCIPAIS - Hub de Entidades'],
+                    [`Gerado em: ${dataAtual}`],
+                    [''],
+                    ['Indicador', 'Valor'],
+                    ['Total de Alunos', data.totalAlunos?.toLocaleString('pt-BR') || '0'],
+                    ['Organizações', data.totalEntidades?.toLocaleString('pt-BR') || '0'],
+                    ['Demonstrações de Interesse', data.totalDemonstracoes?.toLocaleString('pt-BR') || '0'],
+                    ['Total de Eventos', data.totalEventos?.toLocaleString('pt-BR') || '0']
+                ];
+                
+                const indicadoresSheet = XLSX.utils.aoa_to_sheet(indicadoresData);
+                indicadoresSheet['!cols'] = [
+                    { width: 25 },
+                    { width: 15 }
+                ];
+                
+                XLSX.utils.book_append_sheet(workbook, indicadoresSheet, 'Indicadores Principais');
+                
+                // 2. Aba: Estatísticas de Aprovação de Eventos
+                if (data.eventosAprovacao) {
+                    const aprovacaoData = [
+                        ['✅ ESTATÍSTICAS DE APROVAÇÃO DE EVENTOS'],
+                        [`Gerado em: ${dataAtual}`],
+                        [''],
+                        ['Métrica', 'Valor'],
+                        ['Total de Eventos', data.eventosAprovacao.total],
+                        ['Eventos Pendentes', data.eventosAprovacao.pendentes],
+                        ['Eventos Aprovados', data.eventosAprovacao.aprovados],
+                        ['Eventos Rejeitados', data.eventosAprovacao.rejeitados],
+                        ['Taxa de Aprovação', data.eventosAprovacao.taxaAprovacao]
+                    ];
+                    
+                    const aprovacaoSheet = XLSX.utils.aoa_to_sheet(aprovacaoData);
+                    aprovacaoSheet['!cols'] = [
+                        { width: 25 },
+                        { width: 15 }
+                    ];
+                    
+                    XLSX.utils.book_append_sheet(workbook, aprovacaoSheet, 'Aprovação Eventos');
+                }
+                
+                // Salvar o arquivo Excel
+                const fileName = `teste-relatorio-dashboard-${new Date().toISOString().split('T')[0]}.xlsx`;
+                XLSX.writeFile(workbook, fileName);
+                
+                return fileName;
+                
+            } catch (error) {
+                console.error('Erro ao gerar Excel:', error);
+                throw error;
+            }
+        }
+
+        // Event listener para o botão
+        document.getElementById('exportBtn').addEventListener('click', async function() {
+            const btn = this;
+            const status = document.getElementById('status');
+            
+            try {
+                // Desabilitar botão e mostrar loading
+                btn.disabled = true;
+                btn.textContent = '⏳ Gerando Excel...';
+                status.className = 'status info';
+                status.textContent = 'Gerando relatório em Excel...';
+                
+                // Pequeno delay para mostrar o estado
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Exportar Excel
+                const fileName = exportDashboardToExcel(dashboardData);
+                
+                // Sucesso
+                status.className = 'status success';
+                status.textContent = `✅ Relatório exportado com sucesso! Arquivo: ${fileName}`;
+                
+            } catch (error) {
+                console.error('Erro na exportação:', error);
+                status.className = 'status error';
+                status.textContent = '❌ Erro ao gerar o relatório: ' + error.message;
+            } finally {
+                // Reabilitar botão
+                btn.disabled = false;
+                btn.textContent = '📊 Exportar Relatório Excel';
+            }
+        });
+    </script>
+</body>
+</html>

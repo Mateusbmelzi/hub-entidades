@@ -108,7 +108,7 @@ serve(async (req) => {
           nome: entidade.nome,
           total_demonstracoes: totalDemonstracoes || 0,
           total_participantes_eventos: totalParticipantes || 0,
-          taxa_conversao: Math.round(taxaConversao * 100) / 100 // Round to 2 decimal places, percentage format
+          taxa_conversao: Math.round(taxaConversao * 10) / 10 // Round to 1 decimal place, percentage format
         })
 
         console.log(`✅ ${entidade.nome}: ${totalDemonstracoes} demonstrações, ${totalParticipantes} participantes, taxa: ${taxaConversao.toFixed(2)}%`)

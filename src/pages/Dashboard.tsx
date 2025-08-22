@@ -33,6 +33,7 @@ import { useTopEntidadesInteresse } from '@/hooks/useTopEntidadesInteresse';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useAuthStateContext } from '@/components/AuthStateProvider';
 import { EventosAprovacaoStats } from '@/components/EventosAprovacaoStats';
+import { ExportDashboardButton } from '@/components/ExportDashboardButton';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -116,6 +117,36 @@ const Dashboard = () => {
             </div>
             
             <div className="flex items-center space-x-3">
+              <ExportDashboardButton
+                data={{
+                  totalAlunos: totalAlunos || 0,
+                  totalEntidades: totalEntidades || 0,
+                  totalDemonstracoes: totalDemonstracoes || 0,
+                  totalEventos: totalEventos || 0,
+                  taxaConversaoEntidades: taxaConversaoEntidades || [],
+                  topEventos: eventos || [],
+                  topEntidadesInteresse: topEntidadesInteresse.map(e => ({
+                    nome: e.nome_entidade,
+                    total_interesses: e.total_demonstracoes
+                  })) || [],
+                  afinidadesCursoArea: afinidades || [],
+                  eventosAprovacao: eventosAprovacaoStats ? {
+                    total: eventosAprovacaoStats.total,
+                    pendentes: eventosAprovacaoStats.pendentes,
+                    aprovados: eventosAprovacaoStats.aprovados,
+                    rejeitados: eventosAprovacaoStats.rejeitados,
+                    taxaAprovacao: `${(eventosAprovacaoStats.taxaAprovacao * 100).toFixed(1)}%`
+                  } : {
+                    total: 0,
+                    pendentes: 0,
+                    aprovados: 0,
+                    rejeitados: 0,
+                    taxaAprovacao: '0%'
+                  }
+                }}
+                disabled={eventosLoading || statsLoading || afinidadesLoading || taxaConversaoLoading || topEntidadesInteresseLoading || dashboardStatsLoading || (isSuperAdmin && eventosAprovacaoLoading)}
+              />
+              
               <Button 
                 onClick={handleRefreshAll}
                 variant="outline"
