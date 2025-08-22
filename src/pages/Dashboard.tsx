@@ -29,6 +29,7 @@ import { useIndicadoresGerais } from '@/hooks/useIndicadoresGerais';
 import { useAfinidadeCursoArea } from '@/hooks/useAfinidadeCursoArea';
 import { useTaxaConversaoEntidades } from '@/hooks/useTaxaConversaoEntidades';
 import { useEventosAprovacaoStats } from '@/hooks/useEventosAprovacaoStats';
+import { useTopEntidadesInteresse } from '@/hooks/useTopEntidadesInteresse';
 import { useAuthStateContext } from '@/components/AuthStateProvider';
 import { EventosAprovacaoStats } from '@/components/EventosAprovacaoStats';
 
@@ -39,6 +40,7 @@ const Dashboard = () => {
   const { indicadores, loading: indicadoresLoading, error: indicadoresError, refetch: refetchIndicadores } = useIndicadoresGerais();
   const { afinidades, loading: afinidadesLoading, error: afinidadesError, refetch: refetchAfinidades } = useAfinidadeCursoArea();
   const { entidades: taxaConversaoEntidades, loading: taxaConversaoLoading, error: taxaConversaoError, refetch: refetchTaxaConversao } = useTaxaConversaoEntidades();
+  const { entidades: topEntidadesInteresse, loading: topEntidadesInteresseLoading, error: topEntidadesInteresseError, refetch: refetchTopEntidadesInteresse } = useTopEntidadesInteresse();
   const { stats: eventosAprovacaoStats, eventosPendentes, loading: eventosAprovacaoLoading, error: eventosAprovacaoError, refetch: refetchEventosAprovacao } = useEventosAprovacaoStats();
 
   // Verificar se o usuário é super admin
@@ -56,12 +58,13 @@ const Dashboard = () => {
     refetchIndicadores();
     refetchAfinidades();
     refetchTaxaConversao();
+    refetchTopEntidadesInteresse();
     if (isSuperAdmin) {
       refetchEventosAprovacao();
     }
   };
 
-  if (eventosLoading || indicadoresLoading || afinidadesLoading || taxaConversaoLoading || (isSuperAdmin && eventosAprovacaoLoading)) {
+  if (eventosLoading || indicadoresLoading || afinidadesLoading || taxaConversaoLoading || topEntidadesInteresseLoading || (isSuperAdmin && eventosAprovacaoLoading)) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
@@ -326,6 +329,71 @@ const Dashboard = () => {
           </Card>
         </div>
 
+        {/* Top Organizações com Mais Demonstrações de Interesse */}
+        <div className="mb-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-purple-500" />
+                Top Organizações com Mais Demonstrações de Interesse
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Ranking das organizações que mais despertam interesse dos estudantes
+              </p>
+            </CardHeader>
+            <CardContent>
+              {topEntidadesInteresseError ? (
+                <div className="text-center py-8 text-red-600">
+                  <div className="mb-4">
+                    <TrendingDown className="h-8 w-8 mx-auto text-red-400 mb-2" />
+                  </div>
+                  <div className="text-sm font-medium mb-2">Erro ao carregar dados</div>
+                  <div className="text-xs mb-3">{topEntidadesInteresseError}</div>
+                  <Button onClick={refetchTopEntidadesInteresse} variant="outline" size="sm">
+                    Tentar novamente
+                  </Button>
+                </div>
+              ) : topEntidadesInteresse.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <div className="mb-4">
+                    <Users className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+                  </div>
+                  <div className="text-sm font-medium mb-2">Nenhum dado encontrado</div>
+                  <div className="text-xs">
+                    A tabela top_entidades_interesse ainda não possui dados.
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {topEntidadesInteresse.slice(0, 10).map((entidade, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex-1">
+                        <div className="font-medium text-sm text-gray-900">
+                          {entidade.nome_entidade}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="text-xs">
+                          {entidade.total_demonstracoes.toLocaleString('pt-BR')} demonstrações
+                        </Badge>
+                        {index < 3 && (
+                          <Badge className={`text-xs ${
+                            index === 0 ? 'bg-purple-500 hover:bg-purple-600' :
+                            index === 1 ? 'bg-blue-500 hover:bg-blue-600' :
+                            'bg-indigo-500 hover:bg-indigo-600'
+                          } text-white`}>
+                            {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Taxa de Conversão das Entidades */}
         <div className="mb-6">
           <Card>
@@ -405,6 +473,7 @@ const Dashboard = () => {
                   <div>• <strong>Indicadores Gerais:</strong> Dados extraídos da tabela <code className="bg-blue-100 px-1 rounded">indicadores_gerais</code></div>
                   <div>• <strong>Afinidade Curso-Área:</strong> Dados extraídos da tabela <code className="bg-blue-100 px-1 rounded">afinidade_curso_area</code></div>
                   <div>• <strong>Top Eventos:</strong> Dados extraídos da tabela <code className="bg-blue-100 px-1 rounded">top_eventos</code></div>
+                  <div>• <strong>Top Organizações:</strong> Dados extraídos da tabela <code className="bg-blue-100 px-1 rounded">top_entidades_interesse</code></div>
                   <div>• <strong>Taxa de Conversão:</strong> Dados extraídos da tabela <code className="bg-blue-100 px-1 rounded">taxa_conversao_entidades</code></div>
                   <div>• <strong>Atualização automática:</strong> Dados atualizados a cada 15 minutos via cron jobs</div>
                   <div>• <strong>Dados em tempo real:</strong> Indicadores sempre atualizados</div>
