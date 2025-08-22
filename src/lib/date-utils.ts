@@ -120,10 +120,32 @@ export function formatDataHorario(data: string, horario?: string | null): string
  * Formata apenas a data para exibição
  */
 export function formatData(data: string): string {
-  // Para evitar problemas de timezone, vamos criar a data usando componentes locais
-  const [year, month, day] = data.split('-').map(Number);
-  const localDate = new Date(year, month - 1, day);
-  return localDate.toLocaleDateString('pt-BR');
+  // Verificar se a data é válida
+  if (!data || typeof data !== 'string') {
+    return 'Data inválida';
+  }
+  
+  try {
+    // Para evitar problemas de timezone, vamos criar a data usando componentes locais
+    const [year, month, day] = data.split('-').map(Number);
+    
+    // Verificar se os componentes são válidos
+    if (!year || !month || !day || isNaN(year) || isNaN(month) || isNaN(day)) {
+      return 'Data inválida';
+    }
+    
+    const localDate = new Date(year, month - 1, day);
+    
+    // Verificar se a data é válida
+    if (isNaN(localDate.getTime())) {
+      return 'Data inválida';
+    }
+    
+    return localDate.toLocaleDateString('pt-BR');
+  } catch (error) {
+    console.error('Erro ao formatar data:', error, 'Data recebida:', data);
+    return 'Data inválida';
+  }
 }
 
 /**

@@ -28,7 +28,7 @@ interface EventosAprovacaoStatsProps {
     id: string;
     nome: string;
     entidade_nome: string;
-    data_evento: string;
+    data: string;
     created_at: string;
   }>;
   loading?: boolean;
@@ -213,7 +213,7 @@ export const EventosAprovacaoStats: React.FC<EventosAprovacaoStatsProps> = ({
                       {evento.nome}
                     </div>
                     <div className="text-xs text-gray-600 mt-1">
-                      {evento.entidade_nome} • {new Date(evento.data_evento).toLocaleDateString('pt-BR')}
+                      {evento.entidade_nome} • {new Date(evento.data).toLocaleDateString('pt-BR')}
                     </div>
                     <div className="text-xs text-gray-500 mt-1">
                       Criado em {new Date(evento.created_at).toLocaleDateString('pt-BR')}

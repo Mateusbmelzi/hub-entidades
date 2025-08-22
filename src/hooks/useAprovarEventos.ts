@@ -7,7 +7,8 @@ export interface EventoParaAprovacao {
   nome: string;
   descricao?: string;
   local?: string;
-  data_evento: string;
+  data: string;
+  horario?: string;
   capacidade?: number;
   status: string;
   status_aprovacao: 'pendente' | 'aprovado' | 'rejeitado';

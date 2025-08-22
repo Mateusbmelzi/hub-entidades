@@ -14,7 +14,7 @@ import { useAuthStateContext } from '@/components/AuthStateProvider';
 import { useAprovarEventos, EventoParaAprovacao } from '@/hooks/useAprovarEventos';
 import { useDeleteEventoAsEntity } from '@/hooks/useDeleteEventoAsEntity';
 import { toast } from 'sonner';
-import { combineDataHorario, formatData } from '@/lib/date-utils';
+import { combineDataHorario, formatData, formatHorario } from '@/lib/date-utils';
 
 const AprovarEventos = () => {
   const navigate = useNavigate();
@@ -254,7 +254,13 @@ const AprovarEventos = () => {
                         <div>
                           <p className="text-sm text-muted-foreground">Data do Evento</p>
                           <p className="text-sm">
-                            {formatData(evento.data_evento)}
+                            {evento.data ? formatData(evento.data) : 'Data não informada'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Horário</p>
+                          <p className="text-sm">
+                            {evento.horario ? formatHorario(evento.horario) : 'Horário não informado'}
                           </p>
                         </div>
                         <div>
@@ -315,7 +321,8 @@ const AprovarEventos = () => {
                                   <p className="text-sm text-muted-foreground">
                                     <strong>Detalhes do evento:</strong><br/>
                                     • Entidade: {evento.entidade_nome}<br/>
-                                    • Data: {formatData(evento.data_evento)}<br/>
+                                    • Data: {evento.data ? formatData(evento.data) : 'Data não informada'}<br/>
+                                    • Horário: {evento.horario ? formatHorario(evento.horario) : 'Horário não informado'}<br/>
                                     • Local: {evento.local || 'Não informado'}<br/>
                                     • Capacidade: {evento.capacidade || 'Ilimitada'}
                                   </p>
@@ -371,7 +378,8 @@ const AprovarEventos = () => {
                                   <p className="text-sm text-muted-foreground">
                                     <strong>Detalhes do evento:</strong><br/>
                                     • Entidade: {evento.entidade_nome}<br/>
-                                    • Data: {formatData(evento.data_evento)}<br/>
+                                    • Data: {evento.data ? formatData(evento.data) : 'Data não informada'}<br/>
+                                    • Horário: {evento.horario ? formatHorario(evento.horario) : 'Horário não informado'}<br/>
                                     • Local: {evento.local || 'Não informado'}<br/>
                                     • Capacidade: {evento.capacidade || 'Ilimitada'}
                                   </p>
@@ -438,7 +446,8 @@ const AprovarEventos = () => {
                                   <p className="text-sm text-muted-foreground">
                                     <strong>Detalhes do evento:</strong><br/>
                                     • Entidade: {evento.entidade_nome}<br/>
-                                    • Data: {formatData(evento.data_evento)}<br/>
+                                    • Data: {evento.data ? formatData(evento.data) : 'Data não informada'}<br/>
+                                    • Horário: {evento.horario ? formatHorario(evento.horario) : 'Horário não informado'}<br/>
                                     • Local: {evento.local || 'Não informado'}<br/>
                                     • Capacidade: {evento.capacidade || 'Ilimitada'}<br/>
                                     • Status: {evento.status_aprovacao}

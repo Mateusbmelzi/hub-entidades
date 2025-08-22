@@ -30,6 +30,7 @@ import { useAfinidadeCursoArea } from '@/hooks/useAfinidadeCursoArea';
 import { useTaxaConversaoEntidades } from '@/hooks/useTaxaConversaoEntidades';
 import { useEventosAprovacaoStats } from '@/hooks/useEventosAprovacaoStats';
 import { useTopEntidadesInteresse } from '@/hooks/useTopEntidadesInteresse';
+import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useAuthStateContext } from '@/components/AuthStateProvider';
 import { EventosAprovacaoStats } from '@/components/EventosAprovacaoStats';
 
@@ -42,6 +43,7 @@ const Dashboard = () => {
   const { entidades: taxaConversaoEntidades, loading: taxaConversaoLoading, error: taxaConversaoError, refetch: refetchTaxaConversao } = useTaxaConversaoEntidades();
   const { entidades: topEntidadesInteresse, loading: topEntidadesInteresseLoading, error: topEntidadesInteresseError, refetch: refetchTopEntidadesInteresse } = useTopEntidadesInteresse();
   const { stats: eventosAprovacaoStats, eventosPendentes, loading: eventosAprovacaoLoading, error: eventosAprovacaoError, refetch: refetchEventosAprovacao } = useEventosAprovacaoStats();
+  const { totalDemonstracoes, totalEventos, loading: dashboardStatsLoading, error: dashboardStatsError, refetch: refetchDashboardStats } = useDashboardStats();
 
   // Verificar se o usuário é super admin
   const isSuperAdmin = 
@@ -58,12 +60,13 @@ const Dashboard = () => {
     refetchAfinidades();
     refetchTaxaConversao();
     refetchTopEntidadesInteresse();
+    refetchDashboardStats();
     if (isSuperAdmin) {
       refetchEventosAprovacao();
     }
   };
 
-  if (eventosLoading || statsLoading || afinidadesLoading || taxaConversaoLoading || topEntidadesInteresseLoading || (isSuperAdmin && eventosAprovacaoLoading)) {
+  if (eventosLoading || statsLoading || afinidadesLoading || taxaConversaoLoading || topEntidadesInteresseLoading || dashboardStatsLoading || (isSuperAdmin && eventosAprovacaoLoading)) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
@@ -168,9 +171,15 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
-                <span className="text-sm text-gray-500">Em desenvolvimento</span>
+                {dashboardStatsError ? (
+                  <span className="text-sm text-red-500">Erro</span>
+                ) : (
+                  totalDemonstracoes?.toLocaleString('pt-BR') || '0'
+                )}
               </div>
-              <p className="text-xs text-muted-foreground">Dados em tempo real</p>
+              <p className="text-xs text-muted-foreground">
+                {dashboardStatsError ? 'Erro ao carregar' : 'Demonstrações de interesse'}
+              </p>
             </CardContent>
           </Card>
 
@@ -181,9 +190,15 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-orange-600">
-                <span className="text-sm text-gray-500">Em desenvolvimento</span>
+                {dashboardStatsError ? (
+                  <span className="text-sm text-red-500">Erro</span>
+                ) : (
+                  totalEventos?.toLocaleString('pt-BR') || '0'
+                )}
               </div>
-              <p className="text-xs text-muted-foreground">Dados em tempo real</p>
+              <p className="text-xs text-muted-foreground">
+                {dashboardStatsError ? 'Erro ao carregar' : 'Eventos cadastrados'}
+              </p>
             </CardContent>
           </Card>
         </div>

@@ -15,7 +15,7 @@ export interface EventoPendente {
   id: string;
   nome: string;
   entidade_nome: string;
-  data_evento: string;
+  data: string;
   created_at: string;
 }
 
@@ -44,7 +44,7 @@ export const useEventosAprovacaoStats = () => {
       console.log('📊 Buscando dados básicos dos eventos...');
       const { data: eventosData, error: eventosError } = await supabase
         .from('eventos')
-        .select('id, status_aprovacao, data_evento, created_at');
+        .select('id, status_aprovacao, data, created_at');
 
       if (eventosError) {
         console.error('❌ Erro ao buscar eventos:', eventosError);
@@ -75,12 +75,12 @@ export const useEventosAprovacaoStats = () => {
       inicioSemana.setDate(hoje.getDate() - 7);
 
       const eventosHoje = eventosData?.filter(e => {
-        const dataEvento = new Date(e.data_evento);
+        const dataEvento = new Date(e.data);
         return dataEvento.toDateString() === hoje.toDateString();
       }).length || 0;
 
       const eventosSemana = eventosData?.filter(e => {
-        const dataEvento = new Date(e.data_evento);
+        const dataEvento = new Date(e.data);
         return dataEvento >= inicioSemana && dataEvento <= hoje;
       }).length || 0;
 
@@ -104,7 +104,7 @@ export const useEventosAprovacaoStats = () => {
         .select(`
           id,
           nome,
-          data_evento,
+          data,
           created_at,
           entidades(nome)
         `)
@@ -121,7 +121,7 @@ export const useEventosAprovacaoStats = () => {
           id: item.id,
           nome: item.nome,
           entidade_nome: item.entidades?.nome || 'Entidade não encontrada',
-          data_evento: item.data_evento,
+          data: item.data,
           created_at: item.created_at
         }));
         

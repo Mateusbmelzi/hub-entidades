@@ -72,20 +72,32 @@ serve(async (req) => {
         }
 
         // Get total participantes em eventos
-        const { count: totalParticipantes, error: participantesError } = await supabaseClient
-          .from('participantes_evento')
-          .select('*', { count: 'exact', head: true })
-          .in('evento_id', 
-            supabaseClient
-              .from('eventos')
-              .select('id')
-              .eq('entidade_id', entidade.id)
-          )
+        const { data: eventosIds, error: eventosError } = await supabaseClient
+          .from('eventos')
+          .select('id')
+          .eq('entidade_id', entidade.id)
 
-        if (participantesError) {
-          console.error(`❌ Erro ao contar participantes para entidade ${entidade.nome}:`, participantesError)
+        if (eventosError) {
+          console.error(`❌ Erro ao buscar eventos para entidade ${entidade.nome}:`, eventosError)
           continue
         }
+
+        let totalParticipantes = 0
+        if (eventosIds && eventosIds.length > 0) {
+          const eventoIds = eventosIds.map(e => e.id)
+          const { count: participantesCount, error: participantesError } = await supabaseClient
+            .from('participantes_evento')
+            .select('*', { count: 'exact', head: true })
+            .in('evento_id', eventoIds)
+
+          if (participantesError) {
+            console.error(`❌ Erro ao contar participantes para entidade ${entidade.nome}:`, participantesError)
+            continue
+          }
+          totalParticipantes = participantesCount || 0
+        }
+
+
 
         // Calculate conversion rate
         const taxaConversao = totalDemonstracoes > 0 
@@ -96,10 +108,10 @@ serve(async (req) => {
           nome: entidade.nome,
           total_demonstracoes: totalDemonstracoes || 0,
           total_participantes_eventos: totalParticipantes || 0,
-          taxa_conversao: Math.round(taxaConversao * 10000) / 10000 // Round to 4 decimal places
+          taxa_conversao: Math.round(taxaConversao * 100) / 100 // Round to 2 decimal places, percentage format
         })
 
-        console.log(`✅ ${entidade.nome}: ${totalDemonstracoes} demonstrações, ${totalParticipantes} participantes, taxa: ${(taxaConversao * 100).toFixed(2)}%`)
+        console.log(`✅ ${entidade.nome}: ${totalDemonstracoes} demonstrações, ${totalParticipantes} participantes, taxa: ${taxaConversao.toFixed(2)}%`)
 
       } catch (error) {
         console.error(`❌ Erro ao processar entidade ${entidade.nome}:`, error)
