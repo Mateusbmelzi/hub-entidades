@@ -25,7 +25,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useTopEventos } from '@/hooks/useTopEventos';
-import { useIndicadoresGerais } from '@/hooks/useIndicadoresGerais';
+import { useStats } from '@/hooks/useStats';
 import { useAfinidadeCursoArea } from '@/hooks/useAfinidadeCursoArea';
 import { useTaxaConversaoEntidades } from '@/hooks/useTaxaConversaoEntidades';
 import { useEventosAprovacaoStats } from '@/hooks/useEventosAprovacaoStats';
@@ -37,7 +37,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { logout, type } = useAuthStateContext();
   const { eventos, loading: eventosLoading, error: eventosError, refetch: refetchEventos } = useTopEventos();
-  const { indicadores, loading: indicadoresLoading, error: indicadoresError, refetch: refetchIndicadores } = useIndicadoresGerais();
+  const { totalAlunos, totalEntidades, loading: statsLoading, error: statsError } = useStats();
   const { afinidades, loading: afinidadesLoading, error: afinidadesError, refetch: refetchAfinidades } = useAfinidadeCursoArea();
   const { entidades: taxaConversaoEntidades, loading: taxaConversaoLoading, error: taxaConversaoError, refetch: refetchTaxaConversao } = useTaxaConversaoEntidades();
   const { entidades: topEntidadesInteresse, loading: topEntidadesInteresseLoading, error: topEntidadesInteresseError, refetch: refetchTopEntidadesInteresse } = useTopEntidadesInteresse();
@@ -55,7 +55,6 @@ const Dashboard = () => {
 
   const handleRefreshAll = () => {
     refetchEventos();
-    refetchIndicadores();
     refetchAfinidades();
     refetchTaxaConversao();
     refetchTopEntidadesInteresse();
@@ -64,7 +63,7 @@ const Dashboard = () => {
     }
   };
 
-  if (eventosLoading || indicadoresLoading || afinidadesLoading || taxaConversaoLoading || topEntidadesInteresseLoading || (isSuperAdmin && eventosAprovacaoLoading)) {
+  if (eventosLoading || statsLoading || afinidadesLoading || taxaConversaoLoading || topEntidadesInteresseLoading || (isSuperAdmin && eventosAprovacaoLoading)) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
@@ -143,7 +142,7 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-indigo-600">
-                {indicadores?.total_alunos?.toLocaleString('pt-BR') || '0'}
+                {totalAlunos?.toLocaleString('pt-BR') || '0'}
               </div>
               <p className="text-xs text-muted-foreground">Alunos cadastrados</p>
             </CardContent>
@@ -156,7 +155,7 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-purple-600">
-                {indicadores?.total_entidades?.toLocaleString('pt-BR') || '0'}
+                {totalEntidades?.toLocaleString('pt-BR') || '0'}
               </div>
               <p className="text-xs text-muted-foreground">Organizações ativas</p>
             </CardContent>
@@ -169,9 +168,9 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
-                {indicadores?.total_demonstracoes?.toLocaleString('pt-BR') || '0'}
+                <span className="text-sm text-gray-500">Em desenvolvimento</span>
               </div>
-              <p className="text-xs text-muted-foreground">Interesses demonstrados</p>
+              <p className="text-xs text-muted-foreground">Dados em tempo real</p>
             </CardContent>
           </Card>
 
@@ -182,9 +181,9 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-orange-600">
-                {indicadores?.total_eventos?.toLocaleString('pt-BR') || '0'}
+                <span className="text-sm text-gray-500">Em desenvolvimento</span>
               </div>
-              <p className="text-xs text-muted-foreground">Eventos cadastrados</p>
+              <p className="text-xs text-muted-foreground">Dados em tempo real</p>
             </CardContent>
           </Card>
         </div>
@@ -470,13 +469,13 @@ const Dashboard = () => {
                 <Info className="h-5 w-5 text-blue-600 mt-0.5" />
                 <div className="text-sm text-blue-800">
                   <div className="font-semibold mb-1">Sobre este dashboard:</div>
-                  <div>• <strong>Indicadores Gerais:</strong> Dados extraídos da tabela <code className="bg-blue-100 px-1 rounded">indicadores_gerais</code></div>
+                  <div>• <strong>Indicadores Gerais:</strong> Dados extraídos diretamente das tabelas <code className="bg-blue-100 px-1 rounded">profiles</code> e <code className="bg-blue-100 px-1 rounded">entidades</code> (mesma fonte da Home)</div>
                   <div>• <strong>Afinidade Curso-Área:</strong> Dados extraídos da tabela <code className="bg-blue-100 px-1 rounded">afinidade_curso_area</code></div>
                   <div>• <strong>Top Eventos:</strong> Dados extraídos da tabela <code className="bg-blue-100 px-1 rounded">top_eventos</code></div>
                   <div>• <strong>Top Organizações:</strong> Dados extraídos da tabela <code className="bg-blue-100 px-1 rounded">top_entidades_interesse</code></div>
                   <div>• <strong>Taxa de Conversão:</strong> Dados extraídos da tabela <code className="bg-blue-100 px-1 rounded">taxa_conversao_entidades</code></div>
-                  <div>• <strong>Atualização automática:</strong> Dados atualizados a cada 15 minutos via cron jobs</div>
-                  <div>• <strong>Dados em tempo real:</strong> Indicadores sempre atualizados</div>
+                  <div>• <strong>Dados em tempo real:</strong> Indicadores sempre atualizados e consistentes com a Home</div>
+                  <div>• <strong>Sem cron jobs:</strong> Dados buscados diretamente das tabelas originais</div>
                 </div>
               </div>
             </CardContent>
