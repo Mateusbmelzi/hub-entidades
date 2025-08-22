@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Users, Calendar, Mail, MapPin, Clock, Star, ExternalLink, Edit, Plus, LogIn, LogOut, Trash2, MoreVertical, FolderOpen, Building2, Target, Sparkles, Award, TrendingUp, Camera } from 'lucide-react';
+import { ArrowLeft, Users, Calendar, Mail, MapPin, Clock, Star, ExternalLink, Edit, Plus, LogIn, LogOut, Trash2, MoreVertical, FolderOpen, Building2, Target, Sparkles, Award, TrendingUp, Camera, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -932,6 +932,82 @@ const EntidadeDetalhes = () => {
 
           {/* Sidebar */}
           <div className="space-y-6">
+            {/* Redes Sociais e Site */}
+            <Card className="border-0 shadow-lg bg-white">
+              <CardHeader className="pb-4">
+                <div className="flex items-center space-x-2">
+                  <ExternalLink className="w-5 h-5 text-red-600" />
+                  <CardTitle className="text-xl">Redes Sociais e Site</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {entidade.site_url && (
+                  <div className="flex items-center p-3 bg-gray-50 rounded-lg">
+                    <ExternalLink className="mr-3 h-4 w-4 text-gray-600 flex-shrink-0" />
+                    <div>
+                      <div className="text-sm text-gray-500">Site</div>
+                      <a 
+                        href={entidade.site_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="font-medium text-red-600 hover:text-red-700 hover:underline"
+                      >
+                        Visitar site
+                      </a>
+                    </div>
+                  </div>
+                )}
+
+                {entidade.instagram_url && (
+                  <div className="flex items-center p-3 bg-gray-50 rounded-lg">
+                    <ExternalLink className="mr-3 h-4 w-4 text-gray-600 flex-shrink-0" />
+                    <div>
+                      <div className="text-sm text-gray-500">Instagram</div>
+                      <a 
+                        href={entidade.instagram_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="font-medium text-red-600 hover:text-red-700 hover:underline"
+                      >
+                        @{entidade.instagram_url.split('/').pop() || 'instagram'}
+                      </a>
+                    </div>
+                  </div>
+                )}
+
+                {entidade.linkedin_url && (
+                  <div className="flex items-center p-4 bg-gray-50 rounded-lg">
+                    <ExternalLink className="mr-3 h-4 w-4 text-gray-600 flex-shrink-0" />
+                    <div>
+                      <div className="text-sm text-gray-500">LinkedIn</div>
+                      <a 
+                        href={entidade.linkedin_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="font-medium text-red-600 hover:text-red-700 hover:underline"
+                      >
+                        Ver perfil
+                      </a>
+                    </div>
+                  </div>
+                )}
+
+                {!entidade.site_url && !entidade.instagram_url && !entidade.linkedin_url && (
+                  <div className="text-center py-6">
+                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <ExternalLink className="h-6 w-6 text-gray-400" />
+                    </div>
+                    <p className="text-sm text-gray-500">
+                      {isOwner 
+                        ? 'Nenhuma informação de contato cadastrada ainda.'
+                        : 'Esta organização ainda não cadastrou informações de contato.'
+                      }
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Próximos Eventos */}
             <Card className="border-0 shadow-lg bg-white">
               <CardHeader className="pb-4">
