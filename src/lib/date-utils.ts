@@ -73,6 +73,15 @@ export const isValidDate = (dateStr: string): boolean => {
 export const formatDateForDisplay = (date: string | Date): string => {
   if (!date) return '';
   
+  if (typeof date === 'string') {
+    // Para strings no formato yyyy-mm-dd, usar o padrão que funciona
+    if (date.includes('-')) {
+      const [y, m, d] = date.split('-');
+      return new Date(+y, +m - 1, +d).toLocaleDateString('pt-BR');
+    }
+  }
+  
+  // Para objetos Date ou outros formatos, usar o método anterior
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   if (isNaN(dateObj.getTime())) return '';
   
@@ -89,7 +98,7 @@ export const formatDateForDisplay = (date: string | Date): string => {
  * Combina data e horário em um timestamp
  */
 export function combineDataHorario(data: string, horario?: string | null): Date {
-  // Para evitar problemas de timezone, vamos criar a data usando componentes locais
+  // Para evitar problemas de timezone, usar o padrão que funciona
   const [year, month, day] = data.split('-').map(Number);
   
   if (!horario) {
@@ -126,7 +135,7 @@ export function formatData(data: string): string {
   }
   
   try {
-    // Para evitar problemas de timezone, vamos criar a data usando componentes locais
+    // Para evitar problemas de timezone, usar o padrão que funciona
     const [year, month, day] = data.split('-').map(Number);
     
     // Verificar se os componentes são válidos
@@ -134,14 +143,8 @@ export function formatData(data: string): string {
       return 'Data inválida';
     }
     
-    const localDate = new Date(year, month - 1, day);
-    
-    // Verificar se a data é válida
-    if (isNaN(localDate.getTime())) {
-      return 'Data inválida';
-    }
-    
-    return localDate.toLocaleDateString('pt-BR');
+    // Usar o padrão que funciona no Perfil
+    return new Date(year, month - 1, day).toLocaleDateString('pt-BR');
   } catch (error) {
     console.error('Erro ao formatar data:', error, 'Data recebida:', data);
     return 'Data inválida';

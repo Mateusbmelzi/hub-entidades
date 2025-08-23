@@ -6,13 +6,11 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { DateInput } from '@/components/ui/date-input';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { useRedirectDestination } from '@/hooks/useRedirectDestination';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { formatDateToISO } from '@/lib/date-utils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Sparkles, User, Calendar, GraduationCap, Target, BookOpen, ArrowRight, Shield, Award, Users, Phone } from 'lucide-react';
 
@@ -84,6 +82,27 @@ export default function ProfileSetup() {
     return colors[area as keyof typeof colors] || 'bg-gray-100 text-gray-800 border-gray-200';
   };
 
+  // Função para formatar celular
+  const formatCelular = (value: string) => {
+    // Remove tudo que não é número
+    const numbers = value.replace(/\D/g, '');
+    
+    // Aplica máscara (XX) XXXXX-XXXX
+    if (numbers.length <= 2) {
+      return numbers;
+    } else if (numbers.length <= 7) {
+      return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
+    } else {
+      return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
+    }
+  };
+
+  // Função para validar celular
+  const validateCelular = (value: string) => {
+    const numbers = value.replace(/\D/g, '');
+    return numbers.length >= 10 && numbers.length <= 11;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -111,12 +130,29 @@ export default function ProfileSetup() {
       return;
     }
     
-    // Validar formato do celular (básico) - removido temporariamente
-    // const celularRegex = /^\(\d{2}\) \d{5}-\d{4}$/;
-    // if (!celularRegex.test(celular)) {
-    //   toast.error('Formato de celular inválido. Use: (11) 99999-9999');
-    //   return;
-    // }
+    // Validação do celular
+    if (!validateCelular(celular)) {
+      toast.error('Celular deve ter 10 ou 11 dígitos (com DDD)');
+      return;
+    }
+    
+    // Validação da data de nascimento
+    if (dataNascimento) {
+      const [day, month, year] = dataNascimento.split('/');
+      const birthDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      const today = new Date();
+      const age = today.getFullYear() - birthDate.getFullYear();
+      
+      if (age < 16 || age > 100) {
+        toast.error('Data de nascimento inválida. Você deve ter entre 16 e 100 anos.');
+        return;
+      }
+      
+      if (birthDate > today) {
+        toast.error('Data de nascimento não pode ser no futuro');
+        return;
+      }
+    }
     
     setLoading(true);
 
@@ -125,7 +161,12 @@ export default function ProfileSetup() {
       const profileData = {
         id: user.id,
         nome: nome.trim(),
-        data_nascimento: dataNascimento ? formatDateToISO(dataNascimento) : null,
+        data_nascimento: dataNascimento
+          ? (() => {
+              const [day, month, year] = dataNascimento.split('/');
+              return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+            })()
+          : null,
         celular: celular.trim(),
         curso,
         semestre,
@@ -285,12 +326,18 @@ export default function ProfileSetup() {
                   <Calendar className="w-4 h-4 inline mr-2" />
                   Data de nascimento
                 </Label>
-                <DateInput
+                <Input
                   id="data-nascimento"
                   value={dataNascimento}
-                  onChange={(date) => setDataNascimento(date)}
+                  onChange={(e) => setDataNascimento(e.target.value)}
+                  className="border-gray-200 focus:border-red-500 focus:ring-red-500"
+                  placeholder="dd/mm/aaaa"
+                  maxLength={10}
                   required
                 />
+                <p className="text-xs text-gray-500">
+                  Digite no formato dd/mm/aaaa
+                </p>
               </div>
 
               {/* Celular */}
@@ -303,7 +350,7 @@ export default function ProfileSetup() {
                   id="celular"
                   type="tel"
                   value={celular}
-                  onChange={(e) => setCelular(e.target.value)}
+                  onChange={(e) => setCelular(formatCelular(e.target.value))}
                   className="border-gray-200 focus:border-red-500 focus:ring-red-500"
                   placeholder="(11) 99999-9999"
                   required

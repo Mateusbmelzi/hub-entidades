@@ -5,13 +5,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DateInput } from '@/components/ui/date-input';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { User, Mail, Calendar, GraduationCap, BookOpen, Edit, Save, X, LogOut, Settings, Sparkles, Target, Award, Shield, ArrowLeft, Building2, Check, Clock, X as XIcon, Trash2, AlertTriangle, MapPin, Users, ExternalLink, RefreshCw, Phone } from 'lucide-react';
-import { formatDateToISO, formatDateFromISO, formatDateForDisplay } from '@/lib/date-utils';
 
 interface DemonstracaoInteresse {
   id: number;
@@ -45,7 +43,7 @@ interface InscricaoEvento {
 }
 
 export default function Perfil() {
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, signOut, refreshProfile } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [demonstracoes, setDemonstracoes] = useState<DemonstracaoInteresse[]>([]);
@@ -62,6 +60,64 @@ export default function Perfil() {
   const [semestre, setSemestre] = useState(1);
   const [areaInteresse, setAreaInteresse] = useState('');
   const [celular, setCelular] = useState('');
+  const [celularError, setCelularError] = useState('');
+  const [nomeError, setNomeError] = useState('');
+
+  // Função para verificar se os campos foram modificados
+  const hasChanges = () => {
+    if (!profile) return false;
+    
+    const originalDataNascimento = profile.data_nascimento
+      ? (() => {
+          const [y, m, d] = profile.data_nascimento.split("-");
+          return new Date(+y, +m - 1, +d).toLocaleDateString("pt-BR");
+        })()
+      : '';
+    
+    return (
+      nome !== (profile.nome || '') ||
+      dataNascimento !== originalDataNascimento ||
+      curso !== (profile.curso || '') ||
+      semestre !== (profile.semestre || 1) ||
+      areaInteresse !== (profile.area_interesse || '') ||
+      celular !== (profile.celular || '')
+    );
+  };
+
+  // Aviso ao sair da página com mudanças não salvas
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isEditing && hasChanges()) {
+        e.preventDefault();
+        e.returnValue = 'Você tem alterações não salvas. Tem certeza que deseja sair?';
+        return 'Você tem alterações não salvas. Tem certeza que deseja sair?';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isEditing, hasChanges]);
+
+  // Função para formatar celular
+  const formatCelular = (value: string) => {
+    // Remove tudo que não é número
+    const numbers = value.replace(/\D/g, '');
+    
+    // Aplica máscara (XX) XXXXX-XXXX
+    if (numbers.length <= 2) {
+      return numbers;
+    } else if (numbers.length <= 7) {
+      return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
+    } else {
+      return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
+    }
+  };
+
+  // Função para validar celular
+  const validateCelular = (value: string) => {
+    const numbers = value.replace(/\D/g, '');
+    return numbers.length >= 10 && numbers.length <= 11;
+  };
 
   if (!user) return <Navigate to="/auth" replace />;
   if (!profile?.profile_completed) return <Navigate to="/profile-setup" replace />;
@@ -72,13 +128,7 @@ export default function Perfil() {
       setDataNascimento(profile.data_nascimento 
         ? (() => {
             const [y, m, d] = profile.data_nascimento.split("-");
-            // forçando horário meio-dia para evitar problema do timezone
-            const date = new Date(+y, +m - 1, +d + 1, 12, 0);
-            // aqui você pode formatar para dd/mm/yyyy para exibir, por exemplo:
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const year = date.getFullYear();
-            return `${day}/${month}/${year}`;
+            return new Date(+y, +m - 1, +d).toLocaleDateString("pt-BR");
           })()
         : '');
       setCurso(profile.curso || '');
@@ -279,27 +329,33 @@ export default function Perfil() {
   const handleEdit = () => setIsEditing(true);
   const handleCancel = () => {
     setIsEditing(false);
+    // Limpar erros de validação
+    setNomeError('');
+    setCelularError('');
+    
     if (profile) {
       setNome(profile.nome || '');
       setDataNascimento(profile.data_nascimento
         ? (() => {
             const [y, m, d] = profile.data_nascimento.split("-");
-            const date = new Date(+y, +m - 1, +d + 1, 12, 0);
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const year = date.getFullYear();
-            return `${day}/${month}/${year}`;
+            return new Date(+y, +m - 1, +d).toLocaleDateString("pt-BR");
           })()
-        : '');      
+        : '');
       setCurso(profile.curso || '');
       setSemestre(profile.semestre || 1);
       setAreaInteresse(profile.area_interesse || '');
+      setCelular(profile.celular || '');
     }
   };
 
   const handleSave = async () => {
+    // Limpar erros anteriores
+    setNomeError('');
+    setCelularError('');
+    
     // Validação dos campos obrigatórios
     if (!nome.trim()) {
+      setNomeError('Nome é obrigatório');
       toast.error('Nome é obrigatório');
       return;
     }
@@ -312,8 +368,33 @@ export default function Perfil() {
       return;
     }
     if (!celular.trim()) {
+      setCelularError('Celular é obrigatório');
       toast.error('Celular é obrigatório');
       return;
+    }
+    
+    if (!validateCelular(celular)) {
+      setCelularError('Celular deve ter 10 ou 11 dígitos (com DDD)');
+      toast.error('Celular deve ter 10 ou 11 dígitos (com DDD)');
+      return;
+    }
+
+    // Validação da data de nascimento
+    if (dataNascimento) {
+      const [day, month, year] = dataNascimento.split('/');
+      const birthDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      const today = new Date();
+      const age = today.getFullYear() - birthDate.getFullYear();
+      
+      if (age < 16 || age > 100) {
+        toast.error('Data de nascimento inválida. Você deve ter entre 16 e 100 anos.');
+        return;
+      }
+      
+      if (birthDate > today) {
+        toast.error('Data de nascimento não pode ser no futuro');
+        return;
+      }
     }
 
     setLoading(true);
@@ -321,7 +402,7 @@ export default function Perfil() {
       const { error } = await supabase
         .from('profiles')
         .update({
-          nome,
+          nome: nome.trim(),
           data_nascimento: dataNascimento
             ? (() => {
                 const [day, month, year] = dataNascimento.split('/');
@@ -331,20 +412,32 @@ export default function Perfil() {
           curso,
           semestre,
           area_interesse: areaInteresse,
-          celular,
+          celular: celular.trim(),
+          updated_at: new Date().toISOString()
         })
         .eq('id', user.id);
 
       if (error) {
-        toast.error('Erro ao atualizar perfil');
+        console.error('Erro ao atualizar perfil:', error);
+        toast.error(`Erro ao atualizar perfil: ${error.message || 'Tente novamente'}`);
       } else {
         toast.success('Perfil atualizado com sucesso!');
         setIsEditing(false);
+        
+        // Atualizar o perfil no contexto de autenticação
+        try {
+          await refreshProfile();
+        } catch (refreshError) {
+          console.error('Erro ao atualizar perfil no contexto:', refreshError);
+          // Não mostrar erro para o usuário, apenas logar
+        }
       }
-    } catch {
-      toast.error('Erro ao atualizar perfil');
+    } catch (error: any) {
+      console.error('Erro inesperado ao atualizar perfil:', error);
+      toast.error('Erro inesperado ao atualizar perfil. Tente novamente.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   // Função para editar área de interesse de uma demonstração
@@ -555,7 +648,9 @@ export default function Perfil() {
 
   const formatDate = (date: string) => {
     if (!date) return '';
-    return formatDateForDisplay(date);
+    // Usar o mesmo padrão que funcionou no Perfil
+    const [y, m, d] = date.split('-');
+    return new Date(+y, +m - 1, +d).toLocaleDateString('pt-BR');
   };
 
   const getAreaColor = (area: string) => {
@@ -612,6 +707,17 @@ export default function Perfil() {
           
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Meu Perfil</h1>
           <p className="text-gray-600">Gerencie suas informações pessoais e visualize seus processos seletivos e eventos</p>
+          
+          {isEditing && hasChanges() && (
+            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-center text-yellow-800">
+                <AlertTriangle className="mr-2 h-4 w-4" />
+                <span className="text-sm font-medium">
+                  Você tem alterações não salvas. Clique em "Salvar" para confirmar as mudanças.
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -619,12 +725,23 @@ export default function Perfil() {
           <div className="lg:col-span-2">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <User className="mr-2 h-5 w-5 text-red-600" />
-                  Informações Pessoais
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <User className="mr-2 h-5 w-5 text-red-600" />
+                    Informações Pessoais
+                  </div>
+                  {isEditing && (
+                    <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-200">
+                      <Edit className="mr-1 h-3 w-3" />
+                      Editando
+                    </Badge>
+                  )}
                 </CardTitle>
                 <CardDescription>
-                  Suas informações básicas e acadêmicas
+                  {isEditing 
+                    ? 'Edite suas informações pessoais e acadêmicas'
+                    : 'Suas informações básicas e acadêmicas'
+                  }
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -636,19 +753,35 @@ export default function Perfil() {
                         <Input
                           id="nome"
                           value={nome}
-                          onChange={(e) => setNome(e.target.value)}
+                          onChange={(e) => {
+                            setNome(e.target.value);
+                            if (nomeError) setNomeError('');
+                          }}
                           placeholder="Seu nome completo"
+                          className={`${nomeError ? 'border-red-500' : ''} ${
+                            nome !== (profile?.nome || '') ? 'border-blue-300 bg-blue-50' : ''
+                          }`}
                         />
+                        {nomeError && (
+                          <p className="text-xs text-red-500 mt-1">{nomeError}</p>
+                        )}
+                        {nome !== (profile?.nome || '') && !nomeError && (
+                          <p className="text-xs text-blue-600 mt-1">Campo modificado</p>
+                        )}
                       </div>
                       
                       <div>
                         <Label htmlFor="dataNascimento">Data de Nascimento</Label>
-                        <DateInput
+                        <Input
                           id="dataNascimento"
                           value={dataNascimento}
-                          onChange={setDataNascimento}
+                          onChange={(e) => setDataNascimento(e.target.value)}
                           placeholder="dd/mm/aaaa"
+                          maxLength={10}
                         />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Digite no formato dd/mm/aaaa
+                        </p>
                       </div>
                     </div>
 
@@ -707,14 +840,36 @@ export default function Perfil() {
                       <Input
                         id="celular"
                         value={celular}
-                        onChange={(e) => setCelular(e.target.value)}
+                        onChange={(e) => {
+                          const formatted = formatCelular(e.target.value);
+                          setCelular(formatted);
+                          if (celularError) setCelularError('');
+                        }}
                         placeholder="(11) 99999-9999"
+                        maxLength={15}
                         required
+                        className={`${celularError ? 'border-red-500' : ''} ${
+                          celular !== (profile?.celular || '') ? 'border-blue-300 bg-blue-50' : ''
+                        }`}
                       />
+                      {celularError ? (
+                        <p className="text-xs text-red-500 mt-1">{celularError}</p>
+                      ) : (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Digite apenas os números, a formatação será aplicada automaticamente
+                        </p>
+                      )}
+                      {celular !== (profile?.celular || '') && !celularError && (
+                        <p className="text-xs text-blue-600 mt-1">Campo modificado</p>
+                      )}
                     </div>
 
                     <div className="flex space-x-2">
-                      <Button onClick={handleSave} disabled={loading} className="bg-red-600 hover:bg-red-700">
+                      <Button 
+                        onClick={handleSave} 
+                        disabled={loading || !hasChanges()} 
+                        className="bg-red-600 hover:bg-red-700 disabled:bg-gray-400"
+                      >
                         <Save className="mr-2 h-4 w-4" />
                         {loading ? 'Salvando...' : 'Salvar'}
                       </Button>
@@ -723,6 +878,12 @@ export default function Perfil() {
                         Cancelar
                       </Button>
                     </div>
+                    
+                    {!hasChanges() && isEditing && (
+                      <p className="text-xs text-gray-500 mt-2 text-center">
+                        Nenhuma alteração detectada
+                      </p>
+                    )}
                   </>
                 ) : (
                   <>
