@@ -8,7 +8,8 @@ interface CreateEventoData {
   local?: string;
   data_evento: string; // Mantemos para compatibilidade com o frontend
   capacidade?: number;
-  link_evento?: string
+  link_evento?: string;
+  area_atuacao?: string[];
 }
 
 export const useCreateEventoAsEntity = () => {
@@ -56,35 +57,66 @@ export const useCreateEventoAsEntity = () => {
         _descricao: data.descricao,
         _local: data.local,
         _capacidade: data.capacidade,
-        _link_evento: data.link_evento
+        _link_evento: data.link_evento,
+        _area_atuacao: data.area_atuacao
       });
       
-      // Usar a nova função que cria eventos com status pendente
-      const { data: result, error } = await supabase.rpc('create_event_as_entity_pending', {
-        _entidade_id: entidadeId,
-        _nome: data.nome,
-        _data_evento: data.data_evento,
-        _descricao: data.descricao,
-        _local: data.local,
-        _capacidade: data.capacidade,
-        _link_evento: data.link_evento
-      });
-
-      console.log('📊 Resultado da RPC:', { result, error });
-
-      if (error) {
-        console.error('❌ Erro na RPC:', error);
-        throw error;
+      // Tentar usar a função RPC primeiro
+      let result, error;
+      try {
+        const rpcResult = await supabase.rpc('create_event_as_entity_pending', {
+          _entidade_id: entidadeId,
+          _nome: data.nome,
+          _data_evento: data.data_evento,
+          _descricao: data.descricao,
+          _local: data.local,
+          _capacidade: data.capacidade,
+          _link_evento: data.link_evento,
+          _area_atuacao: data.area_atuacao
+        });
+        result = rpcResult.data;
+        error = rpcResult.error;
+      } catch (rpcError) {
+        console.log('⚠️ RPC falhou, tentando inserção direta:', rpcError);
+        error = rpcError;
       }
 
-      console.log('📊 Resultado da RPC:', { result, error });
-
+      // Se a RPC falhou, tentar inserção direta
       if (error) {
-        console.error('❌ Erro na RPC:', error);
-        throw error;
-      }
+        console.log('🔄 Tentando inserção direta na tabela eventos...');
+        
+        // Separar data e horário para compatibilidade com a estrutura atual
+        const eventDate = new Date(data.data_evento);
+        const dataStr = eventDate.toISOString().split('T')[0]; // YYYY-MM-DD
+        const horarioStr = eventDate.toTimeString().slice(0, 5); // HH:MM
+        
+        const { data: insertResult, error: insertError } = await supabase
+          .from('eventos')
+          .insert({
+            entidade_id: entidadeId,
+            nome: data.nome,
+            descricao: data.descricao,
+            local: data.local,
+            data: dataStr,
+            horario: horarioStr,
+            capacidade: data.capacidade,
+            link_evento: data.link_evento,
+            area_atuacao: data.area_atuacao,
+            status_aprovacao: 'pendente' // Campo correto para aprovação
+          })
+          .select('id')
+          .single();
 
-      console.log('✅ Evento criado com sucesso! ID:', result);
+        if (insertError) {
+          console.error('❌ Erro na inserção direta:', insertError);
+          throw insertError;
+        }
+
+        result = insertResult.id;
+        console.log('✅ Evento criado diretamente na tabela, ID:', result);
+      } else {
+        console.log('✅ Evento criado via RPC, ID:', result);
+      }
 
       toast({
         title: "Evento criado com sucesso!",

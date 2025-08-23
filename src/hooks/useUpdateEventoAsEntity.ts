@@ -11,6 +11,7 @@ interface UpdateEventoData {
   descricao?: string | null;
   local?: string | null;
   status?: string;
+  area_atuacao?: string[];
 }
 
 export const useUpdateEventoAsEntity = () => {
@@ -55,6 +56,7 @@ export const useUpdateEventoAsEntity = () => {
       if (data.capacidade !== undefined) updateData.capacidade = data.capacidade || null;
       if (data.link_evento !== undefined) updateData.link_evento = data.link_evento?.trim() || null;
       if (data.status !== undefined) updateData.status = data.status;
+      if (data.area_atuacao !== undefined) updateData.area_atuacao = data.area_atuacao;
       
       // Processar data e horário se fornecidos
       if (data.data) {

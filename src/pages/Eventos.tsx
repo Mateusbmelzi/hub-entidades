@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Search, Filter, Calendar, MapPin, Users, ArrowRight, Clock, X, Sparkles, Target, TrendingUp, Building2 } from 'lucide-react';
+import { Search, Filter, Calendar, MapPin, Users, ArrowRight, Clock, X, Sparkles, Target, TrendingUp, Building2, Heart, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useEventos } from '@/hooks/useEventos';
 import InscricaoEventoForm from '@/components/InscricaoEventoForm';
 import { FotoPerfilEntidade } from '@/components/FotoPerfilEntidade';
+import { AREAS_ATUACAO } from '@/lib/constants';
 
 const Eventos = () => {
 
@@ -23,12 +24,16 @@ const Eventos = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFilters, setSelectedFilters] = useState<string[]>(['futuro', 'proximo']);
-  const [selectedEntityFilters, setSelectedEntityFilters] = useState<string[]>([]);
+  
+  // Filtros simplificados
+  const [selectedAreaFilters, setSelectedAreaFilters] = useState<string[]>([]);
+  const [enablePersonalizedFilter, setEnablePersonalizedFilter] = useState(false);
+  
   const [filteredByEntity, setFilteredByEntity] = useState<string | null>(null);
   const [showFiltersPopover, setShowFiltersPopover] = useState(false);
   const [showInscricaoDialog, setShowInscricaoDialog] = useState(false);
   const [selectedEvento, setSelectedEvento] = useState<any>(null);
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   // Effect para detectar filtro de entidade na URL
   useEffect(() => {
@@ -50,32 +55,6 @@ const Eventos = () => {
     statusAprovacao: 'aprovado',
     entidadeId: filteredByEntity ? parseInt(filteredByEntity) : undefined
   });
-
-  // Buscar todas as entidades para o filtro (otimizado)
-  const [entidades, setEntidades] = useState<any[]>([]);
-  const [loadingEntidades, setLoadingEntidades] = useState(false);
-
-  useEffect(() => {
-    const fetchEntidades = async () => {
-      try {
-        setLoadingEntidades(true);
-        const { data, error } = await supabase
-          .from('entidades')
-          .select('id, nome')
-          .order('nome')
-          .limit(50); // Limitar para não sobrecarregar
-        
-        if (error) throw error;
-        setEntidades(data || []);
-      } catch (err) {
-        console.error('Erro ao carregar entidades:', err);
-      } finally {
-        setLoadingEntidades(false);
-      }
-    };
-
-    fetchEntidades();
-  }, []);
 
   // Buscar informações da entidade filtrada
   const [entidadeFiltrada, setEntidadeFiltrada] = useState<any>(null);
@@ -148,23 +127,25 @@ const Eventos = () => {
     }
   };
 
-  const toggleEntityFilter = (entityId: string) => {
-    setSelectedEntityFilters(prev => 
-      prev.includes(entityId)
-        ? prev.filter(id => id !== entityId)
-        : [...prev, entityId]
+  const toggleAreaFilter = (area: string) => {
+    setSelectedAreaFilters(prev => 
+      prev.includes(area)
+        ? prev.filter(a => a !== area)
+        : [...prev, area]
     );
   };
 
   const clearAllFilters = () => {
     setSelectedFilters(['todos']);
-    setSelectedEntityFilters([]);
+    setSelectedAreaFilters([]);
+    setEnablePersonalizedFilter(false);
     setSearchTerm('');
   };
 
   const getActiveFiltersCount = () => {
     return (selectedFilters.length > 0 && !selectedFilters.includes('todos') ? selectedFilters.length : 0) + 
-           selectedEntityFilters.length;
+           selectedAreaFilters.length + 
+           (enablePersonalizedFilter ? 1 : 0);
   };
 
   const getEventoStatus = (evento: any) => {
@@ -189,7 +170,22 @@ const Eventos = () => {
       return 'futuro';
     }
   };
-  
+
+  // Função para calcular score de personalização baseado nas áreas de interesse do usuário
+  const getPersonalizedScore = (evento: any) => {
+    if (!enablePersonalizedFilter || !profile?.area_interesse || !evento.area_atuacao) {
+      return 0;
+    }
+
+    const userAreas = Array.isArray(profile.area_interesse) ? profile.area_interesse : [profile.area_interesse];
+    const eventoAreas = Array.isArray(evento.area_atuacao) ? evento.area_atuacao : [evento.area_atuacao];
+    
+    // Contar quantas áreas do usuário coincidem com as do evento
+    const matchingAreas = eventoAreas.filter(area => userAreas.includes(area));
+    
+    // Score baseado na porcentagem de match
+    return matchingAreas.length / Math.max(userAreas.length, eventoAreas.length);
+  };
 
   const handleInscricao = (evento: any) => {
     setSelectedEvento(evento);
@@ -237,11 +233,23 @@ const Eventos = () => {
     const matchesStatusFilter = selectedFilters.includes('todos') || 
                                selectedFilters.includes(getEventoStatus(evento));
     
-    const matchesEntityFilter = selectedEntityFilters.length === 0 || 
-                               selectedEntityFilters.includes(evento.entidade_id?.toString());
+    const matchesAreaFilter = selectedAreaFilters.length === 0 || 
+                             (evento.area_atuacao && 
+                              selectedAreaFilters.some(selectedArea => 
+                                evento.area_atuacao.includes(selectedArea)
+                              ));
     
-    return matchesSearch && matchesStatusFilter && matchesEntityFilter;
+    return matchesSearch && matchesStatusFilter && matchesAreaFilter;
   });
+
+  // Ordenar eventos se o filtro personalizado estiver ativo
+  const sortedEventos = enablePersonalizedFilter 
+    ? [...filteredEventos].sort((a, b) => {
+        const scoreA = getPersonalizedScore(a);
+        const scoreB = getPersonalizedScore(b);
+        return scoreB - scoreA; // Ordenar por score decrescente
+      })
+    : filteredEventos;
 
   if (loading) {
     return (
@@ -313,6 +321,9 @@ const Eventos = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-12 h-14 text-lg bg-white/95 backdrop-blur-sm border-0 shadow-lg text-black placeholder:text-gray-500"
               />
+              <div className="absolute right-4 top-4 text-xs text-gray-400">
+                💡 Dica: Digite o nome de uma organização para ver seus eventos
+              </div>
             </div>
 
             <div className="flex flex-wrap gap-3 justify-center">
@@ -334,7 +345,14 @@ const Eventos = () => {
                     )}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-80 z-50 bg-white border shadow-xl rounded-xl">
+                <PopoverContent 
+                  className="w-80 z-[100] bg-white border shadow-2xl rounded-xl" 
+                  side="bottom" 
+                  align="center"
+                  sideOffset={12}
+                  avoidCollisions={true}
+                  collisionPadding={20}
+                >
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <h4 className="font-semibold text-insper-black">Filtros de Eventos</h4>
@@ -366,22 +384,68 @@ const Eventos = () => {
                       </div>
 
                       <div>
-                        <label className="text-sm font-medium mb-3 block text-insper-dark-gray">Organizações Estudantis</label>
+                        <label className="text-sm font-medium mb-3 block text-insper-dark-gray">Filtros por Área de Atuação</label>
                         <div className="space-y-3 max-h-48 overflow-y-auto">
-                          {!loadingEntidades && entidades.slice(0, 10).map((entidade) => (
-                            <div key={entidade.id} className="flex items-center space-x-3">
+                          {AREAS_ATUACAO.map((area) => (
+                            <div key={area} className="flex items-center space-x-3">
                               <Checkbox
-                                id={entidade.id.toString()}
-                                checked={selectedEntityFilters.includes(entidade.id.toString())}
-                                onCheckedChange={() => toggleEntityFilter(entidade.id.toString())}
+                                id={`area-${area}`}
+                                checked={selectedAreaFilters.includes(area)}
+                                onCheckedChange={() => toggleAreaFilter(area)}
                                 className="text-insper-red"
                               />
-                              <label htmlFor={entidade.id.toString()} className="text-sm cursor-pointer hover:text-insper-red transition-colors">
-                                {entidade.nome}
+                              <label htmlFor={`area-${area}`} className="text-sm cursor-pointer hover:text-insper-red transition-colors">
+                                {area}
                               </label>
                             </div>
                           ))}
                         </div>
+                      </div>
+
+                      <div>
+                        <label className="text-sm font-medium mb-3 block text-insper-dark-gray">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="personalizado"
+                              checked={enablePersonalizedFilter}
+                              onCheckedChange={() => setEnablePersonalizedFilter(!enablePersonalizedFilter)}
+                              className="text-insper-red"
+                            />
+                            <span className="text-sm cursor-pointer hover:text-insper-red transition-colors">
+                              Filtro Personalizado
+                            </span>
+                          </div>
+                        </label>
+                        {enablePersonalizedFilter && (
+                          <div className="mt-3 p-3 bg-insper-red/5 rounded-lg border border-insper-red/20">
+                            <div className="flex items-center gap-2 text-sm text-insper-red mb-2">
+                              <Heart className="w-4 h-4" />
+                              <span className="font-medium">Baseado nas suas áreas de interesse</span>
+                            </div>
+                            <p className="text-xs text-gray-600">
+                              Os eventos serão ordenados por relevância baseada nas suas áreas de interesse cadastradas no perfil.
+                            </p>
+                            {profile?.area_interesse && (
+                              <div className="mt-2">
+                                <p className="text-xs text-gray-500 mb-1">Suas áreas:</p>
+                                <div className="flex flex-wrap gap-1">
+                                  {Array.isArray(profile.area_interesse) 
+                                    ? profile.area_interesse.map(area => (
+                                        <Badge key={area} variant="secondary" className="text-xs bg-insper-red/20 text-insper-red">
+                                          {area}
+                                        </Badge>
+                                      ))
+                                    : (
+                                        <Badge variant="secondary" className="text-xs bg-insper-red/20 text-insper-red">
+                                          {profile.area_interesse}
+                                        </Badge>
+                                      )
+                                  }
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -414,22 +478,34 @@ const Eventos = () => {
                   );
                 })}
                 
-                {selectedEntityFilters.map(entityId => {
-                  const entity = entidades.find(e => e.id.toString() === entityId);
-                  return (
-                    <Badge key={entityId} variant="secondary" className="flex items-center gap-1 bg-white/20 text-white border-white/30">
-                      {entity?.nome}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-auto p-0 ml-1 hover:bg-white/20 text-white"
-                        onClick={() => toggleEntityFilter(entityId)}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </Badge>
-                  );
-                })}
+                {selectedAreaFilters.map(area => (
+                  <Badge key={area} variant="secondary" className="flex items-center gap-1 bg-white/20 text-white border-white/30">
+                    {area}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-auto p-0 ml-1 hover:bg-white/20 text-white"
+                      onClick={() => toggleAreaFilter(area)}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </Badge>
+                ))}
+
+                {enablePersonalizedFilter && (
+                  <Badge variant="secondary" className="flex items-center gap-1 bg-white/20 text-white border-white/30">
+                    <Heart className="w-3 h-3" />
+                    Personalizado
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-auto p-0 ml-1 hover:bg-white/20 text-white"
+                      onClick={() => setEnablePersonalizedFilter(false)}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </Badge>
+                )}
               </div>
             )}
           </div>
@@ -468,22 +544,68 @@ const Eventos = () => {
           </div>
         )}
 
-        <div className="mb-8 flex items-center justify-between">
+        <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
             <Target className="w-5 h-5 text-insper-red" />
             <p className="text-insper-dark-gray font-medium">
-              {filteredEventos.length} evento{filteredEventos.length !== 1 ? 's' : ''} encontrado{filteredEventos.length !== 1 ? 's' : ''}
+              {sortedEventos.length} evento{sortedEventos.length !== 1 ? 's' : ''} encontrado{sortedEventos.length !== 1 ? 's' : ''}
             </p>
+            {enablePersonalizedFilter && (
+              <Badge variant="secondary" className="bg-insper-red/20 text-insper-red border-insper-red/30">
+                <Heart className="w-3 h-3 mr-1" />
+                Personalizado
+              </Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {enablePersonalizedFilter && (
+              <div className="text-xs text-gray-500 flex items-center gap-1">
+                <Star className="w-3 h-3 text-insper-red" />
+                Ordenado por relevância
+              </div>
+            )}
           </div>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredEventos.map((evento) => (
+          {sortedEventos.map((evento) => (
             <div key={evento.id} className="group">
               <Card className="h-full hover:shadow-2xl transition-all duration-500 hover:-translate-y-3 border-0 shadow-lg bg-white overflow-hidden flex flex-col">
                 <div className="relative flex flex-col h-full">
                   {/* Gradient overlay on hover */}
                   <div className="absolute inset-0 bg-gradient-to-br from-insper-red/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                  
+                  {/* Indicador de relevância personalizada */}
+                  {enablePersonalizedFilter && (
+                    <div className="absolute top-3 right-3 z-10">
+                      {(() => {
+                        const score = getPersonalizedScore(evento);
+                        if (score > 0.7) {
+                          return (
+                            <Badge className="bg-green-500 text-white text-xs">
+                              <Star className="w-3 h-3 mr-1" />
+                              Alta Relevância
+                            </Badge>
+                          );
+                        } else if (score > 0.3) {
+                          return (
+                            <Badge className="bg-yellow-500 text-white text-xs">
+                              <Star className="w-3 h-3 mr-1" />
+                              Relevante
+                            </Badge>
+                          );
+                        } else if (score > 0) {
+                          return (
+                            <Badge className="bg-blue-500 text-white text-xs">
+                              <Star className="w-3 h-3 mr-1" />
+                              Relacionado
+                            </Badge>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </div>
+                  )}
                   
                   {/* Área clicável do card - leva para página do evento */}
                   <div 
@@ -568,6 +690,25 @@ const Eventos = () => {
                         <p className="text-insper-dark-gray text-sm leading-relaxed line-clamp-3">
                           {evento.descricao || 'Descrição não disponível'}
                         </p>
+
+                        {/* Áreas de atuação */}
+                        {evento.area_atuacao && evento.area_atuacao.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {evento.area_atuacao.map((area) => (
+                              <Badge 
+                                key={area} 
+                                variant="secondary" 
+                                className="text-xs bg-insper-red/10 text-insper-red border-insper-red/20 hover:bg-insper-red/20 transition-colors cursor-pointer"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleAreaFilter(area);
+                                }}
+                              >
+                                {area}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
 
                         {/* Informações adicionais em cards destacados */}
                         <div className="space-y-3">
@@ -687,7 +828,7 @@ const Eventos = () => {
           </div>
         )}
 
-        {filteredEventos.length === 0 && (
+        {sortedEventos.length === 0 && (
           <div className="text-center py-20">
             <div className="w-32 h-32 bg-gradient-to-br from-insper-red/20 to-insper-red/10 rounded-full flex items-center justify-center mx-auto mb-8">
               <Calendar size={48} className="text-insper-red" />

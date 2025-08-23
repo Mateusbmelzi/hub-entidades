@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -6,10 +6,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Calendar, MapPin, Users, Plus } from 'lucide-react';
+import { Calendar, MapPin, Users, Plus, Target } from 'lucide-react';
 import { useCreateEventoAsEntity } from '@/hooks/useCreateEventoAsEntity';
 import { useEntityAuth } from '@/hooks/useEntityAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { AREAS_ATUACAO } from '@/lib/constants';
+import { DateTimeInput } from '@/components/ui/datetime-input';
+import { parseDateTime, validateDateTime } from '@/lib/datetime-input-utils';
 
 interface CriarEventoEntidadeProps {
   onSuccess?: () => void;
@@ -19,9 +22,11 @@ export default function CriarEventoEntidade({ onSuccess }: CriarEventoEntidadePr
   const [nome, setNome] = useState('');
   const [descricao, setDescricao] = useState('');
   const [local, setLocal] = useState('');
-  const [dataEvento, setDataEvento] = useState('');
+  const [dataEvento, setDataEvento] = useState(''); // Agora formato DD/MM/AAAA HH:MM
   const [capacidade, setCapacidade] = useState('');
   const [link_evento, setLinkevento] = useState('');
+  const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
+  const [dateTimeError, setDateTimeError] = useState('');
   const [open, setOpen] = useState(false);
   const [showNameWarning, setShowNameWarning] = useState(false);
   const [pendingEventData, setPendingEventData] = useState<any>(null);
@@ -35,6 +40,32 @@ export default function CriarEventoEntidade({ onSuccess }: CriarEventoEntidadePr
   //   open,
   //   loading
   // });
+
+  // Carregar áreas de atuação da entidade quando o componente montar
+  useEffect(() => {
+    const loadEntidadeAreas = async () => {
+      if (!entidadeId) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('entidades')
+          .select('area_atuacao')
+          .eq('id', entidadeId)
+          .single();
+        
+        if (error) throw error;
+        
+        // Presetar com as áreas da entidade
+        if (data?.area_atuacao && Array.isArray(data.area_atuacao)) {
+          setSelectedAreas(data.area_atuacao);
+        }
+      } catch (err) {
+        console.error('Erro ao carregar áreas da entidade:', err);
+      }
+    };
+
+    loadEntidadeAreas();
+  }, [entidadeId]);
 
   // Função para testar a conexão com o banco
   const testDatabaseConnection = async () => {
@@ -67,6 +98,63 @@ export default function CriarEventoEntidade({ onSuccess }: CriarEventoEntidadePr
     }
   };
 
+  // Função para testar inserção direta
+  const testDirectInsert = async () => {
+    if (!entidadeId) {
+      console.error('❌ entidadeId não encontrado para teste');
+      return;
+    }
+
+    try {
+      console.log('🧪 Testando inserção direta na tabela eventos...');
+      
+      const testData = {
+        entidade_id: entidadeId,
+        nome: 'TESTE INSERÇÃO DIRETA',
+        descricao: 'Teste de inserção direta',
+        local: 'Local de teste',
+        data: '2024-12-25',
+        horario: '14:30',
+        status_aprovacao: 'pendente', // Campo correto para aprovação
+        link_evento: '' // Campo obrigatório
+      };
+
+      console.log('📝 Dados de teste:', testData);
+
+      const { data: insertResult, error: insertError } = await supabase
+        .from('eventos')
+        .insert(testData)
+        .select('id, nome, status')
+        .single();
+
+      if (insertError) {
+        console.error('❌ Erro na inserção de teste:', insertError);
+        console.error('🔍 Detalhes do erro:', {
+          code: insertError.code,
+          message: insertError.message,
+          details: insertError.details,
+          hint: insertError.hint
+        });
+      } else {
+        console.log('✅ Inserção de teste bem-sucedida:', insertResult);
+        
+        // Limpar o teste
+        const { error: deleteError } = await supabase
+          .from('eventos')
+          .delete()
+          .eq('id', insertResult.id);
+        
+        if (deleteError) {
+          console.error('⚠️ Erro ao limpar teste:', deleteError);
+        } else {
+          console.log('🧹 Teste limpo com sucesso');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Erro inesperado no teste:', error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -77,7 +165,8 @@ export default function CriarEventoEntidade({ onSuccess }: CriarEventoEntidadePr
       local,
       dataEvento,
       capacidade,
-      link_evento
+      link_evento,
+      selectedAreas
     });
     
     if (!entidadeId) {
@@ -87,26 +176,74 @@ export default function CriarEventoEntidade({ onSuccess }: CriarEventoEntidadePr
       return;
     }
 
+    // Validar campos obrigatórios
+    if (!nome.trim()) {
+      console.error('❌ Nome é obrigatório');
+      return;
+    }
+
+    if (!descricao.trim()) {
+      console.error('❌ Descrição é obrigatória');
+      return;
+    }
+
+    if (!local.trim()) {
+      console.error('❌ Local é obrigatório');
+      return;
+    }
+
+    // Validar data e hora
+    if (!dataEvento.trim()) {
+      console.error('❌ Data e hora são obrigatórias');
+      setDateTimeError('Data e hora são obrigatórias');
+      return;
+    }
+
+    const dateValidation = validateDateTime(dataEvento);
+    if (!dateValidation.isValid) {
+      console.error('❌ Validação de data falhou:', dateValidation.message);
+      setDateTimeError(dateValidation.message || 'Data inválida');
+      return;
+    }
+    
+    // Converter para Date e depois para ISO string
+    const dateTime = parseDateTime(dataEvento);
+    if (!dateTime) {
+      console.error('❌ Erro ao processar data e hora');
+      setDateTimeError('Erro ao processar data e hora');
+      return;
+    }
+
+    console.log('✅ Validações passaram, data convertida:', dateTime);
+
     const eventData = {
       nome,
       descricao,
       local,
-      data_evento: dataEvento, // Mantemos para compatibilidade com a função RPC
-      capacidade: capacidade ? parseInt(capacidade) : undefined
+      data_evento: dateTime.toISOString(), // Converter para formato ISO
+      capacidade: capacidade ? parseInt(capacidade) : undefined,
+      area_atuacao: selectedAreas
     };
 
     console.log('🚀 Chamando createEvento com:', eventData);
 
-    const result = await createEvento(entidadeId, eventData);
+    try {
+      const result = await createEvento(entidadeId, eventData);
+      console.log('📊 Resultado createEvento:', result);
 
-    console.log('📊 Resultado createEvento:', result);
-
-    if (result.success) {
-      resetForm();
-      onSuccess?.();
-    } else if (result.nameExists) {
-      setPendingEventData(eventData);
-      setShowNameWarning(true);
+      if (result.success) {
+        console.log('✅ Evento criado com sucesso!');
+        resetForm();
+        onSuccess?.();
+      } else if (result.nameExists) {
+        console.log('⚠️ Nome do evento já existe, mostrando diálogo');
+        setPendingEventData(eventData);
+        setShowNameWarning(true);
+      } else {
+        console.error('❌ Falha ao criar evento:', result.error);
+      }
+    } catch (error) {
+      console.error('❌ Erro inesperado ao criar evento:', error);
     }
   };
 
@@ -129,6 +266,8 @@ export default function CriarEventoEntidade({ onSuccess }: CriarEventoEntidadePr
     setLocal('');
     setDataEvento('');
     setCapacidade('');
+    setSelectedAreas([]);
+    setDateTimeError('');
     setOpen(false);
   };
 
@@ -139,6 +278,24 @@ export default function CriarEventoEntidade({ onSuccess }: CriarEventoEntidadePr
       isAuthenticated,
       open
     });
+  };
+
+  const addAreaAtuacao = (area: string) => {
+    if (!selectedAreas.includes(area)) {
+      setSelectedAreas([...selectedAreas, area]);
+    }
+  };
+
+  const removeAreaAtuacao = (areaToRemove: string) => {
+    setSelectedAreas(selectedAreas.filter(area => area !== areaToRemove));
+  };
+
+  const handleDateTimeChange = (value: string) => {
+    setDataEvento(value);
+    // Limpar erro quando usuário começar a digitar
+    if (dateTimeError) {
+      setDateTimeError('');
+    }
   };
 
   return (
@@ -244,15 +401,72 @@ export default function CriarEventoEntidade({ onSuccess }: CriarEventoEntidadePr
               </div>
             </div>
 
+            <DateTimeInput
+              id="data-evento"
+              label="Data e Hora do Evento"
+              value={dataEvento}
+              onChange={handleDateTimeChange}
+              required
+              error={dateTimeError}
+              placeholder="Ex: 25/12/2024 14:30"
+            />
+
             <div className="space-y-2">
-              <Label htmlFor="data-evento">Data e Hora do Evento</Label>
-              <Input
-                id="data-evento"
-                type="datetime-local"
-                value={dataEvento}
-                onChange={(e) => setDataEvento(e.target.value)}
-                required
-              />
+              <Label htmlFor="area-atuacao" className="flex items-center">
+                <Target className="mr-1 h-4 w-4" />
+                Áreas de Atuação
+              </Label>
+              
+              {/* Áreas disponíveis como checkboxes */}
+              <div className="grid grid-cols-2 gap-3 mt-2">
+                {AREAS_ATUACAO.map((area) => (
+                  <div key={area} className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id={`area-${area}`}
+                      checked={selectedAreas.includes(area)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          addAreaAtuacao(area);
+                        } else {
+                          removeAreaAtuacao(area);
+                        }
+                      }}
+                      className="rounded border-gray-300 text-red-600 focus:ring-red-500"
+                    />
+                    <label htmlFor={`area-${area}`} className="text-sm text-gray-700">
+                      {area}
+                    </label>
+                  </div>
+                ))}
+              </div>
+
+              {/* Áreas selecionadas como badges */}
+              {selectedAreas.length > 0 && (
+                <div className="mt-3">
+                  <p className="text-sm text-gray-600 mb-2">
+                    Áreas selecionadas ({selectedAreas.length}):
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedAreas.map((area) => (
+                      <div
+                        key={area}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800"
+                      >
+                        {area}
+                        <button
+                          type="button"
+                          onClick={() => removeAreaAtuacao(area)}
+                          className="ml-1 hover:bg-red-200 rounded-full p-0.5 transition-colors"
+                          title="Remover área"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3 pt-4">
@@ -267,6 +481,31 @@ export default function CriarEventoEntidade({ onSuccess }: CriarEventoEntidadePr
               >
                 Cancelar
               </Button>
+            </div>
+
+            {/* Botões de teste para debug */}
+            <div className="pt-4 border-t border-gray-200">
+              <p className="text-xs text-gray-500 mb-2">Debug (remover em produção):</p>
+              <div className="flex gap-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={testDatabaseConnection}
+                  className="text-xs"
+                >
+                  🧪 Testar Conexão
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={testDirectInsert}
+                  className="text-xs"
+                >
+                  🧪 Testar Inserção
+                </Button>
+              </div>
             </div>
           </form>
         </DialogContent>

@@ -272,6 +272,7 @@ export type Database = {
           data_aprovacao: string | null
           aprovador_email: string | null
           updated_at: string
+          area_atuacao: string[] | null
         }
         Insert: {
           capacidade?: number | null
@@ -290,6 +291,7 @@ export type Database = {
           data_aprovacao?: string | null
           aprovador_email?: string | null
           updated_at?: string
+          area_atuacao?: string[] | null
         }
         Update: {
           capacidade?: number | null
@@ -308,6 +310,7 @@ export type Database = {
           data_aprovacao?: string | null
           aprovador_email?: string | null
           updated_at?: string
+          area_atuacao?: string[] | null
         }
         Relationships: [
           {
