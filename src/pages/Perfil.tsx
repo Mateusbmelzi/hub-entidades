@@ -58,7 +58,7 @@ export default function Perfil() {
   const [dataNascimento, setDataNascimento] = useState('');
   const [curso, setCurso] = useState('');
   const [semestre, setSemestre] = useState(1);
-  const [areaInteresse, setAreaInteresse] = useState('');
+  const [areasInteresse, setAreasInteresse] = useState<string[]>([]);
   const [celular, setCelular] = useState('');
   const [celularError, setCelularError] = useState('');
   const [nomeError, setNomeError] = useState('');
@@ -74,12 +74,17 @@ export default function Perfil() {
         })()
       : '';
     
+    // Comparar arrays de áreas de interesse
+    const originalAreas = profile.areas_interesse || [];
+    const areasChanged = areasInteresse.length !== originalAreas.length || 
+      areasInteresse.some((area, index) => area !== originalAreas[index]);
+    
     return (
       nome !== (profile.nome || '') ||
       dataNascimento !== originalDataNascimento ||
       curso !== (profile.curso || '') ||
       semestre !== (profile.semestre || 1) ||
-      areaInteresse !== (profile.area_interesse || '') ||
+      areasChanged ||
       celular !== (profile.celular || '')
     );
   };
@@ -133,7 +138,7 @@ export default function Perfil() {
         : '');
       setCurso(profile.curso || '');
       setSemestre(profile.semestre || 1);
-      setAreaInteresse(profile.area_interesse || '');
+      setAreasInteresse(profile.areas_interesse || []);
       setCelular(profile.celular || '');
     }
   }, [profile]);
@@ -343,7 +348,7 @@ export default function Perfil() {
         : '');
       setCurso(profile.curso || '');
       setSemestre(profile.semestre || 1);
-      setAreaInteresse(profile.area_interesse || '');
+      setAreasInteresse(profile.areas_interesse || []);
       setCelular(profile.celular || '');
     }
   };
@@ -376,6 +381,11 @@ export default function Perfil() {
     if (!validateCelular(celular)) {
       setCelularError('Celular deve ter 10 ou 11 dígitos (com DDD)');
       toast.error('Celular deve ter 10 ou 11 dígitos (com DDD)');
+      return;
+    }
+    
+    if (areasInteresse.length === 0) {
+      toast.error('Selecione pelo menos uma área de interesse');
       return;
     }
 
@@ -411,7 +421,8 @@ export default function Perfil() {
             : null,
           curso,
           semestre,
-          area_interesse: areaInteresse,
+          area_interesse: areasInteresse.length > 0 ? areasInteresse[0] : null, // Primeira área como principal
+          areas_interesse: areasInteresse.length > 0 ? areasInteresse : null,
           celular: celular.trim(),
           updated_at: new Date().toISOString()
         })
@@ -820,19 +831,32 @@ export default function Perfil() {
                     </div>
 
                     <div>
-                      <Label htmlFor="areaInteresse">Área de Interesse</Label>
-                      <Select value={areaInteresse} onValueChange={setAreaInteresse}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione sua área de interesse" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {areas.map((area) => (
-                            <SelectItem key={area} value={area}>
+                      <Label htmlFor="areasInteresse">Áreas de Interesse</Label>
+                      <div className="grid grid-cols-2 gap-3 mt-2">
+                        {areas.map((area) => (
+                          <div key={area} className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id={`area-${area}`}
+                              checked={areasInteresse.includes(area)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setAreasInteresse([...areasInteresse, area]);
+                                } else {
+                                  setAreasInteresse(areasInteresse.filter(a => a !== area));
+                                }
+                              }}
+                              className="rounded border-gray-300 text-red-600 focus:ring-red-500"
+                            />
+                            <label htmlFor={`area-${area}`} className="text-sm text-gray-700">
                               {area.charAt(0).toUpperCase() + area.slice(1)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Selecione uma ou mais áreas de interesse
+                      </p>
                     </div>
 
                     <div>
@@ -931,16 +955,20 @@ export default function Perfil() {
                       </div>
                     </div>
 
-                    {profile?.area_interesse && (
+                    {profile?.areas_interesse && profile.areas_interesse.length > 0 && (
                       <div className="flex items-center space-x-3">
                         <div className="p-2 bg-red-100 rounded-lg">
                           <Target className="h-5 w-5 text-red-600" />
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-600">Área de Interesse</p>
-                          <Badge className={getAreaColor(profile.area_interesse)}>
-                            {profile.area_interesse.charAt(0).toUpperCase() + profile.area_interesse.slice(1)}
-                          </Badge>
+                          <p className="text-sm font-medium text-gray-600">Áreas de Interesse</p>
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {profile.areas_interesse.map((area, index) => (
+                              <Badge key={index} className={getAreaColor(area)}>
+                                {area.charAt(0).toUpperCase() + area.slice(1)}
+                              </Badge>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     )}
