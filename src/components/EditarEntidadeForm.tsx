@@ -56,6 +56,11 @@ export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade
 
   // Converter area_atuacao para array se for string
   const getInitialAreaAtuacao = () => {
+    console.log('🔍 getInitialAreaAtuacao chamado');
+    console.log('🔍 entidade.area_atuacao:', entidade.area_atuacao);
+    console.log('🔍 Tipo:', typeof entidade.area_atuacao);
+    console.log('🔍 É array?', Array.isArray(entidade.area_atuacao));
+    
     if (!entidade.area_atuacao) return [];
     if (Array.isArray(entidade.area_atuacao)) return entidade.area_atuacao;
     return [entidade.area_atuacao];
@@ -95,6 +100,10 @@ export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade
     console.log('🚀 onSubmit chamado com dados:', data);
     console.log('🚀 ID da entidade:', entidade.id);
     console.log('🚀 Tipo do ID:', typeof entidade.id);
+    console.log('🚀 area_atuacao no formulário:', data.area_atuacao);
+    console.log('🚀 Tipo de area_atuacao:', typeof data.area_atuacao);
+    console.log('🚀 É array?', Array.isArray(data.area_atuacao));
+    console.log('🚀 Conteúdo do array:', JSON.stringify(data.area_atuacao));
     
     try {
       const success = await updateEntidade(entidade.id, {
@@ -153,17 +162,26 @@ export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade
 
   const addAreaAtuacao = (area: string) => {
     const currentAreas = form.watch('area_atuacao');
+    console.log('➕ addAreaAtuacao:', { area, currentAreas });
     if (!currentAreas.includes(area)) {
-      form.setValue('area_atuacao', [...currentAreas, area]);
+      const newAreas = [...currentAreas, area];
+      console.log('➕ Novas áreas:', newAreas);
+      form.setValue('area_atuacao', newAreas);
     }
   };
 
   const removeAreaAtuacao = (areaToRemove: string) => {
     const currentAreas = form.watch('area_atuacao');
-    form.setValue('area_atuacao', currentAreas.filter(area => area !== areaToRemove));
+    console.log('➖ removeAreaAtuacao:', { areaToRemove, currentAreas });
+    const newAreas = currentAreas.filter(area => area !== areaToRemove);
+    console.log('➖ Novas áreas:', newAreas);
+    form.setValue('area_atuacao', newAreas);
   };
 
   const selectedAreas = form.watch('area_atuacao');
+  console.log('👀 selectedAreas atualizado:', selectedAreas);
+  console.log('👀 Tipo:', typeof selectedAreas);
+  console.log('👀 É array?', Array.isArray(selectedAreas));
   const availableAreas = AREAS_ATUACAO.filter(area => !selectedAreas.includes(area));
 
   return (
@@ -246,48 +264,62 @@ export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade
           <div className="space-y-2">
             <Label htmlFor="area_atuacao">Áreas de Atuação</Label>
             
-            {/* Áreas selecionadas */}
+            {/* Áreas selecionadas - Feedback visual */}
             {selectedAreas.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-3">
-                {selectedAreas.map((area) => (
-                  <Badge key={area} variant="secondary" className="flex items-center gap-1">
-                    {area}
-                    <button
-                      type="button"
-                      onClick={() => removeAreaAtuacao(area)}
-                      className="ml-1 hover:bg-red-100 rounded-full p-0.5"
-                    >
-                      <X size={12} />
-                    </button>
-                  </Badge>
-                ))}
+              <div className="mb-4">
+                <p className="text-sm font-medium text-gray-700 mb-2">
+                  Áreas selecionadas ({selectedAreas.length}):
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {selectedAreas.map((area) => (
+                    <Badge key={area} variant="secondary" className="flex items-center gap-1 bg-red-100 text-red-800 border-red-200">
+                      {area}
+                      <button
+                        type="button"
+                        onClick={() => removeAreaAtuacao(area)}
+                        className="ml-1 hover:bg-red-200 rounded-full p-0.5 transition-colors"
+                        title={`Remover ${area}`}
+                      >
+                        <X size={12} />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
               </div>
             )}
-
-            {/* Seletor de novas áreas */}
-            {availableAreas.length > 0 && (
-              <Select onValueChange={addAreaAtuacao}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Adicionar área de atuação" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableAreas.map((area) => (
-                    <SelectItem key={area} value={area}>
-                      {area}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
+            
+            {/* Áreas disponíveis como checkboxes */}
+            <div className="grid grid-cols-2 gap-3 mt-2">
+              {AREAS_ATUACAO.map((area) => (
+                <div key={area} className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id={`area-${area}`}
+                    checked={selectedAreas.includes(area)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        addAreaAtuacao(area);
+                      } else {
+                        removeAreaAtuacao(area);
+                      }
+                    }}
+                    className="rounded border-gray-300 text-red-600 focus:ring-red-500"
+                  />
+                  <label htmlFor={`area-${area}`} className="text-sm text-gray-700">
+                    {area.charAt(0).toUpperCase() + area.slice(1)}
+                  </label>
+                </div>
+              ))}
+            </div>
 
             {selectedAreas.length === 0 && (
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-500 mt-2">
                 Selecione pelo menos uma área de atuação
               </p>
             )}
 
             {form.formState.errors.area_atuacao && (
-              <p className="text-sm text-red-500">{form.formState.errors.area_atuacao.message}</p>
+              <p className="text-sm text-red-500 mt-2">{form.formState.errors.area_atuacao.message}</p>
             )}
           </div>
         </CardContent>
