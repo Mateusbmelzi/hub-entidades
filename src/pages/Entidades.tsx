@@ -85,20 +85,17 @@ const Entidades = () => {
     if (selectedFilters.length === 0) return;
     
     setIsFilteringFromServer(true);
-    console.log('🔍 Aplicando filtros no servidor:', selectedFilters);
     
     try {
       // Como area_atuacao agora é um array JSON, precisamos usar uma abordagem diferente
       // Por enquanto, vamos desabilitar o filtro do servidor e usar apenas filtros locais
       // TODO: Implementar filtro JSON quando o Supabase suportar melhor arrays JSON
-      console.log('🔍 Filtro do servidor desabilitado temporariamente para arrays JSON');
       setFilteredFromServer(false);
       
       // Fallback para filtros locais
       setServerFilterResults([]);
       
     } catch (err) {
-      console.error('❌ Erro ao filtrar no servidor:', err);
       // Fallback para filtros locais
       setFilteredFromServer(false);
     } finally {
@@ -127,15 +124,6 @@ const Entidades = () => {
   const areaStats = useMemo(() => {
     const stats: Record<string, number> = {};
     
-    // Debug: verificar estrutura dos dados
-    if (entidades.length > 0) {
-      console.log('🔍 Primeira entidade:', {
-        id: entidades[0].id,
-        nome: entidades[0].nome,
-        area_atuacao: entidades[0].area_atuacao
-      });
-    }
-    
     // Inicializar todas as áreas com 0
     AREAS_ATUACAO.forEach(area => {
       stats[area] = 0;
@@ -155,7 +143,6 @@ const Entidades = () => {
       });
     });
     
-    console.log('🔍 Estatísticas das áreas:', stats);
     return stats;
   }, [entidades]);
 
@@ -176,15 +163,11 @@ const Entidades = () => {
     // Se há filtros ativos, usar resultados do servidor se disponível
     if (selectedFilters.length > 0 && filteredFromServer) {
       entitiesToFilter = serverFilterResults;
-      console.log('🔍 Usando filtros do servidor:', serverFilterResults.length, 'entidades');
     }
     
     // Aplicar filtros locais (para entidades já carregadas ou como fallback)
     let filtered = entitiesToFilter;
     if (selectedFilters.length > 0 && !filteredFromServer) {
-      console.log('🔍 Aplicando filtros locais:', selectedFilters);
-      console.log('🔍 Entidades antes dos filtros:', entitiesToFilter.length);
-      
       filtered = entitiesToFilter.filter(entity => {
         if (!entity.area_atuacao) return false;
         
@@ -194,21 +177,15 @@ const Entidades = () => {
         if (Array.isArray(entity.area_atuacao)) {
           areas = entity.area_atuacao.filter((area: any) => area && area.trim());
         } else if (typeof entity.area_atuacao === 'string') {
-                  // Se for string, separar por vírgulas
-        areas = parseAreasAtuacao(entity.area_atuacao);
+          // Se for string, separar por vírgulas
+          areas = parseAreasAtuacao(entity.area_atuacao);
         }
         
         // Verificar se alguma das áreas da entidade está nos filtros selecionados
         const matchesFilter = areas.some(area => selectedFilters.includes(area));
         
-        if (!matchesFilter && areas.length > 0) {
-          console.log(`🔍 Entidade "${entity.nome}" não passou no filtro: áreas="${areas.join(', ')}" não estão em`, selectedFilters);
-        }
-        
         return matchesFilter;
       });
-      
-      console.log('🔍 Entidades após filtros locais:', filtered.length);
     }
     
     // DEPOIS aplicar busca (se houver)
@@ -217,7 +194,6 @@ const Entidades = () => {
       if (searchResults.length > 0) {
         const searchResultIds = new Set(searchResults.map(e => e.id));
         filtered = filtered.filter(entity => searchResultIds.has(entity.id));
-        console.log('🔍 Aplicando filtros de busca global, entidades restantes:', filtered.length);
       } else {
         // Busca local nos dados já filtrados
         filtered = filtered.filter(entity => {
@@ -230,21 +206,8 @@ const Entidades = () => {
             (area?.toLowerCase().includes(searchLower))
           );
         });
-        console.log('🔍 Aplicando busca local, entidades restantes:', filtered.length);
       }
     }
-    
-    // Debug: log dos filtros aplicados
-    console.log('🔍 Filtros aplicados:', {
-      totalEntidades: entidades.length,
-      filtrosSelecionados: selectedFilters,
-      termoBusca: debouncedSearchTerm,
-      resultadosBusca: searchResults.length,
-      entidadesFiltradas: filtered.length,
-      entidadesAntesFiltros: entitiesToFilter.length,
-      filtrosDoServidor: filteredFromServer,
-      resultadosServidor: serverFilterResults.length
-    });
     
     // Ordenar
     return filtered.sort((a, b) => {
@@ -313,10 +276,7 @@ const Entidades = () => {
   }
 
   const toggleFilter = (filterId: string) => {
-    console.log('🔍 toggleFilter:', filterId, 'Filtros atuais:', selectedFilters);
-    
     if (filterId === 'todas') {
-      console.log('🔍 Limpando todos os filtros');
       setSelectedFilters([]);
       setFilteredFromServer(false);
       setServerFilterResults([]);
@@ -327,7 +287,6 @@ const Entidades = () => {
         if (prev.includes(filterId)) {
           // Remover filtro
           const newFilters = prev.filter(f => f !== filterId);
-          console.log('🔍 Removendo filtro:', filterId, 'Novos filtros:', newFilters);
           
           // Se não há mais filtros, limpar servidor e resetar paginação
           if (newFilters.length === 0) {
@@ -341,7 +300,6 @@ const Entidades = () => {
         } else {
           // Adicionar filtro
           const newFilters = [...prev, filterId];
-          console.log('🔍 Adicionando filtro:', filterId, 'Novos filtros:', newFilters);
           
           // Resetar filtros do servidor e paginação para forçar nova busca
           setFilteredFromServer(false);
@@ -664,17 +622,19 @@ const Entidades = () => {
               )}
             </div>
           </div>
-          {selectedFilters.length > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={clearAllFilters}
-              className="text-insper-red border-insper-red/30 hover:bg-insper-red/5"
-            >
-              <X className="w-3 h-3 mr-1" />
-              Limpar filtros
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {selectedFilters.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearAllFilters}
+                className="text-insper-red border-insper-red/30 hover:bg-insper-red/5"
+              >
+                <X className="w-3 h-3 mr-1" />
+                Limpar filtros
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -735,21 +695,40 @@ const Entidades = () => {
                           <p className="text-insper-dark-gray text-sm leading-relaxed line-clamp-3">
                             {entity.descricao_curta || 'Descrição não disponível'}
                           </p>
-
-                          {/* Informações da Feira - Design Melhorado */}
-                          {(entity.link_processo_seletivo || entity.local_apresentacao || entity.horario_apresentacao) && (
+                          
+                          {/* Informações da Feira - Tem preferência sobre processo seletivo quando ativa */}
+                          {entity.feira_ativa === true && (
+                            <div className="bg-gradient-to-r from-insper-blue/5 to-insper-green/5 border border-insper-blue/20 rounded-xl p-4">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Building className="w-4 h-4 text-insper-blue" />
+                                <span className="text-sm font-semibold text-insper-blue">Feira de Entidades</span>
+                              </div>
+                              <div className="space-y-2 text-sm">
+                                {entity.local_feira && (
+                                  <div className="flex items-center gap-2 text-insper-blue">
+                                    <MapPin size={14} className="text-insper-blue flex-shrink-0" />
+                                    <span className="font-medium">Local: {entity.local_feira}</span>
+                                  </div>
+                                )}
+                                {entity.sala_feira && (
+                                  <div className="flex items-center gap-2 text-insper-blue">
+                                    <Building size={14} className="text-insper-blue flex-shrink-0" />
+                                    <span className="font-medium">Sala: {entity.sala_feira}</span>
+                                  </div>
+                                )}
+                                <div className="flex items-center gap-2 text-insper-blue">Visite nosso estande na feira para mais informações!</div>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Informações do Processo Seletivo - Só aparece se não houver feira ativa e houver link_processo_seletivo válido */}
+                          {!entity.feira_ativa && entity.link_processo_seletivo && entity.link_processo_seletivo.trim() !== '' && (
                             <div className="bg-gradient-to-r from-insper-red/5 to-insper-yellow/5 border border-insper-red/20 rounded-xl p-4">
                               <div className="flex items-center gap-2 mb-2">
                                 <Presentation className="w-4 h-4 text-insper-red" />
                                 <span className="text-sm font-semibold text-insper-red">Processo Seletivo</span>
                               </div>
                               <div className="space-y-2 text-sm">
-                                {/* {entity.abertura_processo_seletivo && (
-                                  <div className="flex items-center gap-2 text-insper-red">
-                                    <Calendar size={14} className="text-insper-red flex-shrink-0" />
-                                    <span className="font-medium">Abertura Inscrições: {entity.abertura_processo_seletivo}</span>
-                                  </div>
-                                )} */}
                                 {entity.fechamento_processo_seletivo && (
                                   <div className="flex items-center gap-2 text-insper-red">
                                     <Calendar size={14} className="text-insper-red flex-shrink-0" />
@@ -759,77 +738,11 @@ const Entidades = () => {
                                   </div>
                                 )}
                                 <div className="flex items-center gap-2 text-insper-red">Para mais informações do processo seletivo, veja o perfil da organização.</div>
-                                {/* {entity.data_primeira_fase && (
-                                  <div className="flex items-center gap-2 text-insper-red">
-                                    <CalendarDays size={14} className="text-insper-red flex-shrink-0" />
-                                    <span>Primeira Fase: {entity.data_primeira_fase}</span>
-                                  </div>
-                                )} */}
-                                {/* {entity.data_primeira_fase_2 && (
-                                  <div className="flex items-center gap-2 text-insper-red">
-                                    <CalendarDays size={14} className="text-insper-red flex-shrink-0" />
-                                    <span>Primeira Fase 2º Dia: {entity.data_primeira_fase_2}</span>
-                                  </div>
-                                )}
-                                {entity.data_primeira_fase_3 && (
-                                  <div className="flex items-center gap-2 text-insper-red">
-                                    <CalendarDays size={14} className="text-insper-red flex-shrink-0" />
-                                    <span>Primeira Fase 3º Dia: {entity.data_primeira_fase_3}</span>
-                                  </div>
-                                )}
-                                {entity.data_segunda_fase && (
-                                  <div className="flex items-center gap-2 text-insper-red">
-                                    <CalendarDays size={14} className="text-insper-red flex-shrink-0" />
-                                    <span>Segunda Fase: {entity.data_segunda_fase}</span>
-                                  </div>
-                                )}
-                                {entity.data_segunda_fase_2 && (
-                                  <div className="flex items-center gap-2 text-insper-red">
-                                    <CalendarDays size={14} className="text-insper-red flex-shrink-0" />
-                                    <span>Segunda Fase 2º Dia: {entity.data_segunda_fase_2}</span>
-                                  </div>
-                                )}
-                                {entity.data_segunda_fase_3 && (
-                                  <div className="flex items-center gap-2 text-insper-red">
-                                    <CalendarDays size={14} className="text-insper-red flex-shrink-0" />
-                                    <span>Segunda Fase 3º Dia: {entity.data_segunda_fase_3}</span>
-                                  </div>
-                                )}
-                                {entity.data_terceira_fase && (
-                                  <div className="flex items-center gap-2 text-insper-red">
-                                    <CalendarDays size={14} className="text-insper-red flex-shrink-0" />
-                                    <span>Terceira Fase: {entity.data_terceira_fase}</span>
-                                  </div>
-                                )}
-                                {entity.data_terceira_fase_2 && (
-                                  <div className="flex items-center gap-2 text-insper-red">
-                                    <CalendarDays size={14} className="text-insper-red flex-shrink-0" />
-                                    <span>Terceira Fase 2º Dia: {entity.data_terceira_fase_2}</span>
-                                  </div>
-                                )}
-                                {entity.data_terceira_fase_3 && (
-                                  <div className="flex items-center gap-2 text-insper-red">
-                                    <CalendarDays size={14} className="text-insper-red flex-shrink-0" />
-                                    <span>Terceira Fase 3º Dia: {entity.data_terceira_fase_3}</span>
-                                  </div>
-                                )} */}
                               </div>
                             </div>
                           )}
 
                           <div className="flex flex-wrap gap-2">
-                            {/* {entity.nivel_exigencia && (
-                              <Badge 
-                                variant="outline" 
-                                className={`text-xs font-medium ${
-                                  entity.nivel_exigencia === 'baixa' ? 'border-green-500 text-green-700 bg-green-50' :
-                                  entity.nivel_exigencia === 'média' ? 'border-yellow-500 text-yellow-700 bg-yellow-50' :
-                                  'border-insper-red text-insper-red bg-insper-red/10'
-                                }`}
-                              >
-                                {entity.nivel_exigencia}
-                              </Badge>
-                            )} */}
                           </div>
                         </div>
                       </CardContent>

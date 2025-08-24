@@ -153,6 +153,8 @@ export const useEntidades = (options: UseEntidadesOptions = {}) => {
 
       console.log(`📥 Resultados da busca "${searchTerm}":`, data?.length || 0);
       
+      
+      
       // Salvar no cache
       if (enableCache && data) {
         searchCache.set(cacheKey, {
@@ -242,6 +244,8 @@ export const useEntidades = (options: UseEntidadesOptions = {}) => {
       if (error) throw error;
 
       console.log(`📥 Entidades recebidas página ${page}:`, data?.length || 0);
+      
+      
       
       // Salvar no cache
       if (enableCache && data) {
