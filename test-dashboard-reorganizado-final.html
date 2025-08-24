@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Dashboard - Reorganização Final</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        .card-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: #6b7280;
+        }
+        .card-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+        .card-value {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .card-description {
+            font-size: 12px;
+            color: #9ca3af;
+        }
+        .section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .section-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .back-button {
+            background: white;
+            border: 1px solid #d1d5db;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+                 .back-button:hover {
+             background: #f3f4f6;
+         }
+         .manage-events-btn {
+             background: #f97316;
+             color: white;
+             border: none;
+             padding: 8px 16px;
+             border-radius: 6px;
+             cursor: pointer;
+             font-size: 14px;
+             transition: all 0.2s ease;
+         }
+         .manage-events-btn:hover {
+             background: #ea580c;
+         }
+        .stats-grid {
+            display: grid;
+            grid-template-cols: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e5e7eb;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: #6b7280;
+        }
+        .info-box {
+            background: #dbeafe;
+            border: 1px solid #93c5fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .info-title {
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 10px;
+        }
+        .info-text {
+            font-size: 14px;
+            color: #1e40af;
+            line-height: 1.5;
+        }
+        .pending-event {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .event-info h4 {
+            margin: 0 0 5px 0;
+            font-size: 14px;
+            color: #1f2937;
+        }
+        .event-info p {
+            margin: 0;
+            font-size: 12px;
+            color: #6b7280;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        .btn-approve {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .btn-reject {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .icon-indigo { color: #6366f1; }
+        .icon-purple { color: #8b5cf6; }
+        .icon-orange { color: #f97316; }
+        .icon-green { color: #10b981; }
+        .icon-blue { color: #3b82f6; }
+        .icon-yellow { color: #f59e0b; }
+        .icon-red { color: #ef4444; }
+        .icon-slate { color: #64748b; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Dashboard - Reorganização Final</h1>
+        <p>Demonstração da nova estrutura com visão geral focada em eventos pendentes e sistema completo na aba eventos.</p>
+
+        <!-- Cards Principais -->
+        <div class="cards-grid">
+            <div class="card" onclick="showSection('alunos')">
+                <div class="card-header">
+                    <div class="card-title">Total de Alunos</div>
+                    <div class="card-icon icon-indigo">🎓</div>
+                </div>
+                <div class="card-value">416</div>
+                <div class="card-description">Alunos cadastrados</div>
+            </div>
+
+            <div class="card" onclick="showSection('organizacoes')">
+                <div class="card-header">
+                    <div class="card-title">Organizações</div>
+                    <div class="card-icon icon-purple">🏢</div>
+                </div>
+                <div class="card-value">42</div>
+                <div class="card-description">Organizações ativas</div>
+            </div>
+
+            <div class="card" onclick="showSection('eventos')">
+                <div class="card-header">
+                    <div class="card-title">Eventos</div>
+                    <div class="card-icon icon-orange">📅</div>
+                </div>
+                <div class="card-value">19</div>
+                <div class="card-description">Eventos cadastrados</div>
+            </div>
+        </div>
+
+        <!-- Visão Geral (Eventos Pendentes + Resumo Rápido) -->
+        <div id="overview" class="section">
+            <div class="section-header">
+                <div class="section-title">
+                    <span class="icon-yellow">⚠️</span>
+                    Eventos Pendentes de Aprovação
+                </div>
+            </div>
+            
+            <!-- Eventos Pendentes -->
+            <div class="info-box">
+                <div class="info-title">Eventos Aguardando Aprovação</div>
+                <div class="info-text">
+                    Eventos que precisam ser revisados e aprovados pelos administradores.
+                </div>
+            </div>
+
+            <!-- Exemplo de Evento Pendente -->
+            <div class="pending-event">
+                <div class="event-info">
+                    <h4>Workshop de Inovação Tecnológica</h4>
+                    <p>Organização: TechCorp • Data: 15/12/2024</p>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn-approve">✅ Aprovar</button>
+                    <button class="btn-reject">❌ Rejeitar</button>
+                </div>
+            </div>
+
+            <!-- Resumo Rápido -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value icon-blue">19</div>
+                    <div class="stat-label">Total</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value icon-yellow">1</div>
+                    <div class="stat-label">Pendentes</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value icon-green">18</div>
+                    <div class="stat-label">Aprovados</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value icon-red">0</div>
+                    <div class="stat-label">Rejeitados</div>
+                </div>
+            </div>
+
+            <div class="info-box">
+                <div class="info-title">Visão Geral Focada</div>
+                <div class="info-text">
+                    A visão geral agora mostra apenas os eventos pendentes de aprovação e um resumo rápido, 
+                    mantendo o foco no que precisa de atenção imediata. O sistema completo de aprovação 
+                    está disponível na aba "Eventos".
+                </div>
+            </div>
+        </div>
+
+                 <!-- Seção de Eventos -->
+         <div id="eventos" class="section" style="display: none;">
+             <div class="section-header">
+                 <div class="section-title">
+                     <span class="icon-orange">📅</span>
+                     Análise de Eventos
+                 </div>
+                 <div style="display: flex; gap: 12px; align-items: center;">
+                     <button class="manage-events-btn" onclick="alert('Navegando para /aprovar-eventos - Gerenciar Eventos')">
+                         📅 Gerenciar Eventos
+                     </button>
+                     <button class="back-button" onclick="showSection('overview')">← Voltar à Visão Geral</button>
+                 </div>
+             </div>
+            
+                         <div class="info-box">
+                 <div class="info-title">Nova Ordem dos Cards na Aba Eventos</div>
+                 <div class="info-text">
+                     <strong>1. Sistema de Aprovação de Eventos</strong><br>
+                     • Estatísticas completas de status (Total, Pendentes, Aprovados, Rejeitados)<br>
+                     • Métricas adicionais (Taxa de Aprovação, Eventos Hoje, Esta Semana)<br>
+                     • Lista de eventos pendentes com ações de aprovar/rejeitar<br><br>
+                     <strong>2. Top 5 Eventos com Mais Inscritos</strong><br>
+                     • Ranking dos eventos mais populares<br><br>
+                     <strong>3.0 Eventos por Área de Atuação - Gráfico Simples</strong><br>
+                     • Gráfico de pizza interativo com eventos por área<br>
+                     • Dados da tabela eventos (campo area_atuacao)<br>
+                     • Top 10 áreas com mais eventos<br>
+                     • Ranking com medalhas 🥇🥈🥉<br>
+                     • Porcentagens e totais visuais<br><br>
+                     <strong>3.1 Eventos por Organização - Gráfico Simples</strong><br>
+                     • Gráfico de pizza interativo com eventos por organização<br>
+                     • Dados das tabelas eventos + entidades (JOIN)<br>
+                     • Top 5 organizações com mais eventos<br>
+                     • Ranking visual com medalhas 🥇🥈🥉<br>
+                     • Porcentagens e totais por organização
+                 </div>
+             </div>
+        </div>
+
+        <!-- Seção de Organizações -->
+        <div id="organizacoes" class="section" style="display: none;">
+            <div class="section-header">
+                <div class="section-title">
+                    <span class="icon-purple">🏢</span>
+                    Análise de Organizações
+                </div>
+                <button class="back-button" onclick="showSection('overview')">← Voltar à Visão Geral</button>
+            </div>
+            
+            <div class="info-box">
+                <div class="info-title">Dados da Aba Organizações</div>
+                <div class="info-text">
+                    • Estatísticas Gerais das Organizações<br>
+                    • Demonstrações de Interesse por Área de Atuação das Entidades - Gráfico de Pizza + Lista Visual<br>
+                    • Distribuição das Áreas das Entidades - Gráfico de Pizza + Lista Visual
+                </div>
+            </div>
+        </div>
+
+        <!-- Seção de Alunos -->
+        <div id="alunos" class="section" style="display: none;">
+            <div class="section-header">
+                <div class="section-title">
+                    <span class="icon-indigo">🎓</span>
+                    Análise de Alunos e Demonstrações de Interesse
+                </div>
+                <button class="back-button" onclick="showSection('overview')">← Voltar à Visão Geral</button>
+            </div>
+            
+            <div class="info-box">
+                <div class="info-title">Dados da Aba Alunos</div>
+                <div class="info-text">
+                    • Estatísticas Gerais dos Alunos<br>
+                    • Alunos por Curso - Gráfico de Pizza + Lista Visual ✅<br>
+                    • Alunos por Semestre - Gráfico de Pizza + Lista Visual ✅<br>
+                    • Demonstrações de Interesse por Curso - Gráfico de Pizza + Lista Visual ✅<br>
+                    • Inscrições em Eventos por Curso - Gráfico de Pizza + Lista Visual ✅
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showSection(sectionName) {
+            // Esconder todas as seções
+            document.querySelectorAll('.section').forEach(section => {
+                section.style.display = 'none';
+            });
+            
+            // Mostrar a seção selecionada
+            document.getElementById(sectionName).style.display = 'block';
+        }
+
+        // Inicializar com a visão geral
+        showSection('overview');
+    </script>
+</body>
+</html>

@@ -177,7 +177,7 @@ const AprovarEventos = () => {
         <div className="mb-6">
           <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="text-insper-dark-gray hover:bg-insper-light-gray">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Voltar ao Dashboard
+                            Voltar à Visão Geral
           </Button>
         </div>
 
