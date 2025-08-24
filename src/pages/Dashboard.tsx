@@ -270,6 +270,40 @@ const Dashboard = () => {
         {/* Seção de Aprovação de Eventos (visão geral) - Apenas eventos pendentes */}
         {activeSection === 'overview' && (
           <div className="space-y-6">
+            {/* Introdução ao Dashboard */}
+            <Card className="bg-gradient-to-r from-blue-50 to-indigo-100 border-blue-200">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-blue-800">
+                  <Info className="h-6 w-6 text-blue-600" />
+                  Bem-vindo ao Dashboard
+                </CardTitle>
+                <p className="text-sm text-blue-700">
+                  Este dashboard oferece uma visão completa e organizada de todos os aspectos do sistema de eventos e organizações estudantis.
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-orange-500" />
+                    <span className="text-gray-700"><strong>Eventos:</strong> Aprovação, análise por área e organização</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-purple-500" />
+                    <span className="text-gray-700"><strong>Organizações:</strong> Estatísticas e demonstrações de interesse</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <GraduationCap className="h-4 w-4 text-indigo-500" />
+                    <span className="text-gray-700"><strong>Alunos:</strong> Distribuição por curso e semestre</span>
+                  </div>
+                </div>
+                <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                  <p className="text-xs text-blue-600">
+                    💡 <strong>Dica:</strong> Clique nos cards coloridos acima para navegar entre as diferentes seções do dashboard e explorar informações detalhadas sobre cada área.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                 <AlertCircle className="h-6 w-6 text-yellow-500" />
