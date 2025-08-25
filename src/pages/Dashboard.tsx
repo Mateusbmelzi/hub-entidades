@@ -47,6 +47,7 @@ import { EventosAprovacaoStats } from '@/components/EventosAprovacaoStats';
 import { EventosPorAreaChart } from '@/components/EventosPorAreaChart';
 import { EventosPorOrganizacaoChart } from '@/components/EventosPorOrganizacaoChart';
 import { TopOrganizacoesChart } from '@/components/TopOrganizacoesChart';
+import { TopEntidadesInteresseChart } from '@/components/TopEntidadesInteresseChart';
 import { DemonstracoesPorAreaChart } from '@/components/DemonstracoesPorAreaChart';
 import { AreasEntidadesChart } from '@/components/AreasEntidadesChart';
 import { AlunosPorCursoChart } from '@/components/AlunosPorCursoChart';
@@ -54,6 +55,8 @@ import { AlunosPorSemestreChart } from '@/components/AlunosPorSemestreChart';
 import { DemonstracoesPorCursoChart } from '@/components/DemonstracoesPorCursoChart';
 import { InscricoesPorCursoChart } from '@/components/InscricoesPorCursoChart';
 import { ExportDashboardButton } from '@/components/ExportDashboardButton';
+import { DashboardSection, StatCard, StatusMetrics } from '@/components/DashboardSection';
+import { DashboardNavigation, DashboardSectionActions } from '@/components/DashboardNavigation';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -162,17 +165,13 @@ const Dashboard = () => {
             <div className="flex items-center space-x-3">
               <ExportDashboardButton
                 data={{
+                  // Indicadores Principais
                   totalAlunos: totalAlunos || 0,
                   totalEntidades: totalEntidades || 0,
                   totalDemonstracoes: totalDemonstracoes || 0,
                   totalEventos: totalEventos || 0,
-                  taxaConversaoEntidades: taxaConversaoEntidades || [],
-                  topEventos: eventos || [],
-                  topEntidadesInteresse: topEntidadesInteresse.map(e => ({
-                    nome: e.nome_entidade,
-                    total_interesses: e.total_demonstracoes
-                  })) || [],
-                  afinidadesCursoArea: afinidades || [],
+                  
+                  // Seção Eventos
                   eventosAprovacao: eventosAprovacaoStats ? {
                     total: eventosAprovacaoStats.total,
                     pendentes: eventosAprovacaoStats.pendentes,
@@ -185,9 +184,42 @@ const Dashboard = () => {
                     aprovados: 0,
                     rejeitados: 0,
                     taxaAprovacao: '0%'
-                  }
+                  },
+                  topEventos: eventos || [],
+                  eventosPorArea: eventosPorArea || [],
+                  eventosPorOrganizacao: eventosPorOrganizacao?.map(e => ({
+                    organizacao: e.entidade_nome,
+                    total_eventos: e.total_eventos
+                  })) || [],
+                  
+                  // Seção Organizações
+                  taxaConversaoEntidades: taxaConversaoEntidades || [],
+                  topEntidadesInteresse: topEntidadesInteresse.map(e => ({
+                    nome: e.nome_entidade,
+                    total_interesses: e.total_demonstracoes
+                  })) || [],
+                  demonstracoesPorArea: demonstracoesPorArea || [],
+                  areasEntidades: areasEntidades || [],
+                  
+                  // Seção Alunos
+                  alunosPorCurso: alunosPorCurso || [],
+                  alunosPorSemestre: alunosPorSemestre?.map(e => ({
+                    semestre: e.semestre.toString(),
+                    total_alunos: e.total_alunos
+                  })) || [],
+                  demonstracoesPorCurso: demonstracoesPorCurso?.map(e => ({
+                    curso_estudante: e.curso,
+                    total_demonstracoes: e.total_demonstracoes
+                  })) || [],
+                  inscricoesPorCurso: inscricoesPorCurso?.map(e => ({
+                    curso_estudante: e.curso,
+                    total_inscricoes: e.total_inscricoes
+                  })) || [],
+                  
+                  // Afinidades
+                  afinidadesCursoArea: afinidades || []
                 }}
-                disabled={eventosLoading || statsLoading || afinidadesLoading || taxaConversaoLoading || topEntidadesInteresseLoading || dashboardStatsLoading || (isSuperAdmin && eventosAprovacaoLoading)}
+                disabled={eventosLoading || statsLoading || afinidadesLoading || taxaConversaoLoading || topEntidadesInteresseLoading || dashboardStatsLoading || eventosPorAreaLoading || eventosPorOrganizacaoLoading || demonstracoesPorAreaLoading || areasEntidadesLoading || alunosPorCursoLoading || alunosPorSemestreLoading || demonstracoesPorCursoLoading || inscricoesPorCursoLoading || (isSuperAdmin && eventosAprovacaoLoading)}
               />
               
               <Button 
@@ -210,99 +242,49 @@ const Dashboard = () => {
       </div>
 
       <div className="container mx-auto p-4">
-        {/* Indicadores Gerais */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-          <Card 
-            className="hover:shadow-lg transition-all duration-200 cursor-pointer hover:scale-105"
-            onClick={() => handleCardClick('alunos')}
-          >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Total de Alunos</CardTitle>
-              <GraduationCap className="h-5 w-5 text-indigo-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-indigo-600">
-                {totalAlunos?.toLocaleString('pt-BR') || '0'}
-              </div>
-              <p className="text-xs text-muted-foreground">Alunos cadastrados</p>
-            </CardContent>
-          </Card>
-
-          <Card 
-            className="hover:shadow-lg transition-all duration-200 cursor-pointer hover:scale-105"
-            onClick={() => handleCardClick('organizacoes')}
-          >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Organizações</CardTitle>
-              <Building2 className="h-5 w-5 text-purple-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-purple-600">
-                {totalEntidades?.toLocaleString('pt-BR') || '0'}
-              </div>
-              <p className="text-xs text-muted-foreground">Organizações ativas</p>
-            </CardContent>
-          </Card>
-
-          <Card 
-            className="hover:shadow-lg transition-all duration-200 cursor-pointer hover:scale-105"
-            onClick={() => handleCardClick('eventos')}
-          >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Eventos</CardTitle>
-              <Calendar className="h-5 w-5 text-orange-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-orange-600">
-                {dashboardStatsError ? (
-                  <span className="text-sm text-red-500">Erro</span>
-                ) : (
-                  totalEventos?.toLocaleString('pt-BR') || '0'
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {dashboardStatsError ? 'Erro ao carregar' : 'Eventos cadastrados'}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Navegação entre Seções */}
+        <DashboardNavigation
+          activeSection={activeSection}
+          onSectionChange={handleCardClick}
+          stats={{
+            totalAlunos: totalAlunos || 0,
+            totalEntidades: totalEntidades || 0,
+            totalEventos: totalEventos || 0,
+            totalDemonstracoes: totalDemonstracoes || 0
+          }}
+        />
 
         {/* Seção de Aprovação de Eventos (visão geral) - Apenas eventos pendentes */}
         {activeSection === 'overview' && (
           <div className="space-y-6">
             {/* Introdução ao Dashboard */}
-            <Card className="bg-gradient-to-r from-blue-50 to-indigo-100 border-blue-200">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-blue-800">
-                  <Info className="h-6 w-6 text-blue-600" />
-                  Bem-vindo ao Dashboard
-                </CardTitle>
-                <p className="text-sm text-blue-700">
-                  Este dashboard oferece uma visão completa e organizada de todos os aspectos do sistema de eventos e organizações estudantis.
+            <DashboardSection
+              title="Bem-vindo ao Dashboard"
+              description="Este dashboard oferece uma visão completa e organizada de todos os aspectos do sistema de eventos e organizações estudantis."
+              icon={<Info className="h-6 w-6" />}
+              iconColor="text-blue-600"
+              variant="gradient"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-orange-500" />
+                  <span className="text-gray-700"><strong>Eventos:</strong> Aprovação, análise por área e organização</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-purple-500" />
+                  <span className="text-gray-700"><strong>Organizações:</strong> Estatísticas e demonstrações de interesse</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <GraduationCap className="h-4 w-4 text-indigo-500" />
+                  <span className="text-gray-700"><strong>Alunos:</strong> Distribuição por curso e semestre</span>
+                </div>
+              </div>
+              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                <p className="text-xs text-blue-600">
+                  💡 <strong>Dica:</strong> Clique nos cards coloridos acima para navegar entre as diferentes seções do dashboard e explorar informações detalhadas sobre cada área.
                 </p>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-orange-500" />
-                    <span className="text-gray-700"><strong>Eventos:</strong> Aprovação, análise por área e organização</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4 text-purple-500" />
-                    <span className="text-gray-700"><strong>Organizações:</strong> Estatísticas e demonstrações de interesse</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <GraduationCap className="h-4 w-4 text-indigo-500" />
-                    <span className="text-gray-700"><strong>Alunos:</strong> Distribuição por curso e semestre</span>
-                  </div>
-                </div>
-                <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                  <p className="text-xs text-blue-600">
-                    💡 <strong>Dica:</strong> Clique nos cards coloridos acima para navegar entre as diferentes seções do dashboard e explorar informações detalhadas sobre cada área.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+            </DashboardSection>
 
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
@@ -312,136 +294,123 @@ const Dashboard = () => {
             </div>
 
             {/* Eventos Pendentes */}
-          <Card>
-              <CardHeader className="bg-gradient-to-r from-yellow-50 to-yellow-100 border-yellow-200">
-                <CardTitle className="flex items-center gap-2 text-yellow-800">
-                  <Clock className="h-5 w-5 text-yellow-600" />
-                  Eventos Aguardando Aprovação
-              </CardTitle>
-                <p className="text-sm text-yellow-700">
-                  Eventos que precisam ser revisados e aprovados
-              </p>
-            </CardHeader>
-              <CardContent className="pt-4">
-                {eventosAprovacaoLoading ? (
-                  <div className="text-center py-6">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-600 mx-auto"></div>
-                    <p className="text-sm text-gray-600 mt-2">Carregando eventos pendentes...</p>
-                  </div>
-                ) : eventosPendentes && eventosPendentes.length > 0 ? (
-                  <div className="space-y-3">
-                    {eventosPendentes.map((evento, index) => (
-                                               <div key={index} className="flex items-center justify-between p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                           <div className="flex-1">
-                             <div className="font-medium text-sm text-gray-900">
-                               {evento.nome}
-                             </div>
-                             <div className="text-xs text-gray-600 mt-1">
-                               Organização: {evento.entidade_nome} • Data: {new Date(evento.data).toLocaleDateString('pt-BR')}
-                             </div>
-                  </div>
-                        <div className="flex items-center gap-2">
-                          <Button 
-                            size="sm" 
-                            className="bg-green-600 hover:bg-green-700 text-white"
-                            onClick={() => {/* Função de aprovar evento */}}
-                          >
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            Aprovar
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="destructive"
-                            onClick={() => {/* Função de rejeitar evento */}}
-                          >
-                            <XCircle className="h-4 w-4 mr-1" />
-                            Rejeitar
-                  </Button>
-                </div>
+            <DashboardSection
+              title="Eventos Aguardando Aprovação"
+              description="Eventos que precisam ser revisados e aprovados"
+              icon={<Clock className="h-5 w-5" />}
+              iconColor="text-yellow-600"
+              variant="gradient"
+              loading={eventosAprovacaoLoading}
+              isEmpty={!eventosPendentes || eventosPendentes.length === 0}
+              emptyMessage="Nenhum evento pendente"
+              emptyIcon={<CheckCircle className="h-12 w-12 mx-auto text-green-400 mb-2" />}
+            >
+              {eventosPendentes && eventosPendentes.length > 0 && (
+                <div className="space-y-3">
+                  {eventosPendentes.map((evento, index) => (
+                    <div key={index} className="flex items-center justify-between p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                      <div className="flex-1">
+                        <div className="font-medium text-sm text-gray-900">
+                          {evento.nome}
+                        </div>
+                        <div className="text-xs text-gray-600 mt-1">
+                          Organização: {evento.entidade_nome} • Data: {new Date(evento.data).toLocaleDateString('pt-BR')}
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <div className="mb-4">
-                      <CheckCircle className="h-12 w-12 mx-auto text-green-400 mb-2" />
+                      <div className="flex items-center gap-2">
+                        <Button 
+                          size="sm" 
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                          onClick={() => {/* Função de aprovar evento */}}
+                        >
+                          <CheckCircle className="h-4 w-4 mr-1" />
+                          Aprovar
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="destructive"
+                          onClick={() => {/* Função de rejeitar evento */}}
+                        >
+                          <XCircle className="h-4 w-4 mr-1" />
+                          Rejeitar
+                        </Button>
+                      </div>
                     </div>
-                    <div className="text-sm font-medium mb-2">Nenhum evento pendente</div>
-                    <div className="text-xs">Todos os eventos foram revisados e aprovados</div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                  ))}
+                </div>
+              )}
+            </DashboardSection>
 
             {/* Resumo Rápido */}
-            <Card>
-              <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
-                <CardTitle className="flex items-center gap-2 text-blue-800">
-                  <Info className="h-5 w-5 text-blue-600" />
-                  Resumo Rápido
-                </CardTitle>
-                <p className="text-sm text-blue-700">
-                  Visão geral dos eventos por status
-                </p>
-              </CardHeader>
-              <CardContent className="pt-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center p-3 bg-blue-50 rounded-lg">
-                    <div className="text-lg font-bold text-blue-700">
-                      {eventosAprovacaoStats?.total || 0}
-                    </div>
-                    <div className="text-xs text-blue-600">Total</div>
-                  </div>
-                  <div className="text-center p-3 bg-yellow-50 rounded-lg">
-                    <div className="text-lg font-bold text-yellow-700">
-                      {eventosAprovacaoStats?.pendentes || 0}
-                    </div>
-                    <div className="text-xs text-yellow-600">Pendentes</div>
-                  </div>
-                  <div className="text-center p-3 bg-green-50 rounded-lg">
-                    <div className="text-lg font-bold text-green-700">
-                      {eventosAprovacaoStats?.aprovados || 0}
-                    </div>
-                    <div className="text-xs text-green-600">Aprovados</div>
-                  </div>
-                  <div className="text-center p-3 bg-red-50 rounded-lg">
-                    <div className="text-lg font-bold text-red-700">
-                      {eventosAprovacaoStats?.rejeitados || 0}
-                    </div>
-                    <div className="text-xs text-red-600">Rejeitados</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <DashboardSection
+              title="Resumo Rápido"
+              description="Visão geral dos eventos por status"
+              icon={<Info className="h-5 w-5" />}
+              iconColor="text-blue-600"
+              variant="gradient"
+            >
+              <StatusMetrics
+                metrics={[
+                  {
+                    label: 'Total',
+                    value: eventosAprovacaoStats?.total || 0,
+                    color: 'blue',
+                    bgColor: 'bg-blue-50',
+                    textColor: 'text-blue-700'
+                  },
+                  {
+                    label: 'Pendentes',
+                    value: eventosAprovacaoStats?.pendentes || 0,
+                    color: 'yellow',
+                    bgColor: 'bg-yellow-50',
+                    textColor: 'text-yellow-700'
+                  },
+                  {
+                    label: 'Aprovados',
+                    value: eventosAprovacaoStats?.aprovados || 0,
+                    color: 'green',
+                    bgColor: 'bg-green-50',
+                    textColor: 'text-green-700'
+                  },
+                  {
+                    label: 'Rejeitados',
+                    value: eventosAprovacaoStats?.rejeitados || 0,
+                    color: 'red',
+                    bgColor: 'bg-red-50',
+                    textColor: 'text-red-700'
+                  }
+                ]}
+              />
+            </DashboardSection>
           </div>
         )}
 
         {/* Seção de Eventos */}
         {activeSection === 'eventos' && (
           <div className="space-y-6">
-                         <div className="flex items-center justify-between mb-6">
-               <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                 <Calendar className="h-6 w-6 text-orange-500" />
-                 Análise de Eventos
-               </h2>
-               <div className="flex items-center gap-3">
-                 <Button 
-                   onClick={() => navigate('/aprovar-eventos')}
-                   className="bg-orange-600 hover:bg-orange-700 text-white"
-                 >
-                   <Calendar className="h-4 w-4 mr-2" />
-                   Gerenciar Eventos
-                 </Button>
-                 <Button 
-                   variant="outline" 
-                   size="sm"
-                   onClick={() => handleCardClick('overview')}
-                   className="flex items-center gap-2"
-                 >
-                   ← Voltar à Visão Geral
-                 </Button>
-               </div>
-             </div>
+            <DashboardSectionActions
+              title="Análise de Eventos"
+              description="Gestão e análise completa de eventos do sistema"
+              actions={
+                <>
+                  <Button 
+                    onClick={() => navigate('/aprovar-eventos')}
+                    className="bg-orange-600 hover:bg-orange-700 text-white"
+                  >
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Gerenciar Eventos
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleCardClick('overview')}
+                    className="flex items-center gap-2"
+                  >
+                    ← Voltar à Visão Geral
+                  </Button>
+                </>
+              }
+            />
 
           
 
@@ -665,6 +634,14 @@ const Dashboard = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Top 5 Entidades com Mais Demonstrações de Interesse */}
+            <TopEntidadesInteresseChart
+              entidades={topEntidadesInteresse}
+              loading={topEntidadesInteresseLoading}
+              error={topEntidadesInteresseError}
+              onRefetch={refetchTopEntidadesInteresse}
+            />
 
             {/* Demonstrações de Interesse por Área de Atuação */}
             <DemonstracoesPorAreaChart
