@@ -1,4 +1,4 @@
-# 🏛️ Hub de Entidades Insper
+# Hub de Entidades Insper
 
 [![Vercel](https://img.shields.io/badge/Deploy-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com)
 [![React](https://img.shields.io/badge/React-18.3.1-blue?style=for-the-badge&logo=react)](https://reactjs.org/)
@@ -9,49 +9,49 @@
 
 > **Plataforma completa para conectar alunos do Insper com organizações estudantis, facilitando processos seletivos, eventos e demonstrações de interesse.**
 
-**🚀 Projeto independente desenvolvido por alunos do Insper para alunos do Insper**
+**Projeto independente desenvolvido por alunos do Insper para alunos do Insper**
 
-## 📋 Índice
+## Índice
 
-- [🎯 Sobre o Projeto](#-sobre-o-projeto)
-- [✨ Funcionalidades](#-funcionalidades)
-- [🏗️ Arquitetura](#️-arquitetura)
-- [🛠️ Tecnologias](#️-tecnologias)
-- [🚀 Deploy](#-deploy)
-- [📦 Instalação](#-instalação)
-- [🔧 Configuração](#-configuração)
-- [📱 Uso](#-uso)
-- [🎨 Design System](#-design-system)
-- [📊 Estrutura do Projeto](#-estrutura-do-projeto)
-- [🔐 Autenticação](#-autenticação)
-- [📈 Dashboard Analytics](#-dashboard-analytics)
-- [🤝 Contribuição](#-contribuição)
-- [📄 Licença](#-licença)
+- [Sobre o Projeto](#sobre-o-projeto)
+- [Funcionalidades](#funcionalidades)
+- [Arquitetura](#arquitetura)
+- [Tecnologias](#tecnologias)
+- [Deploy](#deploy)
+- [Instalação](#instalação)
+- [Configuração](#configuração)
+- [Uso](#uso)
+- [Design System](#design-system)
+- [Estrutura do Projeto](#estrutura-do-projeto)
+- [Autenticação](#autenticação)
+- [Dashboard Analytics](#dashboard-analytics)
+- [Contribuição](#contribuição)
+- [Licença](#licença)
 
-## 🎯 Sobre o Projeto
+## Sobre o Projeto
 
 O **Hub de Entidades Insper** é uma plataforma web moderna que conecta alunos do Insper com as organizações estudantis da instituição. A aplicação facilita a descoberta de entidades, inscrição em eventos e demonstração de interesse em organizações específicas.
 
-### 👨‍💻 Desenvolvedores
+### Desenvolvedores
 
 Este é um **projeto independente** desenvolvido por dois alunos do Insper:
 
 - **Gabriel Pradyumna** - Ciência da Computação
 - **Mateus Melzi** - Administração
 
-> 💡 **Solução criada por alunos do Insper para alunos do Insper**
+> **Solução criada por alunos do Insper para alunos do Insper**
 
 A plataforma nasceu da necessidade real de conectar estudantes com as organizações estudantis da instituição, oferecendo uma experiência digital moderna e intuitiva.
 
-### 📋 Status do Projeto
+### Status do Projeto
 
-- **✅ Status**: Projeto independente em desenvolvimento ativo
-- **🎯 Objetivo**: Solução criada por alunos para alunos
-- **🏢 Instituição**: Insper - Instituto de Ensino e Pesquisa
-- **📅 Desenvolvimento**: 2025
-- **🔗 Relação**: Não oficial - projeto acadêmico independente
+- **Status**: Projeto independente em desenvolvimento ativo
+- **Objetivo**: Solução criada por alunos para alunos
+- **Instituição**: Insper - Instituto de Ensino e Pesquisa
+- **Desenvolvimento**: 2025
+- **Relação**: Não oficial - projeto acadêmico independente
 
-### 🎓 Contexto Acadêmico
+### Contexto Acadêmico
 
 O Insper possui mais de **30 organizações estudantis** ativas, divididas em áreas como:
 - **Consultoria e Negócios** (Insper Jr., Consilium, etc.)
@@ -62,30 +62,30 @@ O Insper possui mais de **30 organizações estudantis** ativas, divididas em á
 - **Cultura** (Bateria Imperial, Vega Cultural)
 - **Entretenimento** (Insper Entertainment Business)
 
-## ✨ Funcionalidades
+## Funcionalidades
 
-### 👥 Para Alunos
-- **🔍 Explorar Entidades**: Catálogo completo com filtros por área de atuação
-- **📝 Demonstração de Interesse**: Sistema para expressar interesse em entidades
-- **📅 Eventos**: Visualização e inscrição em eventos das organizações
-- **👤 Perfil Personalizado**: Gerenciamento de áreas de interesse e informações
-- **📊 Cronograma**: Acompanhamento de processos seletivos e eventos
-- **🔔 Notificações**: Sistema de alertas para novos eventos e oportunidades
+### Para Alunos
+- **Explorar Entidades**: Catálogo completo com filtros por área de atuação
+- **Demonstração de Interesse**: Sistema para expressar interesse em entidades
+- **Eventos**: Visualização e inscrição em eventos das organizações
+- **Perfil Personalizado**: Gerenciamento de áreas de interesse e informações
+- **Cronograma**: Acompanhamento de processos seletivos e eventos
+- **Notificações**: Sistema de alertas para novos eventos e oportunidades
 
-### 🏢 Para Entidades
-- **📊 Dashboard de Gestão**: Analytics e métricas de engajamento
-- **📅 Gerenciamento de Eventos**: Criação e administração de eventos
-- **👥 Gestão de Demonstrações**: Aprovação/rejeição de interesses
-- **📈 Relatórios**: Insights sobre perfis dos interessados
-- **🔐 Autenticação Específica**: Login dedicado para representantes
+### Para Entidades
+- **Dashboard de Gestão**: Analytics e métricas de engajamento
+- **Gerenciamento de Eventos**: Criação e administração de eventos
+- **Gestão de Demonstrações**: Aprovação/rejeição de interesses
+- **Relatórios**: Insights sobre perfis dos interessados
+- **Autenticação Específica**: Login dedicado para representantes
 
-### 👨‍💼 Para Administradores
-- **📊 Dashboard Analytics**: Métricas estratégicas e indicadores
-- **✅ Aprovação de Eventos**: Controle de qualidade dos eventos
-- **👥 Gestão de Usuários**: Administração de perfis e permissões
-- **📈 Relatórios Avançados**: Analytics de engajamento e comportamento
+### Para Administradores
+- **Dashboard Analytics**: Métricas estratégicas e indicadores
+- **Aprovação de Eventos**: Controle de qualidade dos eventos
+- **Gestão de Usuários**: Administração de perfis e permissões
+- **Relatórios Avançados**: Analytics de engajamento e comportamento
 
-## 🏗️ Arquitetura
+## Arquitetura
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
@@ -99,13 +99,13 @@ O Insper possui mais de **30 organizações estudantis** ativas, divididas em á
                         └─────────────────┘
 ```
 
-### 🔄 Fluxo de Dados
+### Fluxo de Dados
 1. **Autenticação**: Supabase Auth com múltiplos provedores
 2. **API**: Supabase REST API com Row Level Security (RLS)
 3. **Estado**: React Query para cache e sincronização
 4. **UI**: Componentes reutilizáveis com Shadcn/ui
 
-## 🛠️ Tecnologias
+## Tecnologias
 
 ### Frontend
 - **React 18.3.1** - Biblioteca de interface
@@ -136,45 +136,130 @@ O Insper possui mais de **30 organizações estudantis** ativas, divididas em á
 - **Husky** - Git hooks
 - **Vercel** - Deploy e hosting
 
-## 📱 Uso
+## Deploy
 
-### 🏠 Página Inicial
+O projeto está configurado para deploy automático na Vercel:
+
+1. **Branch principal**: `main`
+2. **Build command**: `npm run build`
+3. **Output directory**: `dist`
+4. **Node version**: 18.x
+
+### Variáveis de Ambiente
+
+Configure as seguintes variáveis no painel da Vercel:
+
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+## Instalação
+
+### Pré-requisitos
+
+- Node.js 18+ 
+- npm ou yarn
+- Conta no Supabase
+
+### Passos
+
+1. **Clone o repositório**
+   ```bash
+   git clone https://github.com/your-username/hub-entidades.git
+   cd hub-entidades
+   ```
+
+2. **Instale as dependências**
+   ```bash
+   npm install
+   ```
+
+3. **Configure as variáveis de ambiente**
+   ```bash
+   cp env.example .env.local
+   # Edite o arquivo .env.local com suas credenciais
+   ```
+
+4. **Execute o projeto**
+   ```bash
+   npm run dev
+   ```
+
+## Configuração
+
+### Supabase Setup
+
+1. **Crie um projeto no Supabase**
+2. **Configure as tabelas** usando os scripts SQL fornecidos
+3. **Configure Row Level Security (RLS)**
+4. **Configure autenticação** com provedores desejados
+5. **Configure storage** para upload de imagens
+
+### Banco de Dados
+
+Execute os scripts SQL na seguinte ordem:
+
+1. `schema.sql` - Estrutura das tabelas
+2. `rls_policies.sql` - Políticas de segurança
+3. `seed_data.sql` - Dados iniciais (opcional)
+
+## Uso
+
+### Página Inicial
 - **Landing page** com estatísticas em tempo real
 - **Call-to-action** para explorar entidades
 - **Navegação intuitiva** para diferentes seções
 
-### 🔍 Explorar Entidades
+### Explorar Entidades
 - **Filtros avançados** por área de atuação
 - **Busca por nome** e descrição
 - **Cards informativos** com detalhes das organizações
 - **Demonstração de interesse** direta
 
-### 📅 Eventos
+### Eventos
 - **Calendário de eventos** das entidades
 - **Inscrição simplificada** com formulário
 - **Notificações** para novos eventos
 - **Exportação de dados** para entidades
 
-### 👤 Perfil do Usuário
+### Perfil do Usuário
 - **Configuração de áreas de interesse**
 - **Histórico de demonstrações**
 - **Participação em eventos**
 - **Upload de foto de perfil**
 
-
-### 🎯 Componentes
+### Componentes
 - **Cards responsivos** com hover effects
 - **Botões com estados** visuais claros
 - **Formulários acessíveis** com validação
 - **Navegação mobile-first** otimizada
 
-### 📱 Responsividade
+### Responsividade
 - **Mobile-first** design
 - **Breakpoints** otimizados
 - **Touch-friendly** interfaces
 - **Performance** otimizada
 
-## 📊 Estrutura do Projeto
+## Design System
+
+### Cores
+- **Insper Red**: #C8102E
+- **Insper Green**: #00A651
+- **Insper Purple**: #6B46C1
+- **Gray Scale**: 50-950
+
+### Tipografia
+- **Font Family**: Inter, system-ui, sans-serif
+- **Headings**: 24px, 20px, 18px, 16px
+- **Body**: 14px, 16px
+
+### Componentes
+- **Shadcn/ui** como base
+- **Customizações** para identidade visual
+- **Acessibilidade** seguindo WCAG 2.1
+
+## Estrutura do Projeto
 
 ```
 src/
@@ -197,59 +282,59 @@ src/
 └── styles/            # Estilos globais
 ```
 
-## 🔐 Autenticação
+## Autenticação
 
-### 🔑 Tipos de Usuário
+### Tipos de Usuário
 1. **Alunos**: Acesso completo às funcionalidades
 2. **Representantes de Entidades**: Gestão de eventos e demonstrações
 3. **Super Administradores**: Controle total da plataforma
 
-### 🛡️ Segurança
+### Segurança
 - **Row Level Security (RLS)** no Supabase
 - **JWT tokens** para autenticação
 - **Políticas granulares** de acesso
 - **Validação de entrada** com Zod
 
-## 📈 Dashboard Analytics
+## Dashboard Analytics
 
-### 📊 Métricas Principais
+### Métricas Principais
 - **Engajamento de usuários**
 - **Demonstrações de interesse**
 - **Participação em eventos**
 - **Afinidade curso-entidade**
 
-### 📈 Indicadores Estratégicos
+### Indicadores Estratégicos
 - **Taxa de conversão** de visitas para demonstrações
 - **Tempo de navegação** por seção
 - **Correlação** entre áreas de interesse
 - **Identificação de usuários inativos**
 
-## 🤝 Contribuição
+## Contribuição
 
-### 📝 Como Contribuir
+### Como Contribuir
 1. **Fork** o projeto
 2. **Crie** uma branch para sua feature
 3. **Commit** suas mudanças
 4. **Push** para a branch
 5. **Abra** um Pull Request
 
-### 🐛 Reportar Bugs
+### Reportar Bugs
 - Use as **Issues** do GitHub
 - Inclua **screenshots** quando relevante
 - Descreva os **passos para reproduzir**
 
-### 💡 Sugestões
+### Sugestões
 - Abra uma **Discussion** no GitHub
 - Descreva o **caso de uso**
 - Inclua **mockups** se possível
 
-## 📄 Licença
+## Licença
 
 Este projeto está sob a licença **MIT**. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
 
 ---
 
-## 🎉 Agradecimentos
+## Agradecimentos
 
 - **Insper** pela formação e ambiente acadêmico que possibilitou este projeto
 - **Comunidade Supabase** pelo excelente backend
@@ -259,13 +344,13 @@ Este projeto está sob a licença **MIT**. Veja o arquivo [LICENSE](LICENSE) par
 
 ---
 
-**Desenvolvido com ❤️ por alunos do Insper para a comunidade Insper**
+**Desenvolvido por alunos do Insper para a comunidade Insper**
 
 ---
 
-### 📞 Contato dos Desenvolvedores
+### Contato dos Desenvolvedores
 
 - **Gabriel Pradyumna** - [LinkedIn](https://www.linkedin.com/in/gabriel-pradyumna-alencar-costa-8887a6201/) | [GitHub](https://github.com/prady001)
 - **Mateus Melzi** - [LinkedIn](https://www.linkedin.com/in/mateus-bellon-melzi-6381111a9/) | [GitHub](https://github.com/Mateusbmelzi)
 
-[![Insper](https://img.shields.io/badge/Insper-Red?style=for-the-badge&logo=graduation-cap)](https://insper.edu.br) 
+[![Insper](https://img.shields.io/badge/Insper-Red?style=for-the-badge&logo=graduation-cap)](https://insper.edu.br)
