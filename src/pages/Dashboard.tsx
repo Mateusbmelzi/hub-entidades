@@ -25,17 +25,17 @@ import {
   XCircle,
   AlertCircle,
   MapPin,
-  Activity
+  Activity,
+  Building,
+  Settings
 } from 'lucide-react';
-import { useTopEventos } from '@/hooks/useTopEventos';
 import { useStats } from '@/hooks/useStats';
 import { useAfinidadeCursoArea } from '@/hooks/useAfinidadeCursoArea';
 import { useTaxaConversaoEntidades } from '@/hooks/useTaxaConversaoEntidades';
-import { useEventosAprovacaoStats } from '@/hooks/useEventosAprovacaoStats';
+import { useReservasPendentes } from '@/hooks/useReservas';
+import { useAprovarReservas } from '@/hooks/useAprovarReservas';
 import { useTopEntidadesInteresse } from '@/hooks/useTopEntidadesInteresse';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
-import { useEventosPorArea } from '@/hooks/useEventosPorArea';
-import { useEventosPorOrganizacao } from '@/hooks/useEventosPorOrganizacao';
 import { useDemonstracoesPorArea } from '@/hooks/useDemonstracoesPorArea';
 import { useAreasEntidades } from '@/hooks/useAreasEntidades';
 import { useAlunosPorCurso } from '@/hooks/useAlunosPorCurso';
@@ -43,10 +43,6 @@ import { useAlunosPorSemestre } from '@/hooks/useAlunosPorSemestre';
 import { useDemonstracoesPorCurso } from '@/hooks/useDemonstracoesPorCurso';
 import { useInscricoesPorCurso } from '@/hooks/useInscricoesPorCurso';
 import { useAuthStateContext } from '@/components/AuthStateProvider';
-import { EventosAprovacaoStats } from '@/components/EventosAprovacaoStats';
-import { EventosPorAreaChart } from '@/components/EventosPorAreaChart';
-import { EventosPorOrganizacaoChart } from '@/components/EventosPorOrganizacaoChart';
-import { TopOrganizacoesChart } from '@/components/TopOrganizacoesChart';
 import { TopEntidadesInteresseChart } from '@/components/TopEntidadesInteresseChart';
 import { DemonstracoesPorAreaChart } from '@/components/DemonstracoesPorAreaChart';
 import { AreasEntidadesChart } from '@/components/AreasEntidadesChart';
@@ -61,15 +57,13 @@ import { DashboardNavigation, DashboardSectionActions } from '@/components/Dashb
 const Dashboard = () => {
   const navigate = useNavigate();
   const { logout, type } = useAuthStateContext();
-  const { eventos, loading: eventosLoading, error: eventosError, refetch: refetchEventos } = useTopEventos();
   const { totalAlunos, totalEntidades, loading: statsLoading, error: statsError } = useStats();
   const { afinidades, loading: afinidadesLoading, error: afinidadesError, refetch: refetchAfinidades } = useAfinidadeCursoArea();
   const { entidades: taxaConversaoEntidades, loading: taxaConversaoLoading, error: taxaConversaoError, refetch: refetchTaxaConversao } = useTaxaConversaoEntidades();
   const { entidades: topEntidadesInteresse, loading: topEntidadesInteresseLoading, error: topEntidadesInteresseError, refetch: refetchTopEntidadesInteresse } = useTopEntidadesInteresse();
-  const { stats: eventosAprovacaoStats, eventosPendentes, loading: eventosAprovacaoLoading, error: eventosAprovacaoError, refetch: refetchEventosAprovacao } = useEventosAprovacaoStats();
+  const { reservasPendentes, loading: reservasPendentesLoading, error: reservasPendentesError, refetch: refetchReservasPendentes } = useReservasPendentes();
+  const { aprovarReserva, rejeitarReserva, loading: acaoReservaLoading } = useAprovarReservas();
   const { totalDemonstracoes, totalEventos, loading: dashboardStatsLoading, error: dashboardStatsError, refetch: refetchDashboardStats } = useDashboardStats();
-  const { eventosPorArea, loading: eventosPorAreaLoading, error: eventosPorAreaError, refetch: refetchEventosPorArea } = useEventosPorArea();
-  const { eventosPorOrganizacao, loading: eventosPorOrganizacaoLoading, error: eventosPorOrganizacaoError, refetch: refetchEventosPorOrganizacao } = useEventosPorOrganizacao();
   const { demonstracoesPorArea, loading: demonstracoesPorAreaLoading, error: demonstracoesPorAreaError, refetch: refetchDemonstracoesPorArea } = useDemonstracoesPorArea();
   const { areasEntidades, loading: areasEntidadesLoading, error: areasEntidadesError, refetch: refetchAreasEntidades } = useAreasEntidades();
   const { alunosPorCurso, loading: alunosPorCursoLoading, error: alunosPorCursoError, refetch: refetchAlunosPorCurso } = useAlunosPorCurso();
@@ -91,13 +85,10 @@ const Dashboard = () => {
   };
 
   const handleRefreshAll = () => {
-    refetchEventos();
     refetchAfinidades();
     refetchTaxaConversao();
     refetchTopEntidadesInteresse();
     refetchDashboardStats();
-    refetchEventosPorArea();
-    refetchEventosPorOrganizacao();
     refetchDemonstracoesPorArea();
     refetchAreasEntidades();
     refetchAlunosPorCurso();
@@ -105,7 +96,7 @@ const Dashboard = () => {
     refetchDemonstracoesPorCurso();
     refetchInscricoesPorCurso();
     if (isSuperAdmin) {
-      refetchEventosAprovacao();
+      refetchReservasPendentes();
     }
   };
 
@@ -113,7 +104,7 @@ const Dashboard = () => {
     setActiveSection(section);
   };
 
-  if (eventosLoading || statsLoading || afinidadesLoading || taxaConversaoLoading || topEntidadesInteresseLoading || dashboardStatsLoading || eventosPorAreaLoading || eventosPorOrganizacaoLoading || demonstracoesPorAreaLoading || areasEntidadesLoading || alunosPorCursoLoading || alunosPorSemestreLoading || demonstracoesPorCursoLoading || inscricoesPorCursoLoading || (isSuperAdmin && eventosAprovacaoLoading)) {
+  if (statsLoading || afinidadesLoading || taxaConversaoLoading || topEntidadesInteresseLoading || dashboardStatsLoading || demonstracoesPorAreaLoading || areasEntidadesLoading || alunosPorCursoLoading || alunosPorSemestreLoading || demonstracoesPorCursoLoading || inscricoesPorCursoLoading || (isSuperAdmin && reservasPendentesLoading)) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
@@ -157,7 +148,7 @@ const Dashboard = () => {
                 <BarChart3 className="h-8 w-8 text-blue-600" />
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-                  <p className="text-sm text-gray-600">Indicadores gerais, afinidades e top eventos</p>
+                  <p className="text-sm text-gray-600">Indicadores gerais, afinidades e aprovação de reservas</p>
                 </div>
               </div>
             </div>
@@ -171,26 +162,6 @@ const Dashboard = () => {
                   totalDemonstracoes: totalDemonstracoes || 0,
                   totalEventos: totalEventos || 0,
                   
-                  // Seção Eventos
-                  eventosAprovacao: eventosAprovacaoStats ? {
-                    total: eventosAprovacaoStats.total,
-                    pendentes: eventosAprovacaoStats.pendentes,
-                    aprovados: eventosAprovacaoStats.aprovados,
-                    rejeitados: eventosAprovacaoStats.rejeitados,
-                    taxaAprovacao: `${(eventosAprovacaoStats.taxaAprovacao * 100).toFixed(1)}%`
-                  } : {
-                    total: 0,
-                    pendentes: 0,
-                    aprovados: 0,
-                    rejeitados: 0,
-                    taxaAprovacao: '0%'
-                  },
-                  topEventos: eventos || [],
-                  eventosPorArea: eventosPorArea || [],
-                  eventosPorOrganizacao: eventosPorOrganizacao?.map(e => ({
-                    organizacao: e.entidade_nome,
-                    total_eventos: e.total_eventos
-                  })) || [],
                   
                   // Seção Organizações
                   taxaConversaoEntidades: taxaConversaoEntidades || [],
@@ -217,9 +188,21 @@ const Dashboard = () => {
                   })) || [],
                   
                   // Afinidades
-                  afinidadesCursoArea: afinidades || []
+                  afinidadesCursoArea: afinidades || [],
+                  
+                  // Propriedades obrigatórias do tipo (mantidas vazias)
+                  eventosAprovacao: {
+                    total: 0,
+                    pendentes: 0,
+                    aprovados: 0,
+                    rejeitados: 0,
+                    taxaAprovacao: '0%'
+                  },
+                  topEventos: [],
+                  eventosPorArea: [],
+                  eventosPorOrganizacao: []
                 }}
-                disabled={eventosLoading || statsLoading || afinidadesLoading || taxaConversaoLoading || topEntidadesInteresseLoading || dashboardStatsLoading || eventosPorAreaLoading || eventosPorOrganizacaoLoading || demonstracoesPorAreaLoading || areasEntidadesLoading || alunosPorCursoLoading || alunosPorSemestreLoading || demonstracoesPorCursoLoading || inscricoesPorCursoLoading || (isSuperAdmin && eventosAprovacaoLoading)}
+                disabled={statsLoading || afinidadesLoading || taxaConversaoLoading || topEntidadesInteresseLoading || dashboardStatsLoading || demonstracoesPorAreaLoading || areasEntidadesLoading || alunosPorCursoLoading || alunosPorSemestreLoading || demonstracoesPorCursoLoading || inscricoesPorCursoLoading || (isSuperAdmin && reservasPendentesLoading)}
               />
               
               <Button 
@@ -268,7 +251,7 @@ const Dashboard = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-orange-500" />
-                  <span className="text-gray-700"><strong>Eventos:</strong> Aprovação, análise por área e organização</span>
+                  <span className="text-gray-700"><strong>Reservas:</strong> Aprovação de salas e auditórios</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Building2 className="h-4 w-4 text-purple-500" />
@@ -281,7 +264,7 @@ const Dashboard = () => {
               </div>
               <div className="mt-4 p-3 bg-blue-50 rounded-lg">
                 <p className="text-xs text-blue-600">
-                  💡 <strong>Dica:</strong> Clique nos cards coloridos acima para navegar entre as diferentes seções do dashboard e explorar informações detalhadas sobre cada área.
+                  💡 <strong>Dica:</strong> Clique nos cards coloridos acima para navegar entre as diferentes seções do dashboard. A seção de eventos agora foca na aprovação de reservas de salas e auditórios.
                 </p>
               </div>
             </DashboardSection>
@@ -289,39 +272,49 @@ const Dashboard = () => {
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                 <AlertCircle className="h-6 w-6 text-yellow-500" />
-                Eventos Pendentes de Aprovação
+                Reservas Pendentes de Aprovação
               </h2>
             </div>
 
-            {/* Eventos Pendentes */}
+            {/* Reservas Pendentes */}
             <DashboardSection
-              title="Eventos Aguardando Aprovação"
-              description="Eventos que precisam ser revisados e aprovados"
+              title="Reservas Aguardando Aprovação"
+              description="Reservas que precisam ser revisadas e aprovadas"
               icon={<Clock className="h-5 w-5" />}
               iconColor="text-yellow-600"
               variant="gradient"
-              loading={eventosAprovacaoLoading}
-              isEmpty={!eventosPendentes || eventosPendentes.length === 0}
-              emptyMessage="Nenhum evento pendente"
+              loading={reservasPendentesLoading}
+              isEmpty={!reservasPendentes || reservasPendentes.length === 0}
+              emptyMessage="Nenhuma reserva pendente"
               emptyIcon={<CheckCircle className="h-12 w-12 mx-auto text-green-400 mb-2" />}
             >
-              {eventosPendentes && eventosPendentes.length > 0 && (
+              {reservasPendentes && reservasPendentes.length > 0 && (
                 <div className="space-y-3">
-                  {eventosPendentes.map((evento, index) => (
-                    <div key={index} className="flex items-center justify-between p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                      <div className="flex-1">
-                        <div className="font-medium text-sm text-gray-900">
-                          {evento.nome}
+                  {reservasPendentes.slice(0, 5).map((reserva, index) => (
+                    <div key={index} className="flex items-center justify-between p-4 bg-yellow-50 rounded-lg border border-yellow-200 hover:bg-yellow-100 hover:border-yellow-300 transition-all duration-200 cursor-pointer group">
+                      <div 
+                        className="flex-1"
+                        onClick={() => navigate('/aprovar-reservas')}
+                      >
+                        <div className="font-medium text-sm text-gray-900 group-hover:text-gray-700">
+                          {reserva.nome_evento || 'Reserva de ' + (reserva.tipo_reserva === 'auditorio' ? 'Auditório' : 'Sala')}
                         </div>
-                        <div className="text-xs text-gray-600 mt-1">
-                          Organização: {evento.entidade_nome} • Data: {new Date(evento.data).toLocaleDateString('pt-BR')}
+                        <div className="text-xs text-gray-600 mt-1 group-hover:text-gray-500">
+                          Solicitante: {reserva.nome_solicitante} • Data: {new Date(reserva.data_reserva).toLocaleDateString('pt-BR')}
+                        </div>
+                        <div className="text-xs text-blue-600 mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                          Clique para gerenciar reserva →
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <Button 
                           size="sm" 
                           className="bg-green-600 hover:bg-green-700 text-white"
-                          onClick={() => {/* Função de aprovar evento */}}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            aprovarReserva(reserva.id, 'Aprovada via dashboard');
+                          }}
+                          disabled={acaoReservaLoading}
                         >
                           <CheckCircle className="h-4 w-4 mr-1" />
                           Aprovar
@@ -329,7 +322,11 @@ const Dashboard = () => {
                         <Button 
                           size="sm" 
                           variant="destructive"
-                          onClick={() => {/* Função de rejeitar evento */}}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            rejeitarReserva(reserva.id, 'Rejeitada via dashboard');
+                          }}
+                          disabled={acaoReservaLoading}
                         >
                           <XCircle className="h-4 w-4 mr-1" />
                           Rejeitar
@@ -337,6 +334,17 @@ const Dashboard = () => {
                       </div>
                     </div>
                   ))}
+                  {reservasPendentes.length > 5 && (
+                    <div className="text-center pt-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => navigate('/aprovar-reservas')}
+                      >
+                        Ver todas as {reservasPendentes.length} reservas pendentes
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </DashboardSection>
@@ -344,7 +352,7 @@ const Dashboard = () => {
             {/* Resumo Rápido */}
             <DashboardSection
               title="Resumo Rápido"
-              description="Visão geral dos eventos por status"
+              description="Visão geral das reservas por status"
               icon={<Info className="h-5 w-5" />}
               iconColor="text-blue-600"
               variant="gradient"
@@ -352,32 +360,32 @@ const Dashboard = () => {
               <StatusMetrics
                 metrics={[
                   {
-                    label: 'Total',
-                    value: eventosAprovacaoStats?.total || 0,
+                    label: 'Total Pendentes',
+                    value: reservasPendentes?.length || 0,
                     color: 'blue',
                     bgColor: 'bg-blue-50',
                     textColor: 'text-blue-700'
                   },
                   {
-                    label: 'Pendentes',
-                    value: eventosAprovacaoStats?.pendentes || 0,
-                    color: 'yellow',
-                    bgColor: 'bg-yellow-50',
-                    textColor: 'text-yellow-700'
+                    label: 'Auditório',
+                    value: reservasPendentes?.filter(r => r.tipo_reserva === 'auditorio').length || 0,
+                    color: 'purple',
+                    bgColor: 'bg-purple-50',
+                    textColor: 'text-purple-700'
                   },
                   {
-                    label: 'Aprovados',
-                    value: eventosAprovacaoStats?.aprovados || 0,
+                    label: 'Salas',
+                    value: reservasPendentes?.filter(r => r.tipo_reserva === 'sala').length || 0,
+                    color: 'indigo',
+                    bgColor: 'bg-indigo-50',
+                    textColor: 'text-indigo-700'
+                  },
+                  {
+                    label: 'Com Evento',
+                    value: reservasPendentes?.filter(r => r.nome_evento).length || 0,
                     color: 'green',
                     bgColor: 'bg-green-50',
                     textColor: 'text-green-700'
-                  },
-                  {
-                    label: 'Rejeitados',
-                    value: eventosAprovacaoStats?.rejeitados || 0,
-                    color: 'red',
-                    bgColor: 'bg-red-50',
-                    textColor: 'text-red-700'
                   }
                 ]}
               />
@@ -385,20 +393,20 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* Seção de Eventos */}
+        {/* Seção de Reservas */}
         {activeSection === 'eventos' && (
           <div className="space-y-6">
             <DashboardSectionActions
-              title="Análise de Eventos"
-              description="Gestão e análise completa de eventos do sistema"
+              title="Aprovação de Reservas"
+              description="Gestão e aprovação de reservas de salas e auditórios"
               actions={
                 <>
                   <Button 
-                    onClick={() => navigate('/aprovar-eventos')}
+                    onClick={() => navigate('/aprovar-reservas')}
                     className="bg-orange-600 hover:bg-orange-700 text-white"
                   >
                     <Calendar className="h-4 w-4 mr-2" />
-                    Gerenciar Eventos
+                    Gerenciar Reservas
                   </Button>
                   <Button 
                     variant="outline" 
@@ -412,178 +420,194 @@ const Dashboard = () => {
               }
             />
 
-          
-
-                        {/* 1. Sistema de Aprovação de Eventos */}
-             <Card>
-               <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
-                 <CardTitle className="flex items-center gap-2 text-blue-800">
-                   <Activity className="h-5 w-5 text-blue-600" />
-                   Sistema de Aprovação de Eventos
-                 </CardTitle>
-                 <p className="text-sm text-blue-700">
-                   Gerencie todos os eventos e suas aprovações
-                 </p>
-               </CardHeader>
-               <CardContent className="pt-4">
-                 {/* Estatísticas de Status */}
-                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                   <div className="text-center p-4 bg-blue-50 rounded-lg">
-                     <div className="text-2xl font-bold text-blue-700">
-                       {eventosAprovacaoStats?.total || 0}
-                     </div>
-                     <div className="text-sm text-blue-600">Total</div>
-                   </div>
-                   <div className="text-center p-4 bg-yellow-50 rounded-lg">
-                     <div className="text-2xl font-bold text-yellow-700">
-                       {eventosAprovacaoStats?.pendentes || 0}
-                     </div>
-                     <div className="text-sm text-yellow-600">Pendentes</div>
-                   </div>
-                   <div className="text-center p-4 bg-green-50 rounded-lg">
-                     <div className="text-2xl font-bold text-green-700">
-                       {eventosAprovacaoStats?.aprovados || 0}
-                     </div>
-                     <div className="text-sm text-green-600">Aprovados</div>
-                   </div>
-                   <div className="text-center p-4 bg-red-50 rounded-lg">
-                     <div className="text-2xl font-bold text-red-700">
-                       {eventosAprovacaoStats?.rejeitados || 0}
-                  </div>
-                     <div className="text-sm text-red-600">Rejeitados</div>
-                  </div>
-                </div>
-
-                 {/* Eventos Pendentes com Ações */}
-                 <div className="mt-6">
-                   <h4 className="font-medium text-gray-900 mb-3">Eventos Pendentes de Aprovação</h4>
-                   {eventosAprovacaoLoading ? (
-                     <div className="text-center py-4">
-                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
-                       <p className="text-sm text-gray-600 mt-2">Carregando...</p>
-                     </div>
-                   ) : eventosPendentes && eventosPendentes.length > 0 ? (
-                     <div className="space-y-2">
-                       {eventosPendentes.map((evento, index) => (
-                         <div key={index} className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                      <div className="flex-1">
-                        <div className="font-medium text-sm text-gray-900">
-                               {evento.nome}
-                             </div>
-                             <div className="text-xs text-gray-600 mt-1">
-                               Organização: {evento.entidade_nome} • Data: {new Date(evento.data).toLocaleDateString('pt-BR')}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                             <Button 
-                               size="sm" 
-                               className="bg-green-600 hover:bg-green-700 text-white"
-                               onClick={() => {/* Função de aprovar evento */}}
-                             >
-                               <CheckCircle className="h-4 w-4 mr-1" />
-                               Aprovar
-                             </Button>
-                             <Button 
-                               size="sm" 
-                               variant="destructive"
-                               onClick={() => {/* Função de rejeitar evento */}}
-                             >
-                               <XCircle className="h-4 w-4 mr-1" />
-                               Rejeitar
-                             </Button>
-                      </div>
+            {/* 1. Sistema de Aprovação de Reservas */}
+            <Card>
+              <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
+                <CardTitle className="flex items-center gap-2 text-blue-800">
+                  <Activity className="h-5 w-5 text-blue-600" />
+                  Sistema de Aprovação de Reservas
+                </CardTitle>
+                <p className="text-sm text-blue-700">
+                  Gerencie todas as reservas de salas e auditórios
+                </p>
+              </CardHeader>
+              <CardContent className="pt-4">
+                {/* Estatísticas de Status */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <div className="text-center p-4 bg-blue-50 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-700">
+                      {reservasPendentes?.length || 0}
                     </div>
-                  ))}
-                     </div>
-                   ) : (
-                     <div className="text-center py-4 text-muted-foreground">
-                       <CheckCircle className="h-8 w-8 mx-auto text-green-400 mb-2" />
-                       <div className="text-sm font-medium">Nenhum evento pendente</div>
-                       <div className="text-xs">Todos os eventos foram revisados</div>
-                </div>
-              )}
-                 </div>
-            </CardContent>
-          </Card>
-
-            {/* 2. Top 5 Eventos com Mais Inscritos */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Trophy className="h-5 w-5 text-yellow-500" />
-                  Top 5 Eventos com Mais Inscritos
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Ranking dos eventos mais populares
-              </p>
-            </CardHeader>
-            <CardContent>
-              {eventosError ? (
-                <div className="text-center py-8 text-red-600">
-                  <div className="mb-4">
-                    <TrendingUp className="h-8 w-8 mx-auto text-red-400 mb-2" />
+                    <div className="text-sm text-blue-600">Total Pendentes</div>
                   </div>
-                  <div className="text-sm font-medium mb-2">Erro ao carregar dados</div>
-                  <div className="text-xs mb-3">{eventosError}</div>
-                  <Button onClick={refetchEventos} variant="outline" size="sm">
-                    Tentar novamente
+                  <div className="text-center p-4 bg-purple-50 rounded-lg">
+                    <div className="text-2xl font-bold text-purple-700">
+                      {reservasPendentes?.filter(r => r.tipo_reserva === 'auditorio').length || 0}
+                    </div>
+                    <div className="text-sm text-purple-600">Auditórios</div>
+                  </div>
+                  <div className="text-center p-4 bg-indigo-50 rounded-lg">
+                    <div className="text-2xl font-bold text-indigo-700">
+                      {reservasPendentes?.filter(r => r.tipo_reserva === 'sala').length || 0}
+                    </div>
+                    <div className="text-sm text-indigo-600">Salas</div>
+                  </div>
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <div className="text-2xl font-bold text-green-700">
+                      {reservasPendentes?.filter(r => r.nome_evento).length || 0}
+                    </div>
+                    <div className="text-sm text-green-600">Com Evento</div>
+                  </div>
+                </div>
+
+                {/* Reservas Pendentes com Ações */}
+                <div className="mt-6">
+                  <h4 className="font-medium text-gray-900 mb-3">Reservas Pendentes de Aprovação</h4>
+                  {reservasPendentesLoading ? (
+                    <div className="text-center py-4">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                      <p className="text-sm text-gray-600 mt-2">Carregando...</p>
+                    </div>
+                  ) : reservasPendentes && reservasPendentes.length > 0 ? (
+                    <div className="space-y-2">
+                      {reservasPendentes.slice(0, 3).map((reserva, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-200 hover:bg-yellow-100 hover:border-yellow-300 transition-all duration-200 cursor-pointer group">
+                          <div 
+                            className="flex-1"
+                            onClick={() => navigate('/aprovar-reservas')}
+                          >
+                            <div className="font-medium text-sm text-gray-900 group-hover:text-gray-700">
+                              {reserva.nome_evento || 'Reserva de ' + (reserva.tipo_reserva === 'auditorio' ? 'Auditório' : 'Sala')}
+                            </div>
+                            <div className="text-xs text-gray-600 mt-1 group-hover:text-gray-500">
+                              Solicitante: {reserva.nome_solicitante} • Data: {new Date(reserva.data_reserva).toLocaleDateString('pt-BR')}
+                            </div>
+                            <div className="text-xs text-blue-600 mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                              Clique para gerenciar reserva →
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button 
+                              size="sm" 
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                aprovarReserva(reserva.id, 'Aprovada via dashboard');
+                              }}
+                              disabled={acaoReservaLoading}
+                            >
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              Aprovar
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="destructive"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                rejeitarReserva(reserva.id, 'Rejeitada via dashboard');
+                              }}
+                              disabled={acaoReservaLoading}
+                            >
+                              <XCircle className="h-4 w-4 mr-1" />
+                              Rejeitar
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      {reservasPendentes.length > 3 && (
+                        <div className="text-center pt-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => navigate('/aprovar-reservas')}
+                          >
+                            Ver todas as {reservasPendentes.length} reservas pendentes
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4 text-muted-foreground">
+                      <CheckCircle className="h-8 w-8 mx-auto text-green-400 mb-2" />
+                      <div className="text-sm font-medium">Nenhuma reserva pendente</div>
+                      <div className="text-xs">Todas as reservas foram revisadas</div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* 2. Resumo de Reservas por Tipo */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Building className="h-5 w-5 text-blue-500" />
+                  Resumo de Reservas por Tipo
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Distribuição das reservas pendentes por categoria
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 bg-purple-50 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-2xl font-bold text-purple-700">
+                          {reservasPendentes?.filter(r => r.tipo_reserva === 'auditorio').length || 0}
+                        </div>
+                        <div className="text-sm text-purple-600">Reservas de Auditório</div>
+                      </div>
+                      <Building className="h-8 w-8 text-purple-500" />
+                    </div>
+                  </div>
+                  <div className="p-4 bg-indigo-50 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-2xl font-bold text-indigo-700">
+                          {reservasPendentes?.filter(r => r.tipo_reserva === 'sala').length || 0}
+                        </div>
+                        <div className="text-sm text-indigo-600">Reservas de Sala</div>
+                      </div>
+                      <Settings className="h-8 w-8 text-indigo-500" />
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* 3. Ações Rápidas */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5 text-green-500" />
+                  Ações Rápidas
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Acesso rápido às funcionalidades de gestão de reservas
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Button 
+                    onClick={() => navigate('/aprovar-reservas')}
+                    className="h-20 flex flex-col items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    <CheckCircle className="h-6 w-6" />
+                    <span className="font-medium">Aprovar Reservas</span>
+                    <span className="text-xs opacity-90">Gerenciar todas as reservas pendentes</span>
+                  </Button>
+                  <Button 
+                    onClick={() => navigate('/calendario-reservas')}
+                    className="h-20 flex flex-col items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    <Calendar className="h-6 w-6" />
+                    <span className="font-medium">Calendário</span>
+                    <span className="text-xs opacity-90">Visualizar reservas aprovadas</span>
                   </Button>
                 </div>
-              ) : eventos.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <div className="mb-4">
-                    <Trophy className="h-8 w-8 mx-auto text-gray-400 mb-2" />
-                  </div>
-                  <div className="text-sm font-medium mb-2">Nenhum evento encontrado</div>
-                  <div className="text-xs">
-                    A tabela top_eventos ainda não possui dados.
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                    {eventos.slice(0, 5).map((evento, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex-1">
-                        <div className="font-medium text-sm text-gray-900">
-                          {evento.nome_evento}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="text-xs">
-                          {evento.total_inscricoes.toLocaleString('pt-BR')} inscrições
-                        </Badge>
-                        {index < 3 && (
-                          <Badge className={`text-xs ${
-                            index === 0 ? 'bg-yellow-500 hover:bg-yellow-600' :
-                            index === 1 ? 'bg-gray-400 hover:bg-gray-500' :
-                            'bg-amber-600 hover:bg-amber-700'
-                          } text-white`}>
-                            {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-            {/* 3.0 Eventos por Área de Atuação - Gráfico Simples */}
-            <EventosPorAreaChart
-              eventosPorArea={eventosPorArea}
-              loading={eventosPorAreaLoading}
-              error={eventosPorAreaError}
-              onRefetch={refetchEventosPorArea}
-            />
-
-            {/* 3.1 Eventos por Organização - Gráfico Simples */}
-            <EventosPorOrganizacaoChart
-              eventosPorOrganizacao={eventosPorOrganizacao}
-              loading={eventosPorOrganizacaoLoading}
-              error={eventosPorOrganizacaoError}
-              onRefetch={refetchEventosPorOrganizacao}
-            />
+              </CardContent>
+            </Card>
           </div>
         )}
 

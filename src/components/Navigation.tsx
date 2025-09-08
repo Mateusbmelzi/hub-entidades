@@ -11,10 +11,12 @@ import {
   X, 
   User, 
   LogOut,
-  Settings
+  Settings,
+  Building
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthStateContext } from '@/components/AuthStateProvider';
+import { useEntityAuth } from '@/hooks/useEntityAuth';
 import NotificationBell from './NotificationBell';
 
 const Navigation: React.FC = () => {
@@ -23,6 +25,7 @@ const Navigation: React.FC = () => {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { type, logout } = useAuthStateContext();
+  const { isAuthenticated: isEntityAuthenticated } = useEntityAuth();
 
   const isActive = (path: string) => location.pathname === path;
   const isSuperAdmin = type === 'superAdmin';
@@ -145,6 +148,16 @@ const Navigation: React.FC = () => {
                 >
                   <Settings className="w-3 h-3" />
                   <span className="hidden lg:inline">Admin</span>
+                </Link>
+                
+                {/* Aprovar Reservas */}
+                <Link
+                  to="/aprovar-reservas"
+                  className="text-xs text-insper-dark-gray hover:text-insper-black flex items-center space-x-1 px-2 py-1 rounded transition-colors"
+                  title="Aprovar Reservas"
+                >
+                  <Building className="w-3 h-3" />
+                  <span className="hidden lg:inline">Reservas</span>
                 </Link>
                 
                 <Button

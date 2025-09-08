@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Users, Calendar, Mail, MapPin, Clock, Star, ExternalLink, Edit, Plus, LogIn, LogOut, Trash2, MoreVertical, FolderOpen, Building2, Target, Sparkles, Award, TrendingUp, Camera, Phone } from 'lucide-react';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
+import { ArrowLeft, Users, Calendar, Mail, MapPin, Clock, Star, ExternalLink, Edit, Plus, LogIn, LogOut, Trash2, MoreVertical, FolderOpen, Building2, Target, Sparkles, Award, TrendingUp, Camera, Phone, ClipboardList, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +19,7 @@ import { useDeleteProjeto } from '@/hooks/useDeleteProjeto';
 import { useEventosEntidade } from '@/hooks/useEventosEntidade';
 import { useDeleteEventoAsEntity } from '@/hooks/useDeleteEventoAsEntity';
 import { useCheckInterestDemonstration } from '@/hooks/useCheckInterestDemonstration';
+import { useReservasUsuario } from '@/hooks/useReservas';
 import { supabase } from '@/integrations/supabase/client';
 import EditarEventoEntidade from '@/components/EditarEventoEntidade';
 import EntityLoginForm from '@/components/EntityLoginForm';
@@ -41,6 +42,7 @@ import type { Evento } from '@/hooks/useEventosEntidade';
 const EntidadeDetalhes = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isUpdating, setIsUpdating] = useState(false);
   
   const handleEntidadeUpdate = useCallback(() => {
@@ -81,12 +83,32 @@ const EntidadeDetalhes = () => {
     return dataEvento >= hoje;
   });
 
+  // Buscar reservas da entidade
+  const { reservasUsuario, loading: reservasLoading, refetch: refetchReservas } = useReservasUsuario(user?.id || '');
+  const reservasEntidade = reservasUsuario?.filter(reserva => 
+    reserva.entidade_id === entidade?.id
+  ) || [];
+
   // Sincronizar foto de perfil quando entidade for carregada
   useEffect(() => {
     if (entidade?.foto_perfil_url !== currentFotoUrl) {
       setCurrentFotoUrl(entidade?.foto_perfil_url || null);
     }
   }, [entidade?.foto_perfil_url, currentFotoUrl]);
+
+  // Tratar mensagens de sucesso vindas de outras páginas
+  useEffect(() => {
+    if (location.state?.success && location.state?.message) {
+      toast({
+        title: '✅ Sucesso!',
+        description: location.state.message,
+        duration: 5000,
+      });
+      
+      // Limpar o state para evitar mostrar a mensagem novamente
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location.state, navigate, location.pathname, toast]);
 
   const handleDeleteProject = async (projeto: Projeto) => {
     if (!entidade) return;
@@ -357,61 +379,67 @@ const EntidadeDetalhes = () => {
             <div className="flex flex-col space-y-3 lg:ml-auto">
               {isOwner ? (
                 <>
-                  <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" className="bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20">
-                        <Edit className="mr-2 h-4 w-4" />
-                        Editar Perfil
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                      <EditarEntidadeForm 
-                        entidade={entidade} 
-                        onSuccess={() => {
-                          // console.log('🔄 onSuccess chamado - fechando dialog e refetching');
-                          setShowEditDialog(false);
-                          setIsUpdating(true);
-                          
-                          // Mostrar feedback visual de atualização
-                          toast({
-                            title: "🔄 Atualizando...",
-                            description: "Carregando as informações atualizadas da entidade.",
-                            duration: 2000,
-                          });
-                          
-                          // Refetch com pequeno delay para garantir que o toast seja exibido
-                          setTimeout(async () => {
-                            await refetchEntidade();
-                          }, 100);
-                        }} 
-                      />
-                    </DialogContent>
-                  </Dialog>
-
-                  <Dialog open={showFotoDialog} onOpenChange={setShowFotoDialog}>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" className="bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20">
-                        <Camera className="mr-2 h-4 w-4" />
-                        Gerenciar Foto
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-md">
-                      <div className="space-y-4">
-                        <div>
-                          <h3 className="text-lg font-semibold text-insper-black">Gerenciar Foto de Perfil</h3>
-                          <p className="text-sm text-insper-dark-gray mt-1">
-                            Adicione ou altere a foto de perfil da sua organização
-                          </p>
-                        </div>
-                        <UploadFotoPerfil
-                          entidadeId={entidade.id}
-                          currentFotoUrl={currentFotoUrl}
-                          onFotoUpdated={handleFotoUpdated}
+                  {/* Primeira linha - Botões de Gerenciamento */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" className="bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 transition-all duration-200">
+                          <Edit className="mr-2 h-4 w-4" />
+                          <span className="hidden sm:inline">Editar Perfil</span>
+                          <span className="sm:hidden">Editar</span>
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <EditarEntidadeForm 
+                          entidade={entidade} 
+                          onSuccess={() => {
+                            // console.log('🔄 onSuccess chamado - fechando dialog e refetching');
+                            setShowEditDialog(false);
+                            setIsUpdating(true);
+                            
+                            // Mostrar feedback visual de atualização
+                            toast({
+                              title: "🔄 Atualizando...",
+                              description: "Carregando as informações atualizadas da entidade.",
+                              duration: 2000,
+                            });
+                            
+                            // Refetch com pequeno delay para garantir que o toast seja exibido
+                            setTimeout(async () => {
+                              await refetchEntidade();
+                            }, 100);
+                          }} 
                         />
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+                      </DialogContent>
+                    </Dialog>
+
+                    <Dialog open={showFotoDialog} onOpenChange={setShowFotoDialog}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" className="bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 transition-all duration-200">
+                          <Camera className="mr-2 h-4 w-4" />
+                          <span className="hidden sm:inline">Gerenciar Foto</span>
+                          <span className="sm:hidden">Foto</span>
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-md">
+                        <div className="space-y-4">
+                          <div>
+                            <h3 className="text-lg font-semibold text-insper-black">Gerenciar Foto de Perfil</h3>
+                            <p className="text-sm text-insper-dark-gray mt-1">
+                              Adicione ou altere a foto de perfil da sua organização
+                            </p>
+                          </div>
+                          <UploadFotoPerfil
+                            entidadeId={entidade.id}
+                            currentFotoUrl={currentFotoUrl}
+                            onFotoUpdated={handleFotoUpdated}
+                          />
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                   
+                  {/* Segunda linha - Áreas Internas */}
                   <GerenciarAreasInternas 
                     entidadeId={entidade.id}
                     areasAtuais={entidade.areas_internas || []}
@@ -421,18 +449,43 @@ const EntidadeDetalhes = () => {
                     }}
                   />
                   
-                  <Button 
-                    variant="outline" 
-                    onClick={() => navigate(`/entidades/${entidade.id}/demonstracoes`)}
-                    className="bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20"
-                  >
-                    <Users className="mr-2 h-4 w-4" />
-                    Ver Demonstrações
-                  </Button>
-                  <Button variant="outline" onClick={logout} className="bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Sair
-                  </Button>
+                  {/* Terceira linha - Demonstrações e Sair */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => navigate(`/entidades/${entidade.id}/demonstracoes`)}
+                      className="bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 transition-all duration-200"
+                    >
+                      <Users className="mr-2 h-4 w-4" />
+                      <span className="hidden sm:inline">Ver Demonstrações</span>
+                      <span className="sm:hidden">Demonstrações</span>
+                    </Button>
+                    
+                    <Button variant="outline" onClick={logout} className="bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 transition-all duration-200">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Sair
+                    </Button>
+                  </div>
+                  
+                  {/* Quarta linha - Botões de Reserva */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button 
+                      onClick={() => navigate('/reserva-sala')}
+                      className="bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                    >
+                      <Building2 className="mr-2 h-4 w-4" />
+                      <span className="hidden sm:inline">Reservar Sala</span>
+                      <span className="sm:hidden">Sala</span>
+                    </Button>
+                    <Button 
+                      onClick={() => navigate('/reserva-auditorio')}
+                      className="bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                    >
+                      <Building2 className="mr-2 h-4 w-4" />
+                      <span className="hidden sm:inline">Reservar Auditório</span>
+                      <span className="sm:hidden">Auditório</span>
+                    </Button>
+                  </div>
                 </>
               ) : (
                 <>
@@ -463,9 +516,10 @@ const EntidadeDetalhes = () => {
                   )}
                   <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
                     <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" className="bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20">
+                      <Button variant="outline" size="sm" className="bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 transition-all duration-200">
                         <LogIn className="mr-2 h-4 w-4" />
-                        Entrar como organização
+                        <span className="hidden sm:inline">Entrar como organização</span>
+                        <span className="sm:hidden">Entrar</span>
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
@@ -485,11 +539,11 @@ const EntidadeDetalhes = () => {
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
             {/* Sobre */}
-            <Card className="border-0 shadow-lg bg-white">
+            <Card className="border-0 shadow-lg bg-white hover:shadow-xl transition-shadow duration-300">
               <CardHeader className="pb-4">
                 <div className="flex items-center space-x-2">
                   <Target className="w-5 h-5 text-red-600" />
-                  <CardTitle className="text-2xl">Sobre a Organização</CardTitle>
+                  <CardTitle className="text-2xl text-gray-900">Sobre a Organização</CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
@@ -780,19 +834,169 @@ const EntidadeDetalhes = () => {
 
 
 
+            {/* Eventos - Visível para todos os usuários */}
+            <Card className="border-0 shadow-lg bg-white hover:shadow-xl transition-shadow duration-300">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Calendar className="w-5 h-5 text-red-600" />
+                    <CardTitle className="text-2xl text-gray-900">Eventos</CardTitle>
+                  </div>
+                  {isOwner && (
+                    <Dialog open={showCreateProjectDialog} onOpenChange={setShowCreateProjectDialog}>
+                      <DialogTrigger asChild>
+                        <Button size="sm" className="bg-red-600 hover:bg-red-700 shadow-sm hover:shadow-md transition-all duration-200">
+                          <Plus className="mr-2 h-4 w-4" />
+                          Criar Evento
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <CriarEventoEntidade 
+                          onSuccess={() => {
+                            setShowCreateProjectDialog(false);
+                            refetchEventos();
+                          }} 
+                        />
+                      </DialogContent>
+                    </Dialog>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                {eventosLoading ? (
+                  <div className="space-y-4">
+                    <Skeleton className="h-24 w-full rounded-xl" />
+                    <Skeleton className="h-24 w-full rounded-xl" />
+                  </div>
+                ) : eventos && eventos.length > 0 ? (
+                  <div className="space-y-4">
+                    {eventos.map((evento) => (
+                      <div key={evento.id} className="group border border-gray-200 rounded-xl p-4 hover:border-red-300 hover:shadow-md transition-all duration-200 bg-gradient-to-r from-white to-gray-50">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <h4 className="font-bold text-gray-900 text-lg mb-2">
+                              {evento.nome}
+                            </h4>
+                            <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+                              {evento.descricao}
+                            </p>
+                          </div>
+                          {isOwner && (
+                            <div className="flex items-center gap-2 ml-4">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEditEvent(evento)}
+                                className="h-8 w-8 p-0"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Tem certeza que deseja excluir o evento "{evento.nome}"? 
+                                      Esta ação não pode ser desfeita.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction 
+                                      onClick={() => handleDeleteEvent(evento)}
+                                      disabled={deleteEventoLoading}
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                      {deleteEventoLoading ? 'Excluindo...' : 'Excluir'}
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                          <div className="flex items-center text-gray-600">
+                            <Calendar className="mr-2 h-4 w-4 text-red-500 flex-shrink-0" />
+                            <span className="font-medium">{format(new Date(evento.data), "dd 'de' MMMM, yyyy", { locale: ptBR })}</span>
+                          </div>
+                          <div className="flex items-center text-gray-600">
+                            <Clock className="mr-2 h-4 w-4 text-red-500 flex-shrink-0" />
+                            <span className="font-medium">{evento.horario}</span>
+                          </div>
+                          {evento.local && (
+                            <div className="flex items-center text-gray-600 sm:col-span-2">
+                              <MapPin className="mr-2 h-4 w-4 text-red-500 flex-shrink-0" />
+                              <span className="font-medium">{evento.local}</span>
+                            </div>
+                          )}
+                        </div>
+                        {evento.link_evento && (
+                          <div className="mt-4 pt-3 border-t border-gray-200">
+                            <a
+                              href={evento.link_evento}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center text-red-600 hover:text-red-700 font-medium text-sm hover:underline"
+                            >
+                              <ExternalLink className="mr-2 h-4 w-4" />
+                              Inscrever-se no evento
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <Calendar className="h-10 w-10 text-red-600" />
+                    </div>
+                    <h4 className="font-bold text-gray-900 mb-3 text-lg">
+                      Nenhum evento cadastrado
+                    </h4>
+                    <p className="text-gray-600 mb-6 max-w-sm mx-auto">
+                      {isOwner 
+                        ? 'Que tal criar o primeiro evento da sua organização? Conecte-se com os estudantes!'
+                        : 'Esta organização ainda não possui eventos cadastrados. Fique atento às atualizações!'
+                      }
+                    </p>
+                    {isOwner && (
+                      <Button 
+                        onClick={() => setShowCreateProjectDialog(true)}
+                        className="bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Criar Primeiro Evento
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Projetos */}
             {(projetos.length > 0 || isOwner) && (
-              <Card className="border-0 shadow-lg bg-white">
+              <Card className="border-0 shadow-lg bg-white hover:shadow-xl transition-shadow duration-300">
                 <CardHeader className="pb-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <FolderOpen className="w-5 h-5 text-red-600" />
-                      <CardTitle className="text-2xl">Projetos</CardTitle>
+                      <CardTitle className="text-2xl text-gray-900">Projetos</CardTitle>
                     </div>
                     {isOwner && (
                       <Dialog open={showCreateProjectDialog} onOpenChange={setShowCreateProjectDialog}>
                         <DialogTrigger asChild>
-                          <Button size="sm" className="bg-red-600 hover:bg-red-700">
+                          <Button size="sm" className="bg-red-600 hover:bg-red-700 shadow-sm hover:shadow-md transition-all duration-200">
                             <Plus className="mr-2 h-4 w-4" />
                             Adicionar Projeto
                           </Button>
@@ -903,25 +1107,32 @@ const EntidadeDetalhes = () => {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-12">
-                      <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <FolderOpen className="h-10 w-10 text-red-600" />
+                    <div className="text-center py-16">
+                      <div className="w-24 h-24 bg-gradient-to-br from-red-100 to-red-200 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                        <FolderOpen className="h-12 w-12 text-red-600" />
                       </div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-3">
+                      <h3 className="text-2xl font-bold text-gray-900 mb-4">
                         Nenhum projeto cadastrado
                       </h3>
-                      <p className="text-gray-600 mb-6 max-w-sm mx-auto">
-                        Esta organização ainda não possui projetos cadastrados. 
-                        {isOwner ? ' Que tal começar criando o primeiro projeto?' : ' Fique atento às atualizações!'}
+                      <p className="text-gray-600 mb-8 max-w-md mx-auto leading-relaxed">
+                        {isOwner 
+                          ? 'Que tal começar criando o primeiro projeto da sua organização? Mostre aos estudantes o que vocês estão desenvolvendo!'
+                          : 'Esta organização ainda não possui projetos cadastrados. Fique atento às atualizações!'
+                        }
                       </p>
                       {isOwner && (
-                        <Button 
-                          onClick={() => setShowCreateProjectDialog(true)}
-                          className="bg-red-600 hover:bg-red-700"
-                        >
-                          <Plus className="mr-2 h-4 w-4" />
-                          Criar Primeiro Projeto
-                        </Button>
+                        <div className="space-y-4">
+                          <Button 
+                            onClick={() => setShowCreateProjectDialog(true)}
+                            className="bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 px-8 py-3 text-lg"
+                          >
+                            <Plus className="mr-2 h-5 w-5" />
+                            Criar Primeiro Projeto
+                          </Button>
+                          <p className="text-sm text-gray-500">
+                            ✨ Projetos ajudam a mostrar o trabalho da organização
+                          </p>
+                        </div>
                       )}
                     </div>
                   )}
@@ -940,66 +1151,78 @@ const EntidadeDetalhes = () => {
                   <CardTitle className="text-xl">Redes Sociais e Site</CardTitle>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3">
                 {entidade.site_url && (
-                  <div className="flex items-center p-3 bg-gray-50 rounded-lg">
-                    <ExternalLink className="mr-3 h-4 w-4 text-gray-600 flex-shrink-0" />
-                    <div>
-                      <div className="text-sm text-gray-500">Site</div>
+                  <div className="group flex items-center p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200 hover:border-red-300 hover:shadow-md transition-all duration-200">
+                    <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center mr-4 group-hover:bg-red-200 transition-colors">
+                      <ExternalLink className="h-5 w-5 text-red-600" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-600 mb-1">Site</div>
                       <a 
                         href={entidade.site_url} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="font-medium text-red-600 hover:text-red-700 hover:underline"
+                        className="text-red-600 hover:text-red-700 hover:underline font-semibold text-base transition-colors"
                       >
                         Visitar site
                       </a>
                     </div>
+                    <ExternalLink className="h-4 w-4 text-gray-400 group-hover:text-red-500 transition-colors" />
                   </div>
                 )}
 
                 {entidade.instagram_url && (
-                  <div className="flex items-center p-3 bg-gray-50 rounded-lg">
-                    <ExternalLink className="mr-3 h-4 w-4 text-gray-600 flex-shrink-0" />
-                    <div>
-                      <div className="text-sm text-gray-500">Instagram</div>
+                  <div className="group flex items-center p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200 hover:border-red-300 hover:shadow-md transition-all duration-200">
+                    <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center mr-4 group-hover:bg-red-200 transition-colors">
+                      <ExternalLink className="h-5 w-5 text-red-600" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-600 mb-1">Instagram</div>
                       <a 
                         href={entidade.instagram_url} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="font-medium text-red-600 hover:text-red-700 hover:underline"
+                        className="text-red-600 hover:text-red-700 hover:underline font-semibold text-base transition-colors"
                       >
                         @{entidade.instagram_url.split('/').pop() || 'instagram'}
                       </a>
                     </div>
+                    <ExternalLink className="h-4 w-4 text-gray-400 group-hover:text-red-500 transition-colors" />
                   </div>
                 )}
 
                 {entidade.linkedin_url && (
-                  <div className="flex items-center p-4 bg-gray-50 rounded-lg">
-                    <ExternalLink className="mr-3 h-4 w-4 text-gray-600 flex-shrink-0" />
-                    <div>
-                      <div className="text-sm text-gray-500">LinkedIn</div>
+                  <div className="group flex items-center p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200 hover:border-red-300 hover:shadow-md transition-all duration-200">
+                    <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center mr-4 group-hover:bg-red-200 transition-colors">
+                      <ExternalLink className="h-5 w-5 text-red-600" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-600 mb-1">LinkedIn</div>
                       <a 
                         href={entidade.linkedin_url} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="font-medium text-red-600 hover:text-red-700 hover:underline"
+                        className="text-red-600 hover:text-red-700 hover:underline font-semibold text-base transition-colors"
                       >
                         Ver perfil
                       </a>
                     </div>
+                    <ExternalLink className="h-4 w-4 text-gray-400 group-hover:text-red-500 transition-colors" />
                   </div>
                 )}
 
                 {!entidade.site_url && !entidade.instagram_url && !entidade.linkedin_url && (
-                  <div className="text-center py-6">
-                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <ExternalLink className="h-6 w-6 text-gray-400" />
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <ExternalLink className="h-8 w-8 text-red-600" />
                     </div>
+                    <h4 className="font-semibold text-gray-900 mb-2">
+                      Nenhuma informação de contato
+                    </h4>
                     <p className="text-sm text-gray-500">
                       {isOwner 
-                        ? 'Nenhuma informação de contato cadastrada ainda.'
+                        ? 'Adicione links para suas redes sociais e site para conectar-se melhor com os estudantes.'
                         : 'Esta organização ainda não cadastrou informações de contato.'
                       }
                     </p>
@@ -1008,130 +1231,112 @@ const EntidadeDetalhes = () => {
               </CardContent>
             </Card>
 
-            {/* Próximos Eventos */}
-            <Card className="border-0 shadow-lg bg-white">
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <TrendingUp className="w-5 h-5 text-red-600" />
-                    <CardTitle className="text-xl">Próximos Eventos</CardTitle>
+            {/* Minhas Reservas - Apenas para proprietários */}
+            {isOwner && (
+              <Card className="border-0 shadow-lg bg-white">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <ClipboardList className="w-5 h-5 text-red-600" />
+                      <CardTitle className="text-xl">Minhas Reservas</CardTitle>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                
+                    </div>
                   </div>
-                  {isOwner && <CriarEventoEntidade onSuccess={refetchEventos} />}
-                </div>
-              </CardHeader>
-              <CardContent>
-                {eventosLoading ? (
-                  <div className="space-y-3">
-                    <Skeleton className="h-20 w-full" />
-                    <Skeleton className="h-20 w-full" />
-                  </div>
-                ) : eventos && eventos.length > 0 ? (
-                  <div className="space-y-4">
-                    {eventos.map((evento) => (
-                      <Link key={evento.id} to={`/eventos/${evento.id}`} className="block">
-                        <div className="border-l-4 border-red-500 pl-4 hover:bg-red-50 transition-colors rounded-r-xl p-3 -ml-2">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <h4 className="font-bold text-gray-900">{evento.nome}</h4>
-                                {isOwner && (
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild onClick={(e) => e.preventDefault()}>
-                                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                                        <MoreVertical className="h-3 w-3" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                      <DropdownMenuItem onClick={(e) => { e.preventDefault(); handleEditEvent(evento); }}>
-                                        <Edit className="mr-2 h-3 w-3" />
-                                        Editar
-                                      </DropdownMenuItem>
-                                      <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                          <DropdownMenuItem 
-                                            onSelect={(e) => e.preventDefault()}
-                                            className="text-destructive focus:text-destructive"
-                                          >
-                                            <Trash2 className="mr-2 h-3 w-3" />
-                                            Remover
-                                          </DropdownMenuItem>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                          <AlertDialogHeader>
-                                            <AlertDialogTitle>Confirmar remoção</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                              Tem certeza que deseja remover o evento "{evento.nome}"? 
-                                              Esta ação não pode ser desfeita.
-                                            </AlertDialogDescription>
-                                          </AlertDialogHeader>
-                                          <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                            <AlertDialogAction 
-                                              onClick={() => handleDeleteEvent(evento)}
-                                              disabled={deleteEventoLoading}
-                                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                            >
-                                              {deleteEventoLoading ? 'Removendo...' : 'Remover'}
-                                            </AlertDialogAction>
-                                          </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                      </AlertDialog>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                )}
-                              </div>
-                              {evento.descricao && (
-                                <p className="text-sm text-gray-600 mb-2">{evento.descricao}</p>
-                              )}
-                              <div className="space-y-1 text-sm text-gray-500">
-                                <div className="flex items-center">
-                                  <Calendar className="mr-2 h-4 w-4" />
-                                  {format(combineDataHorario(evento.data, evento.horario), "dd 'de' MMMM, yyyy", { locale: ptBR })}
-                                </div>
-                                <div className="flex items-center">
-                                  <Clock className="mr-2 h-4 w-4" />
-                                  {evento.horario ? format(combineDataHorario(evento.data, evento.horario), "HH:mm", { locale: ptBR }) : 'Horário não definido'}
-                                </div>
-                                {evento.local && (
-                                  <div className="flex items-center">
-                                    <MapPin className="mr-2 h-4 w-4" />
-                                    {evento.local}
-                                  </div>
-                                )}
-                                {evento.capacidade && (
-                                  <div className="flex items-center">
-                                    <Users className="mr-2 h-4 w-4" />
-                                    Capacidade: {evento.capacidade}
-                                  </div>
-                                )}
-                              </div>
+                </CardHeader>
+                <CardContent>
+                  {reservasLoading ? (
+                    <div className="space-y-4">
+                      <Skeleton className="h-24 w-full rounded-xl" />
+                      <Skeleton className="h-24 w-full rounded-xl" />
+                    </div>
+                  ) : reservasEntidade && reservasEntidade.length > 0 ? (
+                    <div className="space-y-4">
+                      {reservasEntidade.map((reserva) => (
+                        <div key={reserva.id} className="group border border-gray-200 rounded-xl p-4 hover:border-red-300 hover:shadow-md transition-all duration-200 bg-gradient-to-r from-white to-gray-50">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-3 h-3 rounded-full ${
+                                reserva.status === 'aprovada' ? 'bg-green-500' :
+                                reserva.status === 'rejeitada' ? 'bg-red-500' :
+                                'bg-yellow-500'
+                              }`}></div>
+                              <h4 className="font-bold text-gray-900 text-lg">
+                                Reserva de {reserva.tipo_reserva === 'sala' ? 'Sala' : 'Auditório'}
+                              </h4>
                             </div>
                             <Badge 
-                              variant={evento.status === 'ativo' ? 'default' : 'secondary'}
-                              className="text-xs bg-red-600 hover:bg-red-700"
+                              variant={
+                                reserva.status === 'aprovada' ? 'default' : 
+                                reserva.status === 'rejeitada' ? 'destructive' : 
+                                'secondary'
+                              }
+                              className={`text-xs font-medium ${
+                                reserva.status === 'aprovada' ? 'bg-green-600 hover:bg-green-700 text-white' :
+                                reserva.status === 'rejeitada' ? 'bg-red-600 hover:bg-red-700 text-white' :
+                                'bg-yellow-600 hover:bg-yellow-700 text-white'
+                              }`}
                             >
-                              {evento.status}
+                              {reserva.status === 'pendente' ? 'Pendente' :
+                               reserva.status === 'aprovada' ? 'Aprovada' :
+                               reserva.status === 'rejeitada' ? 'Rejeitada' :
+                               'Cancelada'}
                             </Badge>
                           </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                            <div className="flex items-center text-gray-600">
+                              <Calendar className="mr-2 h-4 w-4 text-red-500 flex-shrink-0" />
+                              <span className="font-medium">{format(new Date(reserva.data_reserva), "dd 'de' MMMM, yyyy", { locale: ptBR })}</span>
+                            </div>
+                            <div className="flex items-center text-gray-600">
+                              <Clock className="mr-2 h-4 w-4 text-red-500 flex-shrink-0" />
+                              <span className="font-medium">{reserva.horario_inicio} - {reserva.horario_termino}</span>
+                            </div>
+                            <div className="flex items-center text-gray-600">
+                              <Users className="mr-2 h-4 w-4 text-red-500 flex-shrink-0" />
+                              <span className="font-medium">{reserva.quantidade_pessoas} pessoas</span>
+                            </div>
+                            <div className="flex items-center text-gray-600">
+                              <User className="mr-2 h-4 w-4 text-red-500 flex-shrink-0" />
+                              <span className="font-medium">{reserva.nome_solicitante}</span>
+                            </div>
+                          </div>
                         </div>
-                      </Link>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Calendar className="h-8 w-8 text-red-600" />
+                      ))}
                     </div>
-                    <h4 className="font-bold text-gray-900 mb-2">
-                      Nenhum evento cadastrado
-                    </h4>
-                    <p className="text-sm text-gray-600">
-                      {isOwner ? 'Crie o primeiro evento para começar!' : 'Fique atento aos próximos eventos!'}
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                  ) : (
+                    <div className="text-center py-12">
+                      <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <ClipboardList className="h-10 w-10 text-red-600" />
+                      </div>
+                      <h4 className="font-bold text-gray-900 mb-3 text-lg">
+                        Nenhuma reserva cadastrada
+                      </h4>
+                      <p className="text-gray-600 mb-6 max-w-sm mx-auto">
+                        Crie a primeira reserva para começar a organizar seus eventos!
+                      </p>
+                      <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                        <Button 
+                          onClick={() => navigate('/reserva-sala')}
+                          className="bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          Reservar Sala
+                        </Button>
+                        <Button 
+                          onClick={() => navigate('/reserva-auditorio')}
+                          className="bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          Reservar Auditório
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
 

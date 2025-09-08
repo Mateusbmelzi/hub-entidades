@@ -5,7 +5,8 @@ import { useToast } from '@/hooks/use-toast';
 interface UpdateEventoData {
   data?: string;
   capacidade?: number | null;
-  horario?: string;
+  horario_inicio?: string;
+  horario_termino?: string;
   link_evento?: string | null;
   nome?: string;
   descricao?: string | null;
@@ -58,7 +59,7 @@ export const useUpdateEventoAsEntity = () => {
       if (data.status !== undefined) updateData.status = data.status;
       if (data.area_atuacao !== undefined) updateData.area_atuacao = data.area_atuacao;
       
-      // Processar data e horário se fornecidos
+      // Processar data se fornecida
       if (data.data) {
         try {
           const dataLocal = new Date(data.data);
@@ -67,15 +68,8 @@ export const useUpdateEventoAsEntity = () => {
           // Extrair data no formato YYYY-MM-DD
           updateData.data = dataLocal.toISOString().slice(0, 10);
           
-          // Extrair horário no formato HH:mm:ss
-          const horas = dataLocal.getHours().toString().padStart(2, '0');
-          const minutos = dataLocal.getMinutes().toString().padStart(2, '0');
-          const segundos = dataLocal.getSeconds().toString().padStart(2, '0');
-          updateData.horario = `${horas}:${minutos}:${segundos}`;
-          
-          console.log('📅 Data e horário processados:', { 
-            data: updateData.data, 
-            horario: updateData.horario 
+          console.log('📅 Data processada:', { 
+            data: updateData.data
           });
           console.log('📅 Data original:', dataLocal.toISOString());
           console.log('📅 Data local:', dataLocal.toLocaleString('pt-BR'));
@@ -84,9 +78,12 @@ export const useUpdateEventoAsEntity = () => {
         }
       }
       
-      // Se horário foi fornecido separadamente, usar ele
-      if (data.horario && !data.data) {
-        updateData.horario = data.horario;
+      // Processar horários se fornecidos
+      if (data.horario_inicio) {
+        updateData.horario_inicio = data.horario_inicio;
+      }
+      if (data.horario_termino) {
+        updateData.horario_termino = data.horario_termino;
       }
       
       // Adicionar timestamp de atualização

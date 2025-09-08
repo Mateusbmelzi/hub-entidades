@@ -151,14 +151,14 @@ const Eventos = () => {
   const getEventoStatus = (evento: any) => {
     const now = new Date();
     const dataEvento = evento.data;
-    const horarioEvento = evento.horario;
+    const horarioInicio = evento.horario_inicio;
   
     if (!dataEvento) return 'futuro';
   
-    // Criar data completa combinando data e horário direto na linha
+    // Criar data completa combinando data e horário de início
     const dataCompleta = (() => {
       const [y, m, d] = dataEvento.split("-");
-      const [h = 0, min = 0] = horarioEvento ? horarioEvento.split(":") : [0, 0];
+      const [h = 0, min = 0] = horarioInicio ? horarioInicio.split(":") : [0, 0];
       return new Date(+y, +m - 1, +d, +h, +min);
     })();
   
@@ -192,8 +192,8 @@ const Eventos = () => {
     setShowInscricaoDialog(true);
   };
 
-  const getStatusColor = (status: string, dataEvento: string, horarioEvento?: string) => {
-    const eventoStatus = getEventoStatus({ data: dataEvento, horario: horarioEvento });
+  const getStatusColor = (status: string, dataEvento: string, horarioInicio?: string) => {
+    const eventoStatus = getEventoStatus({ data: dataEvento, horario_inicio: horarioInicio });
     
     switch (eventoStatus) {
       case 'finalizado':
@@ -205,8 +205,8 @@ const Eventos = () => {
     }
   };
 
-  const getStatusLabel = (status: string, dataEvento: string, horarioEvento?: string) => {
-    const eventoStatus = getEventoStatus({ data: dataEvento, horario: horarioEvento });
+  const getStatusLabel = (status: string, dataEvento: string, horarioInicio?: string) => {
+    const eventoStatus = getEventoStatus({ data: dataEvento, horario_inicio: horarioInicio });
     
     switch (eventoStatus) {
       case 'finalizado':
@@ -625,14 +625,14 @@ const Eventos = () => {
                           <div className="flex items-center gap-2 mb-3">
                             <Badge 
                               className={`${
-                                getStatusColor('', (evento as any).data, (evento as any).horario) === 'bg-green-100 text-green-700' 
+                                getStatusColor('', (evento as any).data, (evento as any).horario_inicio) === 'bg-green-100 text-green-700' 
                                   ? 'bg-green-100 text-green-700 border-green-200' 
-                                  : getStatusColor('', (evento as any).data, (evento as any).horario) === 'bg-orange-100 text-orange-700'
+                                  : getStatusColor('', (evento as any).data, (evento as any).horario_inicio) === 'bg-orange-100 text-orange-700'
                                   ? 'bg-orange-100 text-orange-700 border-orange-200'
                                   : 'bg-gray-100 text-gray-700 border-gray-200'
                               } font-medium text-xs px-3 py-1`}
                             >
-                              {getStatusLabel('', (evento as any).data, (evento as any).horario)}
+                              {getStatusLabel('', (evento as any).data, (evento as any).horario_inicio)}
                             </Badge>
                             
                             {/* Badge da entidade organizadora */}
@@ -664,7 +664,9 @@ const Eventos = () => {
                             <div className="flex items-center text-sm text-insper-dark-gray/70">
                               <Clock className="mr-2 h-4 w-4 text-insper-red" />
                               <span className="font-medium">
-                                {(evento as any).horario || 'Horário não definido'}
+                                {(evento as any).horario_inicio && (evento as any).horario_termino 
+                                  ? `${(evento as any).horario_inicio} - ${(evento as any).horario_termino}`
+                                  : (evento as any).horario_inicio || 'Horário não definido'}
                               </span>
                             </div>
                           </div>

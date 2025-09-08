@@ -259,7 +259,8 @@ export type Database = {
           capacidade: number | null
           created_at: string
           data: string
-          horario: string | null
+          horario_inicio: string | null
+          horario_termino: string | null
           descricao: string | null
           entidade_id: number | null
           id: string
@@ -278,7 +279,8 @@ export type Database = {
           capacidade?: number | null
           created_at?: string
           data: string
-          horario?: string | null
+          horario_inicio?: string | null
+          horario_termino?: string | null
           descricao?: string | null
           entidade_id?: number | null
           id?: string
@@ -297,7 +299,8 @@ export type Database = {
           capacidade?: number | null
           created_at?: string
           data?: string
-          horario?: string | null
+          horario_inicio?: string | null
+          horario_termino?: string | null
           descricao?: string | null
           entidade_id?: number | null
           id?: string
@@ -401,6 +404,172 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      reservas: {
+        Row: {
+          id: string
+          created_at: string
+          updated_at: string
+          profile_id: string
+          entidade_id: number | null
+          evento_id: string
+          tipo_reserva: 'sala' | 'auditorio'
+          data_reserva: string
+          horario_inicio: string
+          horario_termino: string
+          quantidade_pessoas: number
+          nome_solicitante: string
+          telefone_solicitante: string
+          tem_palestrante_externo: boolean | null
+          nome_palestrante_externo: string | null
+          apresentacao_palestrante_externo: string | null
+          eh_pessoa_publica: boolean | null
+          necessidade_sala_plana: boolean | null
+          motivo_sala_plana: string | null
+          precisa_sistema_som: boolean | null
+          precisa_projetor: boolean | null
+          precisa_iluminacao_especial: boolean | null
+          precisa_montagem_palco: boolean | null
+          precisa_gravacao: boolean | null
+          motivo_gravacao: string | null
+          equipamentos_adicionais: string | null
+          precisa_suporte_tecnico: boolean | null
+          detalhes_suporte_tecnico: string | null
+          configuracao_sala: 'Teatro' | 'U' | 'Mesas' | 'Cadeiras em linha' | null
+          motivo_configuracao_sala: string | null
+          precisa_alimentacao: boolean | null
+          detalhes_alimentacao: string | null
+          custo_estimado_alimentacao: number | null
+          precisa_seguranca: boolean | null
+          detalhes_seguranca: string | null
+          precisa_controle_acesso: boolean | null
+          detalhes_controle_acesso: string | null
+          precisa_limpeza_especial: boolean | null
+          detalhes_limpeza_especial: string | null
+          precisa_manutencao: boolean | null
+          detalhes_manutencao: string | null
+          status: 'pendente' | 'aprovada' | 'rejeitada' | 'cancelada'
+          comentario_aprovacao: string | null
+          data_aprovacao: string | null
+          aprovador_email: string | null
+          observacoes: string | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          profile_id: string
+          entidade_id?: number | null
+          evento_id: string
+          tipo_reserva: 'sala' | 'auditorio'
+          data_reserva: string
+          horario_inicio: string
+          horario_termino: string
+          quantidade_pessoas: number
+          nome_solicitante: string
+          telefone_solicitante: string
+          tem_palestrante_externo?: boolean | null
+          nome_palestrante_externo?: string | null
+          apresentacao_palestrante_externo?: string | null
+          eh_pessoa_publica?: boolean | null
+          necessidade_sala_plana?: boolean | null
+          motivo_sala_plana?: string | null
+          precisa_sistema_som?: boolean | null
+          precisa_projetor?: boolean | null
+          precisa_iluminacao_especial?: boolean | null
+          precisa_montagem_palco?: boolean | null
+          precisa_gravacao?: boolean | null
+          motivo_gravacao?: string | null
+          equipamentos_adicionais?: string | null
+          precisa_suporte_tecnico?: boolean | null
+          detalhes_suporte_tecnico?: string | null
+          configuracao_sala?: 'Teatro' | 'U' | 'Mesas' | 'Cadeiras em linha' | null
+          motivo_configuracao_sala?: string | null
+          precisa_alimentacao?: boolean | null
+          detalhes_alimentacao?: string | null
+          custo_estimado_alimentacao?: number | null
+          precisa_seguranca?: boolean | null
+          detalhes_seguranca?: string | null
+          precisa_controle_acesso?: boolean | null
+          detalhes_controle_acesso?: string | null
+          precisa_limpeza_especial?: boolean | null
+          detalhes_limpeza_especial?: string | null
+          precisa_manutencao?: boolean | null
+          detalhes_manutencao?: string | null
+          status?: 'pendente' | 'aprovada' | 'rejeitada' | 'cancelada'
+          comentario_aprovacao?: string | null
+          data_aprovacao?: string | null
+          aprovador_email?: string | null
+          observacoes?: string | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          profile_id?: string
+          entidade_id?: number | null
+          evento_id?: string
+          tipo_reserva?: 'sala' | 'auditorio'
+          data_reserva?: string
+          horario_inicio?: string
+          horario_termino?: string
+          quantidade_pessoas?: number
+          nome_solicitante?: string
+          telefone_solicitante?: string
+          tem_palestrante_externo?: boolean | null
+          nome_palestrante_externo?: string | null
+          apresentacao_palestrante_externo?: string | null
+          eh_pessoa_publica?: boolean | null
+          necessidade_sala_plana?: boolean | null
+          motivo_sala_plana?: string | null
+          precisa_sistema_som?: boolean | null
+          precisa_projetor?: boolean | null
+          precisa_iluminacao_especial?: boolean | null
+          precisa_montagem_palco?: boolean | null
+          precisa_gravacao?: boolean | null
+          motivo_gravacao?: string | null
+          equipamentos_adicionais?: string | null
+          precisa_suporte_tecnico?: boolean | null
+          detalhes_suporte_tecnico?: string | null
+          configuracao_sala?: 'Teatro' | 'U' | 'Mesas' | 'Cadeiras em linha' | null
+          motivo_configuracao_sala?: string | null
+          precisa_alimentacao?: boolean | null
+          detalhes_alimentacao?: string | null
+          custo_estimado_alimentacao?: number | null
+          precisa_seguranca?: boolean | null
+          detalhes_seguranca?: string | null
+          precisa_controle_acesso?: boolean | null
+          detalhes_controle_acesso?: string | null
+          precisa_limpeza_especial?: boolean | null
+          detalhes_limpeza_especial?: string | null
+          precisa_manutencao?: boolean | null
+          detalhes_manutencao?: string | null
+          status?: 'pendente' | 'aprovada' | 'rejeitada' | 'cancelada'
+          comentario_aprovacao?: string | null
+          data_aprovacao?: string | null
+          aprovador_email?: string | null
+          observacoes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservas_profile_id_fkey"
+            columns: ["profile_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservas_entidade_id_fkey"
+            columns: ["entidade_id"]
+            referencedRelation: "entidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservas_evento_id_fkey"
+            columns: ["evento_id"]
+            referencedRelation: "eventos"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       projetos: {
         Row: {

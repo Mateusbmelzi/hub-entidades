@@ -40,10 +40,6 @@ import TestAuth from '@/pages/TestAuth';
 import TestEventos from '@/pages/TestEventos';
 import TermosUso from '@/pages/TermosUso';
 import ReservaSala from '@/pages/ReservaSala';
-import ReservaAuditorio from '@/pages/ReservaAuditorio';
-import AprovarReservas from '@/pages/AprovarReservas';
-import MinhasReservas from '@/pages/MinhasReservas';
-import CalendarioReservas from '@/pages/CalendarioReservas';
 import Footer from '@/components/Footer';
 
 const queryClient = new QueryClient();
@@ -157,37 +153,12 @@ function AppRouter() {
             </ProtectedRoute>
           } />
           
-          <Route path="/reserva-auditorio" element={
-            <ProtectedRoute requireProfile={true}>
-              <ReservaAuditorio />
-            </ProtectedRoute>
-          } />
-          
-          {/* Rotas do Sistema de Reservas */}
-          <Route path="/minhas-reservas" element={
-            <ProtectedRoute requireProfile={true}>
-              <MinhasReservas />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/calendario-reservas" element={
-            <ProtectedRoute requireProfile={true}>
-              <CalendarioReservas />
-            </ProtectedRoute>
-          } />
-          
           {/* Rotas do Super Admin */}
           <Route path="/super-admin-auth" element={<SuperAdminAuth />} />
           <Route path="/admin-credenciais" element={<AdminCredenciais />} />
           <Route path="/aprovar-eventos" element={
             <SuperAdminRoute>
               <AprovarEventos />
-            </SuperAdminRoute>
-          } />
-          
-          <Route path="/aprovar-reservas" element={
-            <SuperAdminRoute>
-              <AprovarReservas />
             </SuperAdminRoute>
           } />
           

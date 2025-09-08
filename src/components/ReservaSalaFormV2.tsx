@@ -1,0 +1,720 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Calendar, Clock, Users, User, Phone, FileText, CheckCircle, Building } from 'lucide-react';
+import { useCreateReserva } from '@/hooks/useCreateReserva';
+import { useEntidades } from '@/hooks/useEntidades';
+import { useEntityAuth } from '@/hooks/useEntityAuth';
+import { ReservaFormData } from '@/types/reserva';
+import { toast } from 'sonner';
+
+const TOTAL_STEPS = 4;
+
+export const ReservaSalaFormV2: React.FC = () => {
+  const navigate = useNavigate();
+  const { id: entidadeIdFromParams } = useParams<{ id: string }>();
+  
+  const [currentStep, setCurrentStep] = useState(1);
+  const [formData, setFormData] = useState<Partial<ReservaFormData>>({
+    tipo_reserva: 'sala'
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(false);
+
+  const { createReserva, loading: createLoading } = useCreateReserva();
+  const { entidades, loading: entidadesLoading } = useEntidades();
+  const { isAuthenticated: isEntityAuthenticated, entidadeId } = useEntityAuth();
+
+  const updateFormData = (field: keyof ReservaFormData, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    // Limpar erro quando campo é atualizado
+    if (errors[field]) {
+      setErrors(prev => ({
+        ...prev,
+        [field]: ''
+      }));
+    }
+  };
+
+  const validateDate = (date: string): boolean => {
+    if (!date) return false;
+    const selectedDate = new Date(date);
+    const today = new Date();
+    const maxDate = new Date(2050, 11, 31); // 31 de dezembro de 2050
+    
+    today.setHours(0, 0, 0, 0);
+    maxDate.setHours(23, 59, 59, 999);
+    
+    return selectedDate >= today && selectedDate <= maxDate;
+  };
+
+  const validateCurrentStep = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    switch (currentStep) {
+      case 1: // Dados básicos
+        if (!formData.data_reserva) {
+          newErrors.data_reserva = 'Data é obrigatória';
+        } else if (!validateDate(formData.data_reserva)) {
+          const selectedDate = new Date(formData.data_reserva);
+          const today = new Date();
+          const maxDate = new Date(2050, 11, 31);
+          
+          if (selectedDate < today) {
+            newErrors.data_reserva = 'A data não pode ser no passado';
+          } else if (selectedDate > maxDate) {
+            newErrors.data_reserva = 'A data não pode ser posterior a 31 de dezembro de 2050';
+          } else {
+            newErrors.data_reserva = 'Data inválida';
+          }
+        }
+        if (!formData.horario_inicio) newErrors.horario_inicio = 'Horário de início é obrigatório';
+        if (!formData.horario_termino) newErrors.horario_termino = 'Horário de término é obrigatório';
+        if (!formData.quantidade_pessoas || formData.quantidade_pessoas <= 0) {
+          newErrors.quantidade_pessoas = 'Quantidade de pessoas deve ser maior que zero';
+        }
+        if (!formData.nome_solicitante) {
+          newErrors.nome_solicitante = 'Nome completo é obrigatório';
+        }
+        if (!formData.telefone_solicitante) {
+          newErrors.telefone_solicitante = 'Telefone é obrigatório';
+        }
+        break;
+
+      case 2: // Motivo da reserva
+        if (!formData.motivo_reserva) {
+          newErrors.motivo_reserva = 'Motivo da reserva é obrigatório';
+        }
+        
+        const showEventDetails = formData.motivo_reserva && 
+          ['palestra_alunos_insper', 'palestra_publico_externo', 'capacitacao'].includes(formData.motivo_reserva);
+        
+        if (showEventDetails) {
+          if (!formData.titulo_evento_capacitacao) {
+            newErrors.titulo_evento_capacitacao = 'Título do evento/capacitação é obrigatório';
+          }
+          if (!formData.descricao_pautas_evento_capacitacao) {
+            newErrors.descricao_pautas_evento_capacitacao = 'Descrição das pautas é obrigatória';
+          }
+        }
+        break;
+        
+      case 3: // Campos condicionais
+        if (formData.tem_palestrante_externo) {
+          if (!formData.nome_palestrante_externo) {
+            newErrors.nome_palestrante_externo = 'Nome do palestrante é obrigatório';
+          }
+          if (!formData.apresentacao_palestrante_externo) {
+            newErrors.apresentacao_palestrante_externo = 'Apresentação do palestrante é obrigatória';
+          }
+        }
+        
+        // Validação para apoio externo
+        if (formData.eh_pessoa_publica && formData.ha_apoio_externo) {
+          if (!formData.nome_empresa_parceira) {
+            newErrors.nome_empresa_parceira = 'Nome da empresa parceira é obrigatório';
+          }
+          if (!formData.como_ajudara_organizacao) {
+            newErrors.como_ajudara_organizacao = 'Descrição de como ajudará é obrigatória';
+          }
+        }
+        
+        // Validação para sala plana (só se não há palestrante externo)
+        if (!formData.tem_palestrante_externo && formData.necessidade_sala_plana) {
+          if (!formData.motivo_sala_plana) {
+            newErrors.motivo_sala_plana = 'Motivo da necessidade de sala plana é obrigatório';
+          }
+        }
+        break;
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const nextStep = () => {
+    if (validateCurrentStep() && currentStep < TOTAL_STEPS) {
+      setCurrentStep(prev => prev + 1);
+    }
+  };
+
+  const prevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(prev => prev - 1);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!validateCurrentStep()) return;
+
+    setIsLoading(true);
+    try {
+      const success = await createReserva(formData as ReservaFormData);
+      if (success) {
+        // Determinar para onde redirecionar
+        const targetEntidadeId = entidadeIdFromParams || entidadeId;
+        
+        if (targetEntidadeId) {
+          // Redirecionar para a página da entidade com mensagem de sucesso
+          navigate(`/entidades/${targetEntidadeId}`, {
+            state: {
+              success: true,
+              message: 'Reserva enviada com sucesso! Você receberá uma confirmação por email.'
+            }
+          });
+        } else {
+          // Fallback: redirecionar para lista de entidades
+          navigate('/entidades', {
+            state: {
+              success: true,
+              message: 'Reserva enviada com sucesso! Você receberá uma confirmação por email.'
+            }
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao enviar reserva:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const renderStep = () => {
+    switch (currentStep) {
+      case 1:
+        return <BasicInfoStep formData={formData} updateFormData={updateFormData} errors={errors} />;
+      case 2:
+        return <ReasonStep formData={formData} updateFormData={updateFormData} errors={errors} />;
+      case 3:
+        return <ConditionalFieldsStep formData={formData} updateFormData={updateFormData} errors={errors} />;
+      case 4:
+        return <ReviewStep formData={formData} />;
+      default:
+        return null;
+    }
+  };
+
+  // Verificar se o usuário está autenticado como entidade
+  if (!isEntityAuthenticated || !entidadeId) {
+    return (
+      <div className="max-w-2xl mx-auto p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Building className="h-5 w-5" />
+              Reserva de Sala
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Alert>
+              <AlertDescription>
+                Apenas entidades podem fazer reservas. Faça login como entidade primeiro para acessar esta funcionalidade.
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-2xl mx-auto p-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Building className="h-5 w-5" />
+            Reserva de Sala
+          </CardTitle>
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>Passo {currentStep} de {TOTAL_STEPS}</span>
+              <span>{Math.round((currentStep / TOTAL_STEPS) * 100)}%</span>
+            </div>
+            <Progress value={(currentStep / TOTAL_STEPS) * 100} className="h-2" />
+          </div>
+        </CardHeader>
+        
+        <CardContent className="space-y-6">
+          {renderStep()}
+          
+          <div className="flex justify-between pt-6">
+            <Button
+              variant="outline"
+              onClick={prevStep}
+              disabled={currentStep === 1}
+            >
+              Anterior
+            </Button>
+            
+            {currentStep < TOTAL_STEPS ? (
+              <Button onClick={nextStep}>
+                Próximo
+              </Button>
+            ) : (
+              <Button 
+                onClick={handleSubmit}
+                disabled={isLoading || createLoading}
+                className="flex items-center gap-2"
+              >
+                {isLoading || createLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Enviando...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="h-4 w-4" />
+                    Enviar Reserva
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+
+
+// Componente para dados básicos
+const BasicInfoStep: React.FC<{
+  formData: Partial<ReservaFormData>;
+  updateFormData: (field: keyof ReservaFormData, value: any) => void;
+  errors: Record<string, string>;
+}> = ({ formData, updateFormData, errors }) => {
+  return (
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold flex items-center gap-2">
+        <Calendar className="h-5 w-5" />
+        Dados da Reserva
+      </h3>
+      
+
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="data_reserva">Data *</Label>
+          <Input
+            id="data_reserva"
+            type="date"
+            value={formData.data_reserva || ''}
+            onChange={(e) => updateFormData('data_reserva', e.target.value)}
+            className={errors.data_reserva ? 'border-red-500' : ''}
+            min={new Date().toISOString().split('T')[0]}
+            max="2050-12-31"
+          />
+          {errors.data_reserva && <p className="text-sm text-red-500">{errors.data_reserva}</p>}
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="quantidade_pessoas">Quantidade de Pessoas *</Label>
+          <Input
+            id="quantidade_pessoas"
+            type="number"
+            min="1"
+            value={formData.quantidade_pessoas || ''}
+            onChange={(e) => updateFormData('quantidade_pessoas', parseInt(e.target.value))}
+            className={errors.quantidade_pessoas ? 'border-red-500' : ''}
+          />
+          {errors.quantidade_pessoas && <p className="text-sm text-red-500">{errors.quantidade_pessoas}</p>}
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="horario_inicio">Horário de Início *</Label>
+          <Input
+            id="horario_inicio"
+            type="time"
+            value={formData.horario_inicio || ''}
+            onChange={(e) => updateFormData('horario_inicio', e.target.value)}
+            className={errors.horario_inicio ? 'border-red-500' : ''}
+          />
+          {errors.horario_inicio && <p className="text-sm text-red-500">{errors.horario_inicio}</p>}
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="horario_termino">Horário de Término *</Label>
+          <Input
+            id="horario_termino"
+            type="time"
+            value={formData.horario_termino || ''}
+            onChange={(e) => updateFormData('horario_termino', e.target.value)}
+            className={errors.horario_termino ? 'border-red-500' : ''}
+          />
+          {errors.horario_termino && <p className="text-sm text-red-500">{errors.horario_termino}</p>}
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="nome_solicitante">Nome Completo do Solicitante *</Label>
+          <Input
+            id="nome_solicitante"
+            value={formData.nome_solicitante || ''}
+            onChange={(e) => updateFormData('nome_solicitante', e.target.value)}
+            className={errors.nome_solicitante ? 'border-red-500' : ''}
+          />
+          {errors.nome_solicitante && <p className="text-sm text-red-500">{errors.nome_solicitante}</p>}
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="telefone_solicitante">Telefone com DDD *</Label>
+          <Input
+            id="telefone_solicitante"
+            placeholder="(11) 99999-9999"
+            value={formData.telefone_solicitante || ''}
+            onChange={(e) => updateFormData('telefone_solicitante', e.target.value)}
+            className={errors.telefone_solicitante ? 'border-red-500' : ''}
+          />
+          {errors.telefone_solicitante && <p className="text-sm text-red-500">{errors.telefone_solicitante}</p>}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Componente para campos condicionais
+const ConditionalFieldsStep: React.FC<{
+  formData: Partial<ReservaFormData>;
+  updateFormData: (field: keyof ReservaFormData, value: any) => void;
+  errors: Record<string, string>;
+}> = ({ formData, updateFormData, errors }) => {
+  return (
+    <div className="space-y-6">
+      <h3 className="text-lg font-semibold">Informações Adicionais</h3>
+      
+      {/* Palestrante Externo */}
+      <div className="space-y-4">
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="tem_palestrante_externo"
+            checked={formData.tem_palestrante_externo || false}
+            onCheckedChange={(checked) => updateFormData('tem_palestrante_externo', checked)}
+          />
+          <Label htmlFor="tem_palestrante_externo">
+            Professor ou palestrante externo?
+          </Label>
+        </div>
+        
+        {formData.tem_palestrante_externo && (
+          <div className="ml-6 space-y-4 p-4 border rounded-lg bg-muted/50">
+            <div className="space-y-2">
+              <Label htmlFor="nome_palestrante_externo">Nome Completo do Professor/Palestrante *</Label>
+              <Input
+                id="nome_palestrante_externo"
+                value={formData.nome_palestrante_externo || ''}
+                onChange={(e) => updateFormData('nome_palestrante_externo', e.target.value)}
+                className={errors.nome_palestrante_externo ? 'border-red-500' : ''}
+              />
+              {errors.nome_palestrante_externo && (
+                <p className="text-sm text-red-500">{errors.nome_palestrante_externo}</p>
+              )}
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="apresentacao_palestrante_externo">Breve Apresentação do Convidado *</Label>
+              <Textarea
+                id="apresentacao_palestrante_externo"
+                rows={3}
+                value={formData.apresentacao_palestrante_externo || ''}
+                onChange={(e) => updateFormData('apresentacao_palestrante_externo', e.target.value)}
+                className={errors.apresentacao_palestrante_externo ? 'border-red-500' : ''}
+              />
+              {errors.apresentacao_palestrante_externo && (
+                <p className="text-sm text-red-500">{errors.apresentacao_palestrante_externo}</p>
+              )}
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="eh_pessoa_publica"
+                checked={formData.eh_pessoa_publica || false}
+                onCheckedChange={(checked) => updateFormData('eh_pessoa_publica', checked)}
+              />
+              <Label htmlFor="eh_pessoa_publica">
+                O convidado é uma pessoa pública?
+              </Label>
+            </div>
+            
+            {formData.eh_pessoa_publica && (
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="ha_apoio_externo"
+                    checked={formData.ha_apoio_externo || false}
+                    onCheckedChange={(checked) => updateFormData('ha_apoio_externo', checked)}
+                  />
+                  <Label htmlFor="ha_apoio_externo">
+                    Haverá apoio externo?
+                  </Label>
+                </div>
+                
+                {formData.ha_apoio_externo && (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="nome_empresa_parceira">Nome da empresa parceira *</Label>
+                      <Input
+                        id="nome_empresa_parceira"
+                        value={formData.nome_empresa_parceira || ''}
+                        onChange={(e) => updateFormData('nome_empresa_parceira', e.target.value)}
+                        className={errors.nome_empresa_parceira ? 'border-red-500' : ''}
+                        placeholder="Digite o nome da empresa parceira"
+                      />
+                      {errors.nome_empresa_parceira && (
+                        <p className="text-sm text-red-500">{errors.nome_empresa_parceira}</p>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="como_ajudara_organizacao">Como ajudará a organização estudantil? *</Label>
+                      <Textarea
+                        id="como_ajudara_organizacao"
+                        rows={3}
+                        value={formData.como_ajudara_organizacao || ''}
+                        onChange={(e) => updateFormData('como_ajudara_organizacao', e.target.value)}
+                        className={errors.como_ajudara_organizacao ? 'border-red-500' : ''}
+                        placeholder="Descreva como a empresa ajudará a organização"
+                      />
+                      {errors.como_ajudara_organizacao && (
+                        <p className="text-sm text-red-500">{errors.como_ajudara_organizacao}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+      
+      {/* Necessidade de Sala Plana - só aparece se NÃO há palestrante externo */}
+      {!formData.tem_palestrante_externo && (
+        <div className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="necessidade_sala_plana"
+              checked={formData.necessidade_sala_plana || false}
+              onCheckedChange={(checked) => updateFormData('necessidade_sala_plana', checked)}
+            />
+            <Label htmlFor="necessidade_sala_plana">
+              Necessidade de sala plana?
+            </Label>
+          </div>
+          
+          {formData.necessidade_sala_plana && (
+            <div className="ml-6 space-y-2">
+              <Label htmlFor="motivo_sala_plana">Qual o motivo? *</Label>
+              <Textarea
+                id="motivo_sala_plana"
+                rows={2}
+                value={formData.motivo_sala_plana || ''}
+                onChange={(e) => updateFormData('motivo_sala_plana', e.target.value)}
+                className={errors.motivo_sala_plana ? 'border-red-500' : ''}
+              />
+              {errors.motivo_sala_plana && (
+                <p className="text-sm text-red-500">{errors.motivo_sala_plana}</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Observações */}
+      <div className="space-y-2">
+        <Label htmlFor="observacoes">Observações Adicionais</Label>
+        <Textarea
+          id="observacoes"
+          rows={3}
+          value={formData.observacoes || ''}
+          onChange={(e) => updateFormData('observacoes', e.target.value)}
+          placeholder="Adicione qualquer informação adicional relevante..."
+        />
+      </div>
+    </div>
+  );
+};
+
+// Componente para revisão
+const ReviewStep: React.FC<{
+  formData: Partial<ReservaFormData>;
+}> = ({ formData }) => {
+  return (
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold flex items-center gap-2">
+        <CheckCircle className="h-5 w-5" />
+        Revisão da Reserva
+      </h3>
+      
+      <Alert>
+        <CheckCircle className="h-4 w-4" />
+        <AlertDescription>
+          Revise os dados abaixo antes de enviar sua reserva. Após o envio, você receberá uma confirmação por email.
+        </AlertDescription>
+      </Alert>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+        <div>
+          <strong>Data:</strong> {formData.data_reserva}
+        </div>
+        <div>
+          <strong>Horário:</strong> {formData.horario_inicio} - {formData.horario_termino}
+        </div>
+        <div>
+          <strong>Pessoas:</strong> {formData.quantidade_pessoas}
+        </div>
+        <div>
+          <strong>Solicitante:</strong> {formData.nome_solicitante}
+        </div>
+        <div>
+          <strong>Telefone:</strong> {formData.telefone_solicitante}
+        </div>
+        <div>
+          <strong>Motivo:</strong> {
+            formData.motivo_reserva === 'palestra_alunos_insper' ? 'Palestra aberta aos alunos Insper' :
+            formData.motivo_reserva === 'palestra_publico_externo' ? 'Palestra aberta ao público externo' :
+            formData.motivo_reserva === 'capacitacao' ? 'Capacitação' :
+            formData.motivo_reserva === 'reuniao' ? 'Reunião' :
+            formData.motivo_reserva === 'processo_seletivo' ? 'Processo Seletivo' :
+            formData.motivo_reserva
+          }
+        </div>
+      </div>
+      
+      {formData.titulo_evento_capacitacao && (
+        <div className="space-y-2">
+          <strong>Título do Evento/Capacitação:</strong>
+          <p className="text-sm">{formData.titulo_evento_capacitacao}</p>
+        </div>
+      )}
+      
+      {formData.descricao_pautas_evento_capacitacao && (
+        <div className="space-y-2">
+          <strong>Descrição das Pautas:</strong>
+          <p className="text-sm">{formData.descricao_pautas_evento_capacitacao}</p>
+        </div>
+      )}
+      
+      {formData.tem_palestrante_externo && formData.nome_palestrante_externo && (
+        <div className="space-y-2">
+          <strong>Palestrante Externo:</strong>
+          <div className="text-sm space-y-1">
+            <p><strong>Nome:</strong> {formData.nome_palestrante_externo}</p>
+            <p><strong>Apresentação:</strong> {formData.apresentacao_palestrante_externo}</p>
+            <p><strong>Pessoa Pública:</strong> {formData.eh_pessoa_publica ? 'Sim' : 'Não'}</p>
+            {formData.ha_apoio_externo && (
+              <>
+                <p><strong>Apoio Externo:</strong> Sim</p>
+                <p><strong>Empresa Parceira:</strong> {formData.nome_empresa_parceira}</p>
+                <p><strong>Como Ajudará:</strong> {formData.como_ajudara_organizacao}</p>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+      
+      {formData.necessidade_sala_plana && (
+        <div className="space-y-2">
+          <strong>Necessidade de Sala Plana:</strong>
+          <p className="text-sm">{formData.motivo_sala_plana}</p>
+        </div>
+      )}
+
+      {formData.observacoes && (
+        <div className="space-y-2">
+          <strong>Observações:</strong>
+          <p className="text-sm">{formData.observacoes}</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Componente para seleção do motivo da reserva
+const ReasonStep: React.FC<{
+  formData: Partial<ReservaFormData>;
+  updateFormData: (field: keyof ReservaFormData, value: any) => void;
+  errors: Record<string, string>;
+}> = ({ formData, updateFormData, errors }) => {
+  const motivoOptions = [
+    { value: 'palestra_alunos_insper', label: 'Palestra aberta aos alunos Insper' },
+    { value: 'palestra_publico_externo', label: 'Palestra aberta ao público externo' },
+    { value: 'capacitacao', label: 'Capacitação' },
+    { value: 'reuniao', label: 'Reunião' },
+    { value: 'processo_seletivo', label: 'Processo Seletivo' }
+  ];
+
+  const showEventDetails = formData.motivo_reserva && 
+    ['palestra_alunos_insper', 'palestra_publico_externo', 'capacitacao'].includes(formData.motivo_reserva);
+
+  return (
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold flex items-center gap-2">
+        <FileText className="h-5 w-5" />
+        Motivo da Reserva
+      </h3>
+      
+      <div className="space-y-2">
+        <Label htmlFor="motivo_reserva">Motivo da reserva *</Label>
+        <Select
+          value={formData.motivo_reserva || ''}
+          onValueChange={(value) => updateFormData('motivo_reserva', value)}
+        >
+          <SelectTrigger className={errors.motivo_reserva ? 'border-red-500' : ''}>
+            <SelectValue placeholder="Selecione o motivo da reserva" />
+          </SelectTrigger>
+          <SelectContent>
+            {motivoOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {errors.motivo_reserva && <p className="text-sm text-red-500">{errors.motivo_reserva}</p>}
+      </div>
+
+      {showEventDetails && (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="titulo_evento_capacitacao">Título do evento/capacitação *</Label>
+            <Input
+              id="titulo_evento_capacitacao"
+              value={formData.titulo_evento_capacitacao || ''}
+              onChange={(e) => updateFormData('titulo_evento_capacitacao', e.target.value)}
+              className={errors.titulo_evento_capacitacao ? 'border-red-500' : ''}
+              placeholder="Digite o título do evento ou capacitação"
+            />
+            {errors.titulo_evento_capacitacao && <p className="text-sm text-red-500">{errors.titulo_evento_capacitacao}</p>}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="descricao_pautas_evento_capacitacao">Descrição das pautas do evento/capacitação *</Label>
+            <Textarea
+              id="descricao_pautas_evento_capacitacao"
+              value={formData.descricao_pautas_evento_capacitacao || ''}
+              onChange={(e) => updateFormData('descricao_pautas_evento_capacitacao', e.target.value)}
+              className={errors.descricao_pautas_evento_capacitacao ? 'border-red-500' : ''}
+              placeholder="Descreva as pautas e objetivos do evento ou capacitação"
+              rows={4}
+            />
+            {errors.descricao_pautas_evento_capacitacao && <p className="text-sm text-red-500">{errors.descricao_pautas_evento_capacitacao}</p>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

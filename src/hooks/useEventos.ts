@@ -125,8 +125,17 @@ export const useEventos = (options: UseEventosOptions = {}) => {
           entidades(id, nome, foto_perfil_url)
         `)
         .eq('status_aprovacao', statusAprovacao)
+        .neq('status', 'cancelado') // Excluir eventos marcados como cancelados
+        .not('nome', 'like', '%Evento de sala%') // Excluir eventos genéricos de sala
+        .not('nome', 'like', '%Evento de auditório%') // Excluir eventos genéricos de auditório
+        .not('nome', 'like', '%Reserva de Sala%') // Excluir eventos genéricos de reserva
+        .not('nome', 'like', '%Reserva de Auditório%') // Excluir eventos genéricos de reserva
+        .not('nome', 'like', '%Reserva de sala%') // Excluir eventos genéricos de reserva (minúsculo)
+        .not('nome', 'like', '%Reserva de auditório%') // Excluir eventos genéricos de reserva (minúsculo)
+        .not('nome', 'like', '%Evento de Sala%') // Excluir eventos genéricos de sala (maiúsculo)
+        .not('nome', 'like', '%Evento de Auditório%') // Excluir eventos genéricos de auditório (maiúsculo)
         .order('data', { ascending: true })
-        .order('horario', { ascending: true })
+        .order('horario_inicio', { ascending: true })
         .range(from, to);
       
       // Filtrar por entidade se especificado

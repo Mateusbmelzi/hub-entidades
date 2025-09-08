@@ -85,10 +85,11 @@ export const useCreateEventoAsEntity = () => {
       if (error) {
         console.log('🔄 Tentando inserção direta na tabela eventos...');
         
-        // Separar data e horário para compatibilidade com a estrutura atual
+        // Separar data e horário para compatibilidade com a nova estrutura
         const eventDate = new Date(data.data_evento);
         const dataStr = eventDate.toISOString().split('T')[0]; // YYYY-MM-DD
-        const horarioStr = eventDate.toTimeString().slice(0, 5); // HH:MM
+        const horarioInicio = eventDate.toTimeString().slice(0, 5); // HH:MM
+        const horarioTermino = new Date(eventDate.getTime() + 2 * 60 * 60 * 1000).toTimeString().slice(0, 5); // HH:MM (2h depois)
         
         const { data: insertResult, error: insertError } = await supabase
           .from('eventos')
@@ -98,7 +99,8 @@ export const useCreateEventoAsEntity = () => {
             descricao: data.descricao,
             local: data.local,
             data: dataStr,
-            horario: horarioStr,
+            horario_inicio: horarioInicio,
+            horario_termino: horarioTermino,
             capacidade: data.capacidade,
             link_evento: data.link_evento,
             area_atuacao: data.area_atuacao,

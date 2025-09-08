@@ -721,26 +721,42 @@ const Entidades = () => {
                             </div>
                           )}
                           
-                          {/* Informações do Processo Seletivo - Só aparece se não houver feira ativa e houver link_processo_seletivo válido */}
-                          {!entity.feira_ativa && entity.link_processo_seletivo && entity.link_processo_seletivo.trim() !== '' && (
-                            <div className="bg-gradient-to-r from-insper-red/5 to-insper-yellow/5 border border-insper-red/20 rounded-xl p-4">
-                              <div className="flex items-center gap-2 mb-2">
-                                <Presentation className="w-4 h-4 text-insper-red" />
-                                <span className="text-sm font-semibold text-insper-red">Processo Seletivo</span>
+                          {/* Informações do Processo Seletivo - Só aparece se não houver feira ativa, houver link_processo_seletivo válido e a data de encerramento for maior ou igual à data atual */}
+                          {!entity.feira_ativa && entity.link_processo_seletivo && entity.link_processo_seletivo.trim() !== '' && (() => {
+                            // Verificar se a data de encerramento é maior ou igual à data atual (processo ainda aberto)
+                            if (entity.fechamento_processo_seletivo) {
+                              const dataEncerramento = new Date(entity.fechamento_processo_seletivo);
+                              const dataAtual = new Date();
+                              // Zerar as horas para comparar apenas as datas
+                              dataAtual.setHours(0, 0, 0, 0);
+                              dataEncerramento.setHours(0, 0, 0, 0);
+                              
+                              // Só mostrar se a data de encerramento for maior ou igual à data atual (ainda aberto)
+                              if (dataEncerramento < dataAtual) {
+                                return null;
+                              }
+                            }
+                            
+                            return (
+                              <div className="bg-gradient-to-r from-insper-red/5 to-insper-yellow/5 border border-insper-red/20 rounded-xl p-4">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Presentation className="w-4 h-4 text-insper-red" />
+                                  <span className="text-sm font-semibold text-insper-red">Processo Seletivo</span>
+                                </div>
+                                <div className="space-y-2 text-sm">
+                                  {entity.fechamento_processo_seletivo && (
+                                    <div className="flex items-center gap-2 text-insper-red">
+                                      <Calendar size={14} className="text-insper-red flex-shrink-0" />
+                                      <span className="font-medium">
+                                        Inscrições abertas até: {entity.fechamento_processo_seletivo?.split('-').reverse().join('-')}
+                                      </span> 
+                                    </div>
+                                  )}
+                                  <div className="flex items-center gap-2 text-insper-red">Para mais informações do processo seletivo, veja o perfil da organização.</div>
+                                </div>
                               </div>
-                              <div className="space-y-2 text-sm">
-                                {entity.fechamento_processo_seletivo && (
-                                  <div className="flex items-center gap-2 text-insper-red">
-                                    <Calendar size={14} className="text-insper-red flex-shrink-0" />
-                                    <span className="font-medium">
-                                      Inscrições abertas até: {entity.fechamento_processo_seletivo?.split('-').reverse().join('-')}
-                                    </span> 
-                                  </div>
-                                )}
-                                <div className="flex items-center gap-2 text-insper-red">Para mais informações do processo seletivo, veja o perfil da organização.</div>
-                              </div>
-                            </div>
-                          )}
+                            );
+                          })()}
 
                           <div className="flex flex-wrap gap-2">
                           </div>
