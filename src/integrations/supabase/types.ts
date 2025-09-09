@@ -94,6 +94,59 @@ export type Database = {
           }
         ]
       }
+      empresas_parceiras: {
+        Row: {
+          id: number
+          entidade_id: number
+          nome: string
+          descricao: string | null
+          site_url: string | null
+          logo_url: string | null
+          email_contato: string | null
+          telefone_contato: string | null
+          area_atuacao: string[]
+          ativo: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          entidade_id: number
+          nome: string
+          descricao?: string | null
+          site_url?: string | null
+          logo_url?: string | null
+          email_contato?: string | null
+          telefone_contato?: string | null
+          area_atuacao?: string[]
+          ativo?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          entidade_id?: number
+          nome?: string
+          descricao?: string | null
+          site_url?: string | null
+          logo_url?: string | null
+          email_contato?: string | null
+          telefone_contato?: string | null
+          area_atuacao?: string[]
+          ativo?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empresas_parceiras_entidade_id_fkey"
+            columns: ["entidade_id"]
+            isOneToOne: false
+            referencedRelation: "entidades"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       entidades: {
         Row: {
           ano_criacao: number | null

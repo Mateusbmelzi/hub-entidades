@@ -14,8 +14,8 @@ import { X } from 'lucide-react';
 import { useUpdateEntidade } from '@/hooks/useUpdateEntidade';
 import { useToast } from '@/hooks/use-toast';
 import { AREAS_ATUACAO } from '@/lib/constants';
-import GerenciarEmpresasParceiras from './GerenciarEmpresasParceiras';
-import { EmpresasParceiras } from '@/types/empresa-parceira';
+import { GerenciarEmpresasParceiras } from './GerenciarEmpresasParceiras';
+import { EmpresaParceira } from '@/types/empresa-parceira';
 
 const formSchema = z.object({
   nome: z.string().min(1, 'Nome é obrigatório').max(100, 'Nome deve ter no máximo 100 caracteres'),
@@ -64,7 +64,7 @@ export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade
   const { toast } = useToast();
   
   // Estado para empresas parceiras
-  const [empresasParceiras, setEmpresasParceiras] = useState<EmpresasParceiras>(() => {
+  const [empresasParceiras, setEmpresasParceiras] = useState<EmpresaParceira[]>(() => {
     if (entidade.empresas_parceiras && Array.isArray(entidade.empresas_parceiras)) {
       return entidade.empresas_parceiras;
     }

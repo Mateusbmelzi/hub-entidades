@@ -28,6 +28,8 @@ import CriarProjetoForm from '@/components/CriarProjetoForm';
 import EditarProjetoForm from '@/components/EditarProjetoForm';
 import CriarEventoEntidade from '@/components/CriarEventoEntidade';
 import GerenciarAreasInternas from '@/components/GerenciarAreasInternas';
+import { GerenciarEmpresasParceirasSimplificado } from '@/components/GerenciarEmpresasParceirasSimplificado';
+import { EmpresasParceirasDisplay } from '@/components/EmpresasParceirasDisplay';
 import { ToastAction } from '@/components/ui/toast';
 import { AreaAtuacaoDisplay } from '@/components/ui/area-atuacao-display';
 import { getFirstAreaColor } from '@/lib/constants';
@@ -449,7 +451,17 @@ const EntidadeDetalhes = () => {
                     }}
                   />
                   
-                  {/* Terceira linha - Demonstrações e Sair */}
+                  {/* Terceira linha - Empresas Parceiras */}
+                  <GerenciarEmpresasParceirasSimplificado 
+                    entidadeId={entidade.id}
+                    entidadeNome={entidade.nome || 'Entidade'}
+                    onSuccess={() => {
+                      // console.log('Empresas parceiras atualizadas');
+                      refetchEntidade();
+                    }}
+                  />
+                  
+                  {/* Quarta linha - Demonstrações e Sair */}
                   <div className="grid grid-cols-2 gap-3">
                     <Button 
                       variant="outline" 
@@ -834,7 +846,8 @@ const EntidadeDetalhes = () => {
 
 
 
-            {/* Eventos - Visível para todos os usuários */}
+            {/* Eventos - Visível apenas se houver eventos */}
+            {eventos && eventos.length > 0 && (
             <Card className="border-0 shadow-lg bg-white hover:shadow-xl transition-shadow duration-300">
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
@@ -983,6 +996,7 @@ const EntidadeDetalhes = () => {
                 )}
               </CardContent>
             </Card>
+            )}
 
             {/* Projetos */}
             {(projetos.length > 0 || isOwner) && (
@@ -1230,6 +1244,12 @@ const EntidadeDetalhes = () => {
                 )}
               </CardContent>
             </Card>
+
+            {/* Empresas Parceiras - Exibição pública */}
+            <EmpresasParceirasDisplay 
+              entidadeId={entidade.id}
+              className="mb-6"
+            />
 
             {/* Minhas Reservas - Apenas para proprietários */}
             {isOwner && (

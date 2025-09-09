@@ -1,11 +1,45 @@
-// Tipo para representar uma empresa parceira
 export interface EmpresaParceira {
-  id: string;
+  id: number;
+  entidade_id: number;
   nome: string;
-  site?: string;
   descricao?: string;
+  site_url?: string;
   logo_url?: string;
+  email_contato?: string;
+  telefone_contato?: string;
+  area_atuacao: string[];
+  ativo: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
-// Tipo para o array de empresas parceiras
-export type EmpresasParceiras = EmpresaParceira[];
+export interface CreateEmpresaParceiraData {
+  entidade_id: number;
+  nome: string;
+  descricao?: string;
+  site_url?: string;
+  logo_url?: string;
+  email_contato?: string;
+  telefone_contato?: string;
+  area_atuacao?: string[];
+  ativo?: boolean;
+}
+
+export interface UpdateEmpresaParceiraData {
+  nome?: string;
+  descricao?: string;
+  site_url?: string;
+  logo_url?: string;
+  email_contato?: string;
+  telefone_contato?: string;
+  area_atuacao?: string[];
+  ativo?: boolean;
+}
+
+export interface EmpresaParceiraWithEntidade extends EmpresaParceira {
+  entidade: {
+    id: number;
+    nome: string;
+    areas_atuacao: string[];
+  };
+}

@@ -12,6 +12,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { AreaAtuacaoDisplay } from '@/components/ui/area-atuacao-display';
 import { AREAS_ATUACAO, getFirstAreaColor, getAreaColor } from '@/lib/constants';
 import { FotoPerfilEntidade } from '@/components/FotoPerfilEntidade';
+import { EmpresasParceirasLogos } from '@/components/EmpresasParceirasLogos';
 import { parseAreasAtuacao, getFirstArea } from '@/lib/area-utils';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -684,13 +685,22 @@ const Entidades = () => {
 
                       <CardContent className="pt-0 flex-1 flex flex-col">
                         <div className="space-y-4 flex-1">
-                          {/* Áreas de Atuação - Destacadas */}
-                          <AreaAtuacaoDisplay
-                            area_atuacao={entity.area_atuacao}
-                            variant="secondary"
-                            className="bg-white/10 text-white border-white/20 hover:bg-white/20 transition-colors"
-                            compact={true}
-                          />
+                          {/* Áreas de Atuação e Empresas Parceiras - Na mesma linha */}
+                          <div className="flex items-center justify-between">
+                            <AreaAtuacaoDisplay
+                              area_atuacao={entity.area_atuacao}
+                              variant="secondary"
+                              className="bg-white/10 text-white border-white/20 hover:bg-white/20 transition-colors"
+                              compact={true}
+                            />
+                            
+                            {/* Empresas Parceiras - Logos circulares */}
+                            <EmpresasParceirasLogos 
+                              entidadeId={entity.id}
+                              className="ml-3"
+                              maxLogos={3}
+                            />
+                          </div>
 
                           <p className="text-insper-dark-gray text-sm leading-relaxed line-clamp-3">
                             {entity.descricao_curta || 'Descrição não disponível'}
