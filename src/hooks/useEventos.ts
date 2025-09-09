@@ -134,8 +134,8 @@ export const useEventos = (options: UseEventosOptions = {}) => {
         .not('nome', 'like', '%Reserva de auditório%') // Excluir eventos genéricos de reserva (minúsculo)
         .not('nome', 'like', '%Evento de Sala%') // Excluir eventos genéricos de sala (maiúsculo)
         .not('nome', 'like', '%Evento de Auditório%') // Excluir eventos genéricos de auditório (maiúsculo)
-        .order('data', { ascending: true })
-        .order('horario_inicio', { ascending: true })
+        .order('data', { ascending: false })
+        .order('horario_inicio', { ascending: false })
         .range(from, to);
       
       // Filtrar por entidade se especificado

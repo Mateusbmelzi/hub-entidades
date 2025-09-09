@@ -26,7 +26,7 @@ const EventoDetalhes = () => {
   const [showInscricaoDialog, setShowInscricaoDialog] = useState(false);
   const [showEntityLoginDialog, setShowEntityLoginDialog] = useState(false);
 
-  const { data: evento, isLoading: eventoLoading } = useQuery({
+  const { data: evento, isLoading: eventoLoading, error: eventoError } = useQuery({
     queryKey: ['evento', id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -63,7 +63,7 @@ const EventoDetalhes = () => {
   const usuarioInscrito = user && participantes.find(p => p.email === user.email);
 
   // Verificar se o evento está ativo e não passou da data
-  const eventoAtivo = evento && evento.status === 'ativo' && isEventoAtivo(evento.data, evento.horario);
+  const eventoAtivo = evento && evento.status === 'ativo' && isEventoAtivo(evento.data, evento.horario_inicio);
   
   // Verificar se o evento está lotado
   const eventoLotado = evento?.capacidade && participantes.length >= evento.capacidade;
@@ -112,6 +112,28 @@ const EventoDetalhes = () => {
     );
   }
 
+  if (eventoError) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-insper-light-gray to-white flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto px-4">
+          <div className="w-20 h-20 bg-insper-red/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Calendar className="w-10 h-10 text-insper-red" />
+          </div>
+          <h1 className="text-2xl font-bold text-insper-black mb-4">Erro ao carregar evento</h1>
+          <p className="text-insper-dark-gray mb-6">
+            {eventoError instanceof Error ? eventoError.message : 'Erro desconhecido'}
+          </p>
+          <Button asChild className="bg-insper-red hover:bg-red-700 text-white">
+            <Link to="/eventos">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Voltar aos Eventos
+            </Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   if (!evento) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-insper-light-gray to-white flex items-center justify-center">
@@ -135,7 +157,7 @@ const EventoDetalhes = () => {
   const getStatusColor = (status: string, data: string, horario?: string | null) => {
     const eventDate = (() => {
       const [y, m, d] = data.split("-");
-      const [h = 0, min = 0] = horario.split(":");
+      const [h = 0, min = 0] = horario ? horario.split(":") : [0, 0];
       return new Date(+y, +m - 1, +d, +h, +min);
     })();
     
@@ -153,7 +175,7 @@ const EventoDetalhes = () => {
   const getStatusLabel = (status: string, data: string, horario?: string | null) => {
     const eventDate = (() => {
       const [y, m, d] = data.split("-");
-      const [h = 0, min = 0] = horario.split(":");
+      const [h = 0, min = 0] = horario ? horario.split(":") : [0, 0];
       return new Date(+y, +m - 1, +d, +h, +min);
     })();
     const now = new Date();
@@ -207,11 +229,11 @@ const EventoDetalhes = () => {
                 <div className="flex flex-wrap items-center gap-6 text-red-100 mb-6">
                   <div className="flex items-center">
                     <Calendar className="mr-2 h-5 w-5" />
-                    {format(combineDataHorario(evento.data, evento.horario), "dd 'de' MMMM, yyyy", { locale: ptBR })}
+                    {format(combineDataHorario(evento.data, evento.horario_inicio), "dd 'de' MMMM, yyyy", { locale: ptBR })}
                   </div>
                   <div className="flex items-center">
                     <Clock className="mr-2 h-5 w-5" />
-                    {format(combineDataHorario(evento.data, evento.horario), "hh:mm a", { locale: ptBR })}
+                    {format(combineDataHorario(evento.data, evento.horario_inicio), "hh:mm a", { locale: ptBR })}
                   </div>
                   {evento.local && (
                     <div className="flex items-center">
@@ -236,10 +258,10 @@ const EventoDetalhes = () => {
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-xl text-gray-900">Informações do Evento</CardTitle>
                     <Badge
-                      className={`${getStatusColor(evento.status, evento.data, evento.horario)} text-sm px-3 py-1`}
+                      className={`${getStatusColor(evento.status, evento.data, evento.horario_inicio)} text-sm px-3 py-1`}
                     >
-                      {getStatusLabel(evento.status, evento.data, evento.horario)}{" "}
-                      {format(combineDataHorario(evento.data, evento.horario), "hh:mm a", { locale: ptBR })}
+                      {getStatusLabel(evento.status, evento.data, evento.horario_inicio)}{" "}
+                      {format(combineDataHorario(evento.data, evento.horario_inicio), "hh:mm a", { locale: ptBR })}
                     </Badge>
                   </div>
                 </CardHeader>
