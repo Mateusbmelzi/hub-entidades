@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -14,6 +14,8 @@ import { X } from 'lucide-react';
 import { useUpdateEntidade } from '@/hooks/useUpdateEntidade';
 import { useToast } from '@/hooks/use-toast';
 import { AREAS_ATUACAO } from '@/lib/constants';
+import GerenciarEmpresasParceiras from './GerenciarEmpresasParceiras';
+import { EmpresasParceiras } from '@/types/empresa-parceira';
 
 const formSchema = z.object({
   nome: z.string().min(1, 'Nome é obrigatório').max(100, 'Nome deve ter no máximo 100 caracteres'),
@@ -40,6 +42,13 @@ const formSchema = z.object({
   encerramento_terceira_fase: z.string().optional(),
   abertura_processo_seletivo: z.string().optional(),
   fechamento_processo_seletivo: z.string().optional(),
+  empresas_parceiras: z.array(z.object({
+    id: z.string(),
+    nome: z.string(),
+    site: z.string().optional(),
+    descricao: z.string().optional(),
+    logo_url: z.string().optional(),
+  })).optional(),
 });
 
 
@@ -53,6 +62,14 @@ interface EditarEntidadeFormProps {
 export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade, onSuccess }) => {
   const { updateEntidade, loading } = useUpdateEntidade();
   const { toast } = useToast();
+  
+  // Estado para empresas parceiras
+  const [empresasParceiras, setEmpresasParceiras] = useState<EmpresasParceiras>(() => {
+    if (entidade.empresas_parceiras && Array.isArray(entidade.empresas_parceiras)) {
+      return entidade.empresas_parceiras;
+    }
+    return [];
+  });
 
   // Converter area_atuacao para array se for string
   const getInitialAreaAtuacao = () => {
@@ -93,6 +110,7 @@ export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade
       data_terceira_fase: entidade.data_terceira_fase || '',
       encerramento_terceira_fase: entidade.encerramento_terceira_fase || '',
       fechamento_processo_seletivo: entidade.fechamento_processo_seletivo || '',
+      empresas_parceiras: empresasParceiras,
     },
   });
 
@@ -130,7 +148,8 @@ export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade
         data_segunda_fase: data.data_segunda_fase || null,
         encerramento_segunda_fase: data.encerramento_segunda_fase || null,
         data_terceira_fase: data.data_terceira_fase || null,
-        encerramento_terceira_fase: data.encerramento_terceira_fase || null
+        encerramento_terceira_fase: data.encerramento_terceira_fase || null,
+        empresas_parceiras: empresasParceiras
       });
 
       if (success) {
@@ -536,7 +555,11 @@ export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade
       </CardContent>
     </Card>
 
-
+    {/* Card para Empresas Parceiras */}
+    <GerenciarEmpresasParceiras
+      empresasParceiras={empresasParceiras}
+      onEmpresasChange={setEmpresasParceiras}
+    />
 
       <div className="flex justify-end">
         <Button type="submit" disabled={loading}>

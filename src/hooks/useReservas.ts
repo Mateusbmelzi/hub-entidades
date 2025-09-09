@@ -106,3 +106,66 @@ export const useReservasUsuario = (userId: string) => {
     refetch: fetchReservasUsuario
   };
 };
+
+export const useTodasReservas = (filters?: {
+  status?: StatusReserva[];
+  tipo_reserva?: string[];
+  data_inicio?: string;
+  data_fim?: string;
+  nome_solicitante?: string;
+}) => {
+  const [todasReservas, setTodasReservas] = useState<ReservaDetalhada[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchTodasReservas = async () => {
+    try {
+      setLoading(true);
+      let query = supabase
+        .from('reservas_detalhadas')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      // Aplicar filtros
+      if (filters?.status?.length) {
+        query = query.in('status', filters.status);
+      }
+
+      if (filters?.tipo_reserva?.length) {
+        query = query.in('tipo_reserva', filters.tipo_reserva);
+      }
+
+      if (filters?.data_inicio) {
+        query = query.gte('data_reserva', filters.data_inicio);
+      }
+
+      if (filters?.data_fim) {
+        query = query.lte('data_reserva', filters.data_fim);
+      }
+
+      if (filters?.nome_solicitante) {
+        query = query.ilike('nome_solicitante', `%${filters.nome_solicitante}%`);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      setTodasReservas(data || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao carregar todas as reservas');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTodasReservas();
+  }, [filters]);
+
+  return {
+    todasReservas,
+    loading,
+    error,
+    refetch: fetchTodasReservas
+  };
+};

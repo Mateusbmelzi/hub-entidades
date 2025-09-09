@@ -9,7 +9,9 @@ import {
   TrendingUp,
   Users,
   Target,
-  Activity
+  Activity,
+  History,
+  Clock
 } from 'lucide-react';
 
 export interface DashboardNavigationProps {
@@ -20,6 +22,8 @@ export interface DashboardNavigationProps {
     totalEntidades?: number;
     totalEventos?: number;
     totalDemonstracoes?: number;
+    totalReservas?: number;
+    reservasPendentes?: number;
   };
   className?: string;
 }
@@ -45,15 +49,27 @@ export const DashboardNavigation: React.FC<DashboardNavigationProps> = ({
     },
     {
       id: 'eventos',
-      title: 'Eventos',
-      description: 'Gestão e análise de eventos',
-      icon: <Calendar className="h-5 w-5" />,
+      title: 'Aprovações',
+      description: 'Gestão de reservas pendentes',
+      icon: <Clock className="h-5 w-5" />,
       iconColor: 'text-orange-600',
       bgColor: 'bg-orange-50',
       borderColor: 'border-orange-200',
       textColor: 'text-orange-800',
-      stat: stats.totalEventos || 0,
-      statLabel: 'Eventos'
+      stat: stats.reservasPendentes || 0,
+      statLabel: 'Pendentes'
+    },
+    {
+      id: 'reservas',
+      title: 'Reservas',
+      description: 'Histórico completo de reservas',
+      icon: <History className="h-5 w-5" />,
+      iconColor: 'text-green-600',
+      bgColor: 'bg-green-50',
+      borderColor: 'border-green-200',
+      textColor: 'text-green-800',
+      stat: stats.totalReservas || 0,
+      statLabel: 'Total'
     },
     {
       id: 'organizacoes',
@@ -82,7 +98,7 @@ export const DashboardNavigation: React.FC<DashboardNavigationProps> = ({
   ];
 
   return (
-    <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 ${className}`}>
+    <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6 ${className}`}>
       {sections.map((section) => {
         const isActive = activeSection === section.id;
         

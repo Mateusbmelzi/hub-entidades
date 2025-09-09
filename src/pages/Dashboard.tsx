@@ -32,7 +32,7 @@ import {
 import { useStats } from '@/hooks/useStats';
 import { useAfinidadeCursoArea } from '@/hooks/useAfinidadeCursoArea';
 import { useTaxaConversaoEntidades } from '@/hooks/useTaxaConversaoEntidades';
-import { useReservasPendentes } from '@/hooks/useReservas';
+import { useReservasPendentes, useTodasReservas } from '@/hooks/useReservas';
 import { useAprovarReservas } from '@/hooks/useAprovarReservas';
 import { useTopEntidadesInteresse } from '@/hooks/useTopEntidadesInteresse';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
@@ -53,6 +53,7 @@ import { InscricoesPorCursoChart } from '@/components/InscricoesPorCursoChart';
 import { ExportDashboardButton } from '@/components/ExportDashboardButton';
 import { DashboardSection, StatCard, StatusMetrics } from '@/components/DashboardSection';
 import { DashboardNavigation, DashboardSectionActions } from '@/components/DashboardNavigation';
+import { ReservasHistoricas } from '@/components/ReservasHistoricas';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -63,6 +64,7 @@ const Dashboard = () => {
   const { entidades: topEntidadesInteresse, loading: topEntidadesInteresseLoading, error: topEntidadesInteresseError, refetch: refetchTopEntidadesInteresse } = useTopEntidadesInteresse();
   const { reservasPendentes, loading: reservasPendentesLoading, error: reservasPendentesError, refetch: refetchReservasPendentes } = useReservasPendentes();
   const { aprovarReserva, rejeitarReserva, loading: acaoReservaLoading } = useAprovarReservas();
+  const { todasReservas, loading: todasReservasLoading, error: todasReservasError, refetch: refetchTodasReservas } = useTodasReservas();
   const { totalDemonstracoes, totalEventos, loading: dashboardStatsLoading, error: dashboardStatsError, refetch: refetchDashboardStats } = useDashboardStats();
   const { demonstracoesPorArea, loading: demonstracoesPorAreaLoading, error: demonstracoesPorAreaError, refetch: refetchDemonstracoesPorArea } = useDemonstracoesPorArea();
   const { areasEntidades, loading: areasEntidadesLoading, error: areasEntidadesError, refetch: refetchAreasEntidades } = useAreasEntidades();
@@ -72,7 +74,7 @@ const Dashboard = () => {
   const { inscricoesPorCurso, loading: inscricoesPorCursoLoading, error: inscricoesPorCursoError, refetch: refetchInscricoesPorCurso } = useInscricoesPorCurso();
 
   // Estado para controlar qual seção está ativa
-  const [activeSection, setActiveSection] = useState<'overview' | 'eventos' | 'organizacoes' | 'demonstracoes' | 'alunos'>('overview');
+  const [activeSection, setActiveSection] = useState<'overview' | 'eventos' | 'reservas' | 'organizacoes' | 'demonstracoes' | 'alunos'>('overview');
 
   // Verificar se o usuário é super admin
   const isSuperAdmin = 
@@ -97,14 +99,15 @@ const Dashboard = () => {
     refetchInscricoesPorCurso();
     if (isSuperAdmin) {
       refetchReservasPendentes();
+      refetchTodasReservas();
     }
   };
 
-  const handleCardClick = (section: 'overview' | 'eventos' | 'organizacoes' | 'demonstracoes' | 'alunos') => {
+  const handleCardClick = (section: 'overview' | 'eventos' | 'reservas' | 'organizacoes' | 'demonstracoes' | 'alunos') => {
     setActiveSection(section);
   };
 
-  if (statsLoading || afinidadesLoading || taxaConversaoLoading || topEntidadesInteresseLoading || dashboardStatsLoading || demonstracoesPorAreaLoading || areasEntidadesLoading || alunosPorCursoLoading || alunosPorSemestreLoading || demonstracoesPorCursoLoading || inscricoesPorCursoLoading || (isSuperAdmin && reservasPendentesLoading)) {
+  if (statsLoading || afinidadesLoading || taxaConversaoLoading || topEntidadesInteresseLoading || dashboardStatsLoading || demonstracoesPorAreaLoading || areasEntidadesLoading || alunosPorCursoLoading || alunosPorSemestreLoading || demonstracoesPorCursoLoading || inscricoesPorCursoLoading || (isSuperAdmin && (reservasPendentesLoading || todasReservasLoading))) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
@@ -202,7 +205,7 @@ const Dashboard = () => {
                   eventosPorArea: [],
                   eventosPorOrganizacao: []
                 }}
-                disabled={statsLoading || afinidadesLoading || taxaConversaoLoading || topEntidadesInteresseLoading || dashboardStatsLoading || demonstracoesPorAreaLoading || areasEntidadesLoading || alunosPorCursoLoading || alunosPorSemestreLoading || demonstracoesPorCursoLoading || inscricoesPorCursoLoading || (isSuperAdmin && reservasPendentesLoading)}
+                disabled={statsLoading || afinidadesLoading || taxaConversaoLoading || topEntidadesInteresseLoading || dashboardStatsLoading || demonstracoesPorAreaLoading || areasEntidadesLoading || alunosPorCursoLoading || alunosPorSemestreLoading || demonstracoesPorCursoLoading || inscricoesPorCursoLoading || (isSuperAdmin && (reservasPendentesLoading || todasReservasLoading))}
               />
               
               <Button 
@@ -233,7 +236,9 @@ const Dashboard = () => {
             totalAlunos: totalAlunos || 0,
             totalEntidades: totalEntidades || 0,
             totalEventos: totalEventos || 0,
-            totalDemonstracoes: totalDemonstracoes || 0
+            totalDemonstracoes: totalDemonstracoes || 0,
+            totalReservas: todasReservas?.length || 0,
+            reservasPendentes: reservasPendentes?.length || 0
           }}
         />
 
@@ -386,6 +391,48 @@ const Dashboard = () => {
                     color: 'green',
                     bgColor: 'bg-green-50',
                     textColor: 'text-green-700'
+                  }
+                ]}
+              />
+            </DashboardSection>
+
+            {/* Estatísticas Gerais de Reservas */}
+            <DashboardSection
+              title="Estatísticas Gerais de Reservas"
+              description="Visão completa de todas as reservas do sistema"
+              icon={<BarChart className="h-5 w-5" />}
+              iconColor="text-green-600"
+              variant="gradient"
+            >
+              <StatusMetrics
+                metrics={[
+                  {
+                    label: 'Total de Reservas',
+                    value: todasReservas?.length || 0,
+                    color: 'blue',
+                    bgColor: 'bg-blue-50',
+                    textColor: 'text-blue-700'
+                  },
+                  {
+                    label: 'Aprovadas',
+                    value: todasReservas?.filter(r => r.status === 'aprovada').length || 0,
+                    color: 'green',
+                    bgColor: 'bg-green-50',
+                    textColor: 'text-green-700'
+                  },
+                  {
+                    label: 'Rejeitadas',
+                    value: todasReservas?.filter(r => r.status === 'rejeitada').length || 0,
+                    color: 'red',
+                    bgColor: 'bg-red-50',
+                    textColor: 'text-red-700'
+                  },
+                  {
+                    label: 'Canceladas',
+                    value: todasReservas?.filter(r => r.status === 'cancelada').length || 0,
+                    color: 'gray',
+                    bgColor: 'bg-gray-50',
+                    textColor: 'text-gray-700'
                   }
                 ]}
               />
@@ -608,6 +655,42 @@ const Dashboard = () => {
                 </div>
               </CardContent>
             </Card>
+          </div>
+        )}
+
+        {/* Seção de Reservas Históricas */}
+        {activeSection === 'reservas' && (
+          <div className="space-y-6">
+            <DashboardSectionActions
+              title="Histórico de Reservas"
+              description="Visualize e gerencie todas as reservas do sistema"
+              actions={
+                <>
+                  <Button 
+                    onClick={() => navigate('/aprovar-reservas')}
+                    className="bg-orange-600 hover:bg-orange-700 text-white"
+                  >
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Gerenciar Pendentes
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleCardClick('overview')}
+                    className="flex items-center gap-2"
+                  >
+                    ← Voltar à Visão Geral
+                  </Button>
+                </>
+              }
+            />
+
+            <ReservasHistoricas 
+              onExport={(reservas) => {
+                // Implementar exportação se necessário
+                console.log('Exportando reservas:', reservas);
+              }}
+            />
           </div>
         )}
 

@@ -110,6 +110,7 @@ export type Database = {
           descricao_curta: string | null
           descricao_detalhada: string | null
           email_contato: string | null
+          empresas_parceiras: Json | null
           foto_perfil_url: string | null
           grau_exigencia: string | null
           horario_apresentacao: string | null
@@ -147,6 +148,7 @@ export type Database = {
           descricao_curta?: string | null
           descricao_detalhada?: string | null
           email_contato?: string | null
+          empresas_parceiras?: Json | null
           foto_perfil_url?: string | null
           grau_exigencia?: string | null
           horario_apresentacao?: string | null
@@ -179,6 +181,7 @@ export type Database = {
           descricao_curta?: string | null
           descricao_detalhada?: string | null
           email_contato?: string | null
+          empresas_parceiras?: Json | null
           foto_perfil_url?: string | null
           grau_exigencia?: string | null
           horario_apresentacao?: string | null
