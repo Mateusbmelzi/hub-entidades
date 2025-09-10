@@ -6,9 +6,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useReservasPendentes } from '@/hooks/useReservas';
 import { useAprovarReservas } from '@/hooks/useAprovarReservas';
+import { useSalas } from '@/hooks/useSalas';
 import { ReservasFilters, ReservasFilters as ReservasFiltersType } from '@/components/ReservasFilters';
 import { ExportReservasButton } from '@/components/ExportReservasButton';
 import { ReservaDetalhada, STATUS_LABELS, TIPO_RESERVA_LABELS } from '@/types/reserva';
@@ -37,24 +39,27 @@ import {
 
 interface ReservaCardProps {
   reserva: ReservaDetalhada;
-  onAprovar: (id: string, comentario?: string, local?: string) => void;
+  onAprovar: (id: string, comentario?: string, local?: string, salaId?: number) => void;
   onRejeitar: (id: string, comentario: string) => void;
   loading: boolean;
+  salasDisponiveis: any[];
 }
 
-const ReservaCard: React.FC<ReservaCardProps> = ({ reserva, onAprovar, onRejeitar, loading }) => {
+const ReservaCard: React.FC<ReservaCardProps> = ({ reserva, onAprovar, onRejeitar, loading, salasDisponiveis }) => {
   const [comentario, setComentario] = useState('');
   const [local, setLocal] = useState(reserva.tipo_reserva === 'auditorio' ? 'Auditório Steffi e Max Perlaman' : '');
+  const [salaSelecionada, setSalaSelecionada] = useState<number | undefined>(undefined);
   const [showDetails, setShowDetails] = useState(false);
 
   const handleAprovar = () => {
-    if (reserva.tipo_reserva === 'sala' && !local.trim()) {
-      alert('Por favor, informe o nome da sala.');
+    if (reserva.tipo_reserva === 'sala' && !salaSelecionada) {
+      alert('Por favor, selecione uma sala.');
       return;
     }
-    onAprovar(reserva.reserva_id, comentario, local);
+    onAprovar(reserva.reserva_id, comentario, local, salaSelecionada);
     setComentario('');
     setLocal(reserva.tipo_reserva === 'auditorio' ? 'Auditório Steffi e Max Perlaman' : '');
+    setSalaSelecionada(undefined);
   };
 
   const handleRejeitar = () => {
@@ -192,18 +197,46 @@ const ReservaCard: React.FC<ReservaCardProps> = ({ reserva, onAprovar, onRejeita
 
         {/* Ações de aprovação */}
         <div className="space-y-3">
-          <div>
-            <Label htmlFor={`local-${reserva.reserva_id}`}>
-              Nome da {reserva.tipo_reserva === 'sala' ? 'Sala *' : 'Auditório'}
-            </Label>
-            <Input
-              id={`local-${reserva.reserva_id}`}
-              value={local}
-              onChange={(e) => setLocal(e.target.value)}
-              placeholder={`Ex: ${reserva.tipo_reserva === 'sala' ? 'Sala 101, Laboratório de Informática' : 'Auditório Steffi e Max Perlaman'}`}
-              className="mb-3"
-            />
-          </div>
+          {reserva.tipo_reserva === 'sala' ? (
+            <div>
+              <Label htmlFor={`sala-${reserva.reserva_id}`}>
+                Selecionar Sala *
+              </Label>
+              <Select
+                value={salaSelecionada?.toString() || ''}
+                onValueChange={(value) => setSalaSelecionada(parseInt(value))}
+              >
+                <SelectTrigger className="mb-3">
+                  <SelectValue placeholder="Escolha uma sala disponível..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {salasDisponiveis.map((sala) => (
+                    <SelectItem key={sala.id} value={sala.id.toString()}>
+                      {sala.sala} - {sala.predio} ({sala.andar}) - {sala.capacidade} pessoas
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {salasDisponiveis.length === 0 && (
+                <p className="text-sm text-muted-foreground mb-3">
+                  Nenhuma sala disponível com capacidade para {reserva.quantidade_pessoas} pessoas.
+                </p>
+              )}
+            </div>
+          ) : (
+            <div>
+              <Label htmlFor={`local-${reserva.reserva_id}`}>
+                Nome do Auditório
+              </Label>
+              <Input
+                id={`local-${reserva.reserva_id}`}
+                value={local}
+                onChange={(e) => setLocal(e.target.value)}
+                placeholder="Ex: Auditório Steffi e Max Perlaman"
+                className="mb-3"
+              />
+            </div>
+          )}
           
           <div>
             <Label htmlFor={`comentario-${reserva.reserva_id}`}>Comentário (opcional)</Label>
@@ -245,6 +278,7 @@ const ReservaCard: React.FC<ReservaCardProps> = ({ reserva, onAprovar, onRejeita
 export const DashboardAprovacaoReservas: React.FC = () => {
   const { reservasPendentes, loading, error, refetch } = useReservasPendentes();
   const { aprovarReserva, rejeitarReserva, loading: actionLoading } = useAprovarReservas();
+  const { salas, getSalasDisponiveis } = useSalas();
   const [filters, setFilters] = useState<ReservasFiltersType>({});
 
   // Filtrar reservas baseado nos filtros aplicados
@@ -295,8 +329,8 @@ export const DashboardAprovacaoReservas: React.FC = () => {
     setFilters({});
   };
 
-  const handleAprovar = async (reservaId: string, comentario?: string, local?: string) => {
-    const success = await aprovarReserva(reservaId, comentario, local);
+  const handleAprovar = async (reservaId: string, comentario?: string, local?: string, salaId?: number) => {
+    const success = await aprovarReserva(reservaId, comentario, local, salaId);
     if (success) {
       refetch();
     }
@@ -373,15 +407,22 @@ export const DashboardAprovacaoReservas: React.FC = () => {
         </Card>
       ) : (
         <div className="space-y-4">
-          {filteredReservas.map((reserva) => (
-            <ReservaCard
-              key={reserva.reserva_id}
-              reserva={reserva}
-              onAprovar={handleAprovar}
-              onRejeitar={handleRejeitar}
-              loading={actionLoading}
-            />
-          ))}
+          {filteredReservas.map((reserva) => {
+            const salasDisponiveis = reserva.tipo_reserva === 'sala' 
+              ? getSalasDisponiveis(reserva.quantidade_pessoas)
+              : [];
+            
+            return (
+              <ReservaCard
+                key={reserva.reserva_id}
+                reserva={reserva}
+                onAprovar={handleAprovar}
+                onRejeitar={handleRejeitar}
+                loading={actionLoading}
+                salasDisponiveis={salasDisponiveis}
+              />
+            );
+          })}
         </div>
       )}
     </div>

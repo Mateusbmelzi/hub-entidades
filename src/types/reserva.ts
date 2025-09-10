@@ -95,6 +95,12 @@ export interface Reserva {
   data_aprovacao?: string;
   aprovador_email?: string;
   
+  // Sala associada (quando aprovada)
+  sala_id?: number;
+  sala_nome?: string;
+  sala_predio?: string;
+  sala_andar?: string;
+  
   // Observações adicionais
   observacoes?: string;
 }

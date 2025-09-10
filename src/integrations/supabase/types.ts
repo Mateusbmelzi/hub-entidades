@@ -330,6 +330,11 @@ export type Database = {
           aprovador_email: string | null
           updated_at: string
           area_atuacao: string[] | null
+          sala_id: number | null
+          sala_nome: string | null
+          sala_predio: string | null
+          sala_andar: string | null
+          sala_capacidade: number | null
         }
         Insert: {
           capacidade?: number | null
@@ -350,6 +355,11 @@ export type Database = {
           aprovador_email?: string | null
           updated_at?: string
           area_atuacao?: string[] | null
+          sala_id?: number | null
+          sala_nome?: string | null
+          sala_predio?: string | null
+          sala_andar?: string | null
+          sala_capacidade?: number | null
         }
         Update: {
           capacidade?: number | null
@@ -370,6 +380,11 @@ export type Database = {
           aprovador_email?: string | null
           updated_at?: string
           area_atuacao?: string[] | null
+          sala_id?: number | null
+          sala_nome?: string | null
+          sala_predio?: string | null
+          sala_andar?: string | null
+          sala_capacidade?: number | null
         }
         Relationships: [
           {
