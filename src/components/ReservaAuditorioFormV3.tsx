@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -109,33 +109,76 @@ export const ReservaAuditorioFormV3: React.FC = () => {
         break;
 
       case 2: // Motivo da reserva e título
-        if (!formData.motivo_reserva) newErrors.motivo_reserva = 'Motivo da reserva é obrigatório';
+        if (!formData.motivo_reserva) {
+          newErrors.motivo_reserva = 'Motivo da reserva é obrigatório';
+        }
+        
+        // Validação do título do evento
         if (!formData.titulo_evento_capacitacao) {
           newErrors.titulo_evento_capacitacao = 'Título do evento é obrigatório';
+        } else if (formData.titulo_evento_capacitacao.length < 5) {
+          newErrors.titulo_evento_capacitacao = 'Título deve ter pelo menos 5 caracteres';
+        } else if (formData.titulo_evento_capacitacao.length > 100) {
+          newErrors.titulo_evento_capacitacao = 'Título não pode ter mais que 100 caracteres';
         }
+        
+        // Validação da descrição das pautas
         if (!formData.descricao_pautas_evento_capacitacao) {
           newErrors.descricao_pautas_evento_capacitacao = 'Descrição das pautas é obrigatória';
+        } else if (formData.descricao_pautas_evento_capacitacao.length < 20) {
+          newErrors.descricao_pautas_evento_capacitacao = 'Descrição deve ter pelo menos 20 caracteres';
+        } else if (formData.descricao_pautas_evento_capacitacao.length > 1000) {
+          newErrors.descricao_pautas_evento_capacitacao = 'Descrição não pode ter mais que 1000 caracteres';
         }
+        
+        // Validação da descrição da programação
         if (!formData.descricao_programacao_evento) {
           newErrors.descricao_programacao_evento = 'Descrição da programação é obrigatória';
+        } else if (formData.descricao_programacao_evento.length < 20) {
+          newErrors.descricao_programacao_evento = 'Descrição deve ter pelo menos 20 caracteres';
+        } else if (formData.descricao_programacao_evento.length > 1000) {
+          newErrors.descricao_programacao_evento = 'Descrição não pode ter mais que 1000 caracteres';
         }
         break;
 
       case 3: // Campos condicionais
         if (formData.tem_palestrante_externo) {
+          // Validação do nome do palestrante
           if (!formData.nome_palestrante_externo) {
             newErrors.nome_palestrante_externo = 'Nome do palestrante é obrigatório';
+          } else if (formData.nome_palestrante_externo.length < 5) {
+            newErrors.nome_palestrante_externo = 'Nome deve ter pelo menos 5 caracteres';
+          } else if (formData.nome_palestrante_externo.length > 100) {
+            newErrors.nome_palestrante_externo = 'Nome não pode ter mais que 100 caracteres';
           }
+          
+          // Validação da apresentação do palestrante
           if (!formData.apresentacao_palestrante_externo) {
             newErrors.apresentacao_palestrante_externo = 'Apresentação do palestrante é obrigatória';
+          } else if (formData.apresentacao_palestrante_externo.length < 10) {
+            newErrors.apresentacao_palestrante_externo = 'Apresentação deve ter pelo menos 10 caracteres';
+          } else if (formData.apresentacao_palestrante_externo.length > 500) {
+            newErrors.apresentacao_palestrante_externo = 'Apresentação não pode ter mais que 500 caracteres';
           }
         }
+        
         if (formData.ha_apoio_externo) {
+          // Validação do nome da empresa parceira
           if (!formData.nome_empresa_parceira) {
             newErrors.nome_empresa_parceira = 'Nome da empresa parceira é obrigatório';
+          } else if (formData.nome_empresa_parceira.length < 3) {
+            newErrors.nome_empresa_parceira = 'Nome da empresa deve ter pelo menos 3 caracteres';
+          } else if (formData.nome_empresa_parceira.length > 100) {
+            newErrors.nome_empresa_parceira = 'Nome da empresa não pode ter mais que 100 caracteres';
           }
+          
+          // Validação da descrição de como ajudará
           if (!formData.como_ajudara_organizacao) {
             newErrors.como_ajudara_organizacao = 'Descrição de como ajudará é obrigatória';
+          } else if (formData.como_ajudara_organizacao.length < 10) {
+            newErrors.como_ajudara_organizacao = 'Descrição deve ter pelo menos 10 caracteres';
+          } else if (formData.como_ajudara_organizacao.length > 500) {
+            newErrors.como_ajudara_organizacao = 'Descrição não pode ter mais que 500 caracteres';
           }
         }
         break;
@@ -424,8 +467,19 @@ const ReasonStep: React.FC<{
           value={formData.titulo_evento_capacitacao || ''}
           onChange={(e) => updateFormData('titulo_evento_capacitacao', e.target.value)}
           className={errors.titulo_evento_capacitacao ? 'border-red-500' : ''}
+          maxLength={100}
+          placeholder="Digite o título do evento ou capacitação"
         />
-        {errors.titulo_evento_capacitacao && <p className="text-sm text-red-500">{errors.titulo_evento_capacitacao}</p>}
+        <div className="flex justify-between items-center">
+          {errors.titulo_evento_capacitacao ? (
+            <p className="text-sm text-red-500">{errors.titulo_evento_capacitacao}</p>
+          ) : (
+            <p className="text-xs text-gray-500">Mínimo: 5 caracteres, Máximo: 100</p>
+          )}
+          <span className="text-xs text-gray-400">
+            {formData.titulo_evento_capacitacao?.length || 0}/100
+          </span>
+        </div>
       </div>
 
       <div className="space-y-2">
@@ -436,8 +490,19 @@ const ReasonStep: React.FC<{
           value={formData.descricao_pautas_evento_capacitacao || ''}
           onChange={(e) => updateFormData('descricao_pautas_evento_capacitacao', e.target.value)}
           className={errors.descricao_pautas_evento_capacitacao ? 'border-red-500' : ''}
+          maxLength={1000}
+          placeholder="Descreva as pautas e objetivos do evento ou capacitação"
         />
-        {errors.descricao_pautas_evento_capacitacao && <p className="text-sm text-red-500">{errors.descricao_pautas_evento_capacitacao}</p>}
+        <div className="flex justify-between items-center">
+          {errors.descricao_pautas_evento_capacitacao ? (
+            <p className="text-sm text-red-500">{errors.descricao_pautas_evento_capacitacao}</p>
+          ) : (
+            <p className="text-xs text-gray-500">Mínimo: 20 caracteres, Máximo: 1000</p>
+          )}
+          <span className="text-xs text-gray-400">
+            {formData.descricao_pautas_evento_capacitacao?.length || 0}/1000
+          </span>
+        </div>
       </div>
 
       <div className="space-y-2">
@@ -448,8 +513,19 @@ const ReasonStep: React.FC<{
           value={formData.descricao_programacao_evento || ''}
           onChange={(e) => updateFormData('descricao_programacao_evento', e.target.value)}
           className={errors.descricao_programacao_evento ? 'border-red-500' : ''}
+          maxLength={1000}
+          placeholder="Descreva detalhadamente a programação do evento, cronograma e atividades"
         />
-        {errors.descricao_programacao_evento && <p className="text-sm text-red-500">{errors.descricao_programacao_evento}</p>}
+        <div className="flex justify-between items-center">
+          {errors.descricao_programacao_evento ? (
+            <p className="text-sm text-red-500">{errors.descricao_programacao_evento}</p>
+          ) : (
+            <p className="text-xs text-gray-500">Mínimo: 20 caracteres, Máximo: 1000</p>
+          )}
+          <span className="text-xs text-gray-400">
+            {formData.descricao_programacao_evento?.length || 0}/1000
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -487,10 +563,19 @@ const ConditionalFieldsStep: React.FC<{
                 value={formData.nome_palestrante_externo || ''}
                 onChange={(e) => updateFormData('nome_palestrante_externo', e.target.value)}
                 className={errors.nome_palestrante_externo ? 'border-red-500' : ''}
+                maxLength={100}
+                placeholder="Ex: Dr. Maria Silva Santos"
               />
-              {errors.nome_palestrante_externo && (
-                <p className="text-sm text-red-500">{errors.nome_palestrante_externo}</p>
-              )}
+              <div className="flex justify-between items-center">
+                {errors.nome_palestrante_externo ? (
+                  <p className="text-sm text-red-500">{errors.nome_palestrante_externo}</p>
+                ) : (
+                  <p className="text-xs text-gray-500">Mínimo: 5 caracteres, Máximo: 100</p>
+                )}
+                <span className="text-xs text-gray-400">
+                  {formData.nome_palestrante_externo?.length || 0}/100
+                </span>
+              </div>
             </div>
             
             <div className="space-y-2">
@@ -501,10 +586,19 @@ const ConditionalFieldsStep: React.FC<{
                 value={formData.apresentacao_palestrante_externo || ''}
                 onChange={(e) => updateFormData('apresentacao_palestrante_externo', e.target.value)}
                 className={errors.apresentacao_palestrante_externo ? 'border-red-500' : ''}
+                maxLength={500}
+                placeholder="Ex: Professor de Ciência da Computação na USP, especialista em Machine Learning..."
               />
-              {errors.apresentacao_palestrante_externo && (
-                <p className="text-sm text-red-500">{errors.apresentacao_palestrante_externo}</p>
-              )}
+              <div className="flex justify-between items-center">
+                {errors.apresentacao_palestrante_externo ? (
+                  <p className="text-sm text-red-500">{errors.apresentacao_palestrante_externo}</p>
+                ) : (
+                  <p className="text-xs text-gray-500">Mínimo: 10 caracteres, Máximo: 500</p>
+                )}
+                <span className="text-xs text-gray-400">
+                  {formData.apresentacao_palestrante_externo?.length || 0}/500
+                </span>
+              </div>
             </div>
             
             <div className="flex items-center space-x-2">
@@ -541,10 +635,19 @@ const ConditionalFieldsStep: React.FC<{
                         value={formData.nome_empresa_parceira || ''}
                         onChange={(e) => updateFormData('nome_empresa_parceira', e.target.value)}
                         className={errors.nome_empresa_parceira ? 'border-red-500' : ''}
+                        maxLength={100}
+                        placeholder="Digite o nome da empresa parceira"
                       />
-                      {errors.nome_empresa_parceira && (
-                        <p className="text-sm text-red-500">{errors.nome_empresa_parceira}</p>
-                      )}
+                      <div className="flex justify-between items-center">
+                        {errors.nome_empresa_parceira ? (
+                          <p className="text-sm text-red-500">{errors.nome_empresa_parceira}</p>
+                        ) : (
+                          <p className="text-xs text-gray-500">Mínimo: 3 caracteres, Máximo: 100</p>
+                        )}
+                        <span className="text-xs text-gray-400">
+                          {formData.nome_empresa_parceira?.length || 0}/100
+                        </span>
+                      </div>
                     </div>
                     
                     <div className="space-y-2">
@@ -555,10 +658,19 @@ const ConditionalFieldsStep: React.FC<{
                         value={formData.como_ajudara_organizacao || ''}
                         onChange={(e) => updateFormData('como_ajudara_organizacao', e.target.value)}
                         className={errors.como_ajudara_organizacao ? 'border-red-500' : ''}
+                        maxLength={500}
+                        placeholder="Descreva como a empresa ajudará a organização"
                       />
-                      {errors.como_ajudara_organizacao && (
-                        <p className="text-sm text-red-500">{errors.como_ajudara_organizacao}</p>
-                      )}
+                      <div className="flex justify-between items-center">
+                        {errors.como_ajudara_organizacao ? (
+                          <p className="text-sm text-red-500">{errors.como_ajudara_organizacao}</p>
+                        ) : (
+                          <p className="text-xs text-gray-500">Mínimo: 10 caracteres, Máximo: 500</p>
+                        )}
+                        <span className="text-xs text-gray-400">
+                          {formData.como_ajudara_organizacao?.length || 0}/500
+                        </span>
+                      </div>
                     </div>
                   </div>
                 )}
