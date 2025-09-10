@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Calendar, Clock, Users, User, Phone, FileText, CheckCircle, Building, Mic, Video, Lightbulb, Settings, Camera, Utensils, Shield, Key, Sparkles, Wrench } from 'lucide-react';
 import { useCreateReserva } from '@/hooks/useCreateReserva';
 import { useEntityAuth } from '@/hooks/useEntityAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { ReservaFormData, MOTIVO_AUDITORIO_LABELS } from '@/types/reserva';
 import { toast } from 'sonner';
 
@@ -30,6 +31,23 @@ export const ReservaAuditorioFormV3: React.FC = () => {
 
   const { createReserva, loading: createLoading } = useCreateReserva();
   const { isAuthenticated: isEntityAuthenticated, entidadeId } = useEntityAuth();
+  const { profile } = useAuth();
+
+  // Preencher automaticamente o nome e telefone do solicitante quando o perfil do usuário for carregado
+  useEffect(() => {
+    if (profile?.nome && !formData.nome_solicitante) {
+      setFormData(prev => ({
+        ...prev,
+        nome_solicitante: profile.nome
+      }));
+    }
+    if (profile?.celular && !formData.telefone_solicitante) {
+      setFormData(prev => ({
+        ...prev,
+        telefone_solicitante: profile.celular
+      }));
+    }
+  }, [profile?.nome, profile?.celular, formData.nome_solicitante, formData.telefone_solicitante]);
 
   const updateFormData = (field: keyof ReservaFormData, value: any) => {
     setFormData(prev => ({
