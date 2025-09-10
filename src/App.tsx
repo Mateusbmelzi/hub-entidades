@@ -44,6 +44,7 @@ import ReservaAuditorio from '@/pages/ReservaAuditorio';
 import AprovarReservas from '@/pages/AprovarReservas';
 import MinhasReservas from '@/pages/MinhasReservas';
 import CalendarioReservas from '@/pages/CalendarioReservas';
+import HistoricoReservas from '@/pages/HistoricoReservas';
 import Footer from '@/components/Footer';
 
 const queryClient = new QueryClient();
@@ -188,6 +189,12 @@ function AppRouter() {
           <Route path="/aprovar-reservas" element={
             <SuperAdminRoute>
               <AprovarReservas />
+            </SuperAdminRoute>
+          } />
+          
+          <Route path="/historico-reservas" element={
+            <SuperAdminRoute>
+              <HistoricoReservas />
             </SuperAdminRoute>
           } />
           

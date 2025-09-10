@@ -10,6 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useTodasReservas } from '@/hooks/useReservas';
 import { ReservaDetalhada, STATUS_LABELS, TIPO_RESERVA_LABELS, StatusReserva } from '@/types/reserva';
+import { SalaInfo } from '@/components/SalaInfo';
+import { ExportReservasButton } from '@/components/ExportReservasButton';
 import { 
   Calendar, 
   Clock, 
@@ -40,6 +42,7 @@ import {
 
 interface ReservasHistoricasProps {
   onExport?: (reservas: ReservaDetalhada[]) => void;
+  showExportButton?: boolean;
 }
 
 const ReservaDetalhesModal: React.FC<{ reserva: ReservaDetalhada }> = ({ reserva }) => {
@@ -115,8 +118,57 @@ const ReservaDetalhesModal: React.FC<{ reserva: ReservaDetalhada }> = ({ reserva
             </div>
           )}
 
+          {/* Informações da Sala (se aprovada) */}
+          {reserva.status === 'aprovada' && (reserva.sala_id || reserva.sala_nome) && (
+            <div>
+              <Label className="text-sm font-medium">Sala Alocada</Label>
+              <SalaInfo
+                evento={{
+                  sala_id: reserva.sala_id,
+                  sala_nome: reserva.sala_nome,
+                  sala_predio: reserva.sala_predio,
+                  sala_andar: reserva.sala_andar,
+                  sala_capacidade: reserva.sala_capacidade
+                }}
+                className="mt-2"
+              />
+            </div>
+          )}
+
           {/* Detalhes Específicos */}
           <div className="space-y-4">
+            {/* Motivo da Reserva */}
+            {reserva.motivo_reserva && (
+              <div>
+                <Label className="text-sm font-medium">Motivo da Reserva</Label>
+                <p className="text-sm text-muted-foreground">{reserva.motivo_reserva}</p>
+              </div>
+            )}
+
+            {/* Título do Evento de Capacitação */}
+            {reserva.titulo_evento_capacitacao && (
+              <div>
+                <Label className="text-sm font-medium">Título do Evento de Capacitação</Label>
+                <p className="text-sm text-muted-foreground">{reserva.titulo_evento_capacitacao}</p>
+              </div>
+            )}
+
+            {/* Descrição das Pautas do Evento */}
+            {reserva.descricao_pautas_evento_capacitacao && (
+              <div>
+                <Label className="text-sm font-medium">Descrição das Pautas do Evento</Label>
+                <p className="text-sm text-muted-foreground">{reserva.descricao_pautas_evento_capacitacao}</p>
+              </div>
+            )}
+
+            {/* Descrição da Programação do Evento */}
+            {reserva.descricao_programacao_evento && (
+              <div>
+                <Label className="text-sm font-medium">Descrição da Programação do Evento</Label>
+                <p className="text-sm text-muted-foreground">{reserva.descricao_programacao_evento}</p>
+              </div>
+            )}
+
             {/* Palestrante Externo */}
             {reserva.tem_palestrante_externo && (
               <div>
@@ -131,6 +183,23 @@ const ReservaDetalhesModal: React.FC<{ reserva: ReservaDetalhada }> = ({ reserva
                 {reserva.eh_pessoa_publica && (
                   <Badge variant="secondary" className="mt-1">Pessoa Pública</Badge>
                 )}
+              </div>
+            )}
+
+            {/* Apoio Externo */}
+            {reserva.ha_apoio_externo && (
+              <div>
+                <Label className="text-sm font-medium">Apoio Externo</Label>
+                <p className="text-sm text-muted-foreground">Nome da Empresa: {reserva.nome_empresa_parceira}</p>
+                <p className="text-sm text-muted-foreground">Como ajudará: {reserva.como_ajudara_organizacao}</p>
+              </div>
+            )}
+
+            {/* Necessidade de Sala Plana */}
+            {reserva.necessidade_sala_plana && (
+              <div>
+                <Label className="text-sm font-medium">Necessidade de Sala Plana</Label>
+                <p className="text-sm text-muted-foreground">{reserva.motivo_sala_plana}</p>
               </div>
             )}
 
@@ -150,14 +219,82 @@ const ReservaDetalhesModal: React.FC<{ reserva: ReservaDetalhada }> = ({ reserva
                   {reserva.precisa_limpeza_especial && <Badge variant="outline"><Sparkles className="h-3 w-3 mr-1" />Limpeza</Badge>}
                   {reserva.precisa_manutencao && <Badge variant="outline"><Wrench className="h-3 w-3 mr-1" />Manutenção</Badge>}
                 </div>
+                
+                {/* Detalhes específicos dos equipamentos */}
+                {reserva.motivo_gravacao && (
+                  <div className="mt-2">
+                    <Label className="text-sm font-medium">Motivo da Gravação</Label>
+                    <p className="text-sm text-muted-foreground">{reserva.motivo_gravacao}</p>
+                  </div>
+                )}
+                
+                {reserva.equipamentos_adicionais && (
+                  <div className="mt-2">
+                    <Label className="text-sm font-medium">Equipamentos Adicionais</Label>
+                    <p className="text-sm text-muted-foreground">{reserva.equipamentos_adicionais}</p>
+                  </div>
+                )}
+                
+                {reserva.precisa_suporte_tecnico && (
+                  <div className="mt-2">
+                    <Label className="text-sm font-medium">Suporte Técnico</Label>
+                    <p className="text-sm text-muted-foreground">{reserva.detalhes_suporte_tecnico}</p>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Necessidade de Sala Plana */}
-            {reserva.necessidade_sala_plana && (
+            {/* Configuração da Sala */}
+            {reserva.configuracao_sala && (
               <div>
-                <Label className="text-sm font-medium">Necessidade de Sala Plana</Label>
-                <p className="text-sm text-muted-foreground">{reserva.motivo_sala_plana}</p>
+                <Label className="text-sm font-medium">Configuração da Sala</Label>
+                <p className="text-sm text-muted-foreground">{reserva.configuracao_sala}</p>
+                {reserva.motivo_configuracao_sala && (
+                  <p className="text-sm text-muted-foreground">Motivo: {reserva.motivo_configuracao_sala}</p>
+                )}
+              </div>
+            )}
+
+            {/* Alimentação */}
+            {reserva.precisa_alimentacao && (
+              <div>
+                <Label className="text-sm font-medium">Alimentação</Label>
+                <p className="text-sm text-muted-foreground">{reserva.detalhes_alimentacao}</p>
+                {reserva.custo_estimado_alimentacao && (
+                  <p className="text-sm text-muted-foreground">Custo estimado: R$ {reserva.custo_estimado_alimentacao}</p>
+                )}
+              </div>
+            )}
+
+            {/* Segurança */}
+            {reserva.precisa_seguranca && (
+              <div>
+                <Label className="text-sm font-medium">Segurança</Label>
+                <p className="text-sm text-muted-foreground">{reserva.detalhes_seguranca}</p>
+              </div>
+            )}
+
+            {/* Controle de Acesso */}
+            {reserva.precisa_controle_acesso && (
+              <div>
+                <Label className="text-sm font-medium">Controle de Acesso</Label>
+                <p className="text-sm text-muted-foreground">{reserva.detalhes_controle_acesso}</p>
+              </div>
+            )}
+
+            {/* Limpeza Especial */}
+            {reserva.precisa_limpeza_especial && (
+              <div>
+                <Label className="text-sm font-medium">Limpeza Especial</Label>
+                <p className="text-sm text-muted-foreground">{reserva.detalhes_limpeza_especial}</p>
+              </div>
+            )}
+
+            {/* Manutenção */}
+            {reserva.precisa_manutencao && (
+              <div>
+                <Label className="text-sm font-medium">Manutenção</Label>
+                <p className="text-sm text-muted-foreground">{reserva.detalhes_manutencao}</p>
               </div>
             )}
 
@@ -183,7 +320,7 @@ const ReservaDetalhesModal: React.FC<{ reserva: ReservaDetalhada }> = ({ reserva
   );
 };
 
-export const ReservasHistoricas: React.FC<ReservasHistoricasProps> = ({ onExport }) => {
+export const ReservasHistoricas: React.FC<ReservasHistoricasProps> = ({ onExport, showExportButton = true }) => {
   const [filters, setFilters] = useState<{
     status?: StatusReserva[];
     tipo_reserva?: string[];
@@ -271,6 +408,13 @@ export const ReservasHistoricas: React.FC<ReservasHistoricasProps> = ({ onExport
           </p>
         </div>
         <div className="flex gap-2">
+          {showExportButton && (
+            <ExportReservasButton 
+              reservas={filteredReservas}
+              variant="outline"
+              size="sm"
+            />
+          )}
           {onExport && (
             <Button onClick={() => onExport(filteredReservas)} variant="outline" size="sm">
               <Download className="h-4 w-4 mr-2" />
@@ -389,6 +533,7 @@ export const ReservasHistoricas: React.FC<ReservasHistoricasProps> = ({ onExport
                   <TableHead>Tipo</TableHead>
                   <TableHead>Data</TableHead>
                   <TableHead>Horário</TableHead>
+                  <TableHead>Sala</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Ações</TableHead>
                 </TableRow>
@@ -420,6 +565,23 @@ export const ReservasHistoricas: React.FC<ReservasHistoricasProps> = ({ onExport
                     </TableCell>
                     <TableCell>
                       {reserva.horario_inicio} - {reserva.horario_termino}
+                    </TableCell>
+                    <TableCell>
+                      {reserva.status === 'aprovada' && (reserva.sala_id || reserva.sala_nome) ? (
+                        <SalaInfo
+                          evento={{
+                            sala_id: reserva.sala_id,
+                            sala_nome: reserva.sala_nome,
+                            sala_predio: reserva.sala_predio,
+                            sala_andar: reserva.sala_andar,
+                            sala_capacidade: reserva.sala_capacidade
+                          }}
+                        />
+                      ) : (
+                        <span className="text-sm text-muted-foreground">
+                          {reserva.status === 'aprovada' ? 'Não informada' : '-'}
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge className={getStatusColor(reserva.status)}>

@@ -80,12 +80,48 @@ export const useReservasUsuario = (userId: string) => {
       setLoading(true);
       const { data, error } = await supabase
         .from('reservas')
-        .select('*')
+        .select(`
+          *,
+          entidades!reservas_entidade_id_fkey (
+            id,
+            nome,
+            contato,
+            email_contato
+          ),
+          eventos!reservas_evento_id_fkey (
+            nome,
+            descricao,
+            sala_id,
+            sala_nome,
+            sala_predio,
+            sala_andar,
+            sala_capacidade
+          )
+        `)
         .eq('profile_id', userId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setReservasUsuario(data || []);
+      
+      // Mapear os dados para incluir informações da entidade e evento
+      const reservasComDetalhes = (data || []).map((reserva: any) => ({
+        ...reserva,
+        // Dados da entidade
+        nome_entidade: reserva.entidades?.nome || null,
+        contato_entidade: reserva.entidades?.contato || null,
+        email_entidade: reserva.entidades?.email_contato || null,
+        // Dados do evento
+        nome_evento: reserva.eventos?.nome || null,
+        descricao_evento: reserva.eventos?.descricao || null,
+        // Dados da sala (do evento)
+        sala_id: reserva.eventos?.sala_id || null,
+        sala_nome: reserva.eventos?.sala_nome || null,
+        sala_predio: reserva.eventos?.sala_predio || null,
+        sala_andar: reserva.eventos?.sala_andar || null,
+        sala_capacidade: reserva.eventos?.sala_capacidade || null
+      }));
+      
+      setReservasUsuario(reservasComDetalhes);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao carregar reservas do usuário');
     } finally {
@@ -121,9 +157,34 @@ export const useTodasReservas = (filters?: {
   const fetchTodasReservas = async () => {
     try {
       setLoading(true);
+      console.log('🔍 Buscando todas as reservas...');
+      
+      // Query com JOIN para buscar reservas e dados relacionados
       let query = supabase
-        .from('reservas_detalhadas')
-        .select('*')
+        .from('reservas')
+        .select(`
+          *,
+          profiles!reservas_profile_id_fkey (
+            nome,
+            curso,
+            celular
+          ),
+          entidades!reservas_entidade_id_fkey (
+            id,
+            nome,
+            contato,
+            email_contato
+          ),
+          eventos!reservas_evento_id_fkey (
+            nome,
+            descricao,
+            sala_id,
+            sala_nome,
+            sala_predio,
+            sala_andar,
+            sala_capacidade
+          )
+        `)
         .order('created_at', { ascending: false });
 
       // Aplicar filtros
@@ -149,8 +210,46 @@ export const useTodasReservas = (filters?: {
 
       const { data, error } = await query;
 
-      if (error) throw error;
-      setTodasReservas(data || []);
+      if (error) {
+        console.error('❌ Erro ao buscar reservas:', error);
+        console.error('❌ Detalhes do erro:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        throw error;
+      }
+      
+      console.log('✅ Reservas encontradas:', data?.length || 0);
+      console.log('📊 Primeira reserva (exemplo):', data?.[0]);
+      
+      // Mapear os dados para o formato ReservaDetalhada
+      const reservasDetalhadas: ReservaDetalhada[] = (data || []).map((reserva: any) => ({
+        ...reserva,
+        // Usar o ID da reserva como reserva_id para compatibilidade
+        reserva_id: reserva.id,
+        // Dados do usuário
+        nome_usuario: reserva.profiles?.nome || null,
+        curso_usuario: reserva.profiles?.curso || null,
+        celular_usuario: reserva.profiles?.celular || null,
+        // Dados da entidade
+        nome_entidade: reserva.entidades?.nome || null,
+        contato_entidade: reserva.entidades?.contato || null,
+        email_entidade: reserva.entidades?.email_contato || null,
+        // Dados do evento
+        nome_evento: reserva.eventos?.nome || null,
+        descricao_evento: reserva.eventos?.descricao || null,
+        // Dados da sala (do evento)
+        sala_id: reserva.eventos?.sala_id || null,
+        sala_nome: reserva.eventos?.sala_nome || null,
+        sala_predio: reserva.eventos?.sala_predio || null,
+        sala_andar: reserva.eventos?.sala_andar || null,
+        sala_capacidade: reserva.eventos?.sala_capacidade || null
+      }));
+      
+      console.log('✅ Reservas mapeadas:', reservasDetalhadas.length);
+      setTodasReservas(reservasDetalhadas);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao carregar todas as reservas');
     } finally {

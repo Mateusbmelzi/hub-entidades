@@ -132,6 +132,13 @@ export const useSalas = () => {
     }
   };
 
+  const getSalaAuditorio = () => {
+    return salas.find(sala => 
+      sala.sala.toLowerCase().includes('auditório') && 
+      sala.sala.toLowerCase().includes('steffi')
+    );
+  };
+
   useEffect(() => {
     fetchSalas();
   }, []);
@@ -144,6 +151,7 @@ export const useSalas = () => {
     getSalasDisponiveis,
     getSalasPorPredio,
     associarSalaReserva,
-    desassociarSalaReserva
+    desassociarSalaReserva,
+    getSalaAuditorio
   };
 };

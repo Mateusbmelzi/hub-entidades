@@ -6,6 +6,7 @@ import { useReservasUsuario } from '@/hooks/useReservas';
 import { useAprovarReservas } from '@/hooks/useAprovarReservas';
 import { useAuth } from '@/hooks/useAuth';
 import { STATUS_LABELS, TIPO_RESERVA_LABELS } from '@/types/reserva';
+import { SalaInfo } from '@/components/SalaInfo';
 import { 
   Calendar, 
   Clock, 
@@ -146,18 +147,81 @@ export const MinhasReservas: React.FC = () => {
                   </div>
                 )}
 
+                {/* Informações da Sala (se aprovada) */}
+                {reserva.status === 'aprovada' && (reserva.sala_id || reserva.sala_nome) && (
+                  <div className="mb-4">
+                    <p className="text-sm font-medium">Sala Alocada</p>
+                    <SalaInfo
+                      evento={{
+                        sala_id: reserva.sala_id,
+                        sala_nome: reserva.sala_nome,
+                        sala_predio: reserva.sala_predio,
+                        sala_andar: reserva.sala_andar,
+                        sala_capacidade: reserva.sala_capacidade
+                      }}
+                      className="mt-2"
+                    />
+                  </div>
+                )}
+
                 {/* Detalhes específicos */}
-                <div className="space-y-2">
+                <div className="space-y-3">
+                  {/* Motivo da Reserva */}
+                  {reserva.motivo_reserva && (
+                    <div>
+                      <p className="text-sm font-medium">Motivo da Reserva</p>
+                      <p className="text-sm text-muted-foreground">{reserva.motivo_reserva}</p>
+                    </div>
+                  )}
+
+                  {/* Título do Evento de Capacitação */}
+                  {reserva.titulo_evento_capacitacao && (
+                    <div>
+                      <p className="text-sm font-medium">Título do Evento de Capacitação</p>
+                      <p className="text-sm text-muted-foreground">{reserva.titulo_evento_capacitacao}</p>
+                    </div>
+                  )}
+
+                  {/* Descrição das Pautas do Evento */}
+                  {reserva.descricao_pautas_evento_capacitacao && (
+                    <div>
+                      <p className="text-sm font-medium">Descrição das Pautas do Evento</p>
+                      <p className="text-sm text-muted-foreground">{reserva.descricao_pautas_evento_capacitacao}</p>
+                    </div>
+                  )}
+
+                  {/* Descrição da Programação do Evento */}
+                  {reserva.descricao_programacao_evento && (
+                    <div>
+                      <p className="text-sm font-medium">Descrição da Programação do Evento</p>
+                      <p className="text-sm text-muted-foreground">{reserva.descricao_programacao_evento}</p>
+                    </div>
+                  )}
+
+                  {/* Palestrante Externo */}
                   {reserva.tem_palestrante_externo && (
                     <div>
                       <p className="text-sm font-medium">Palestrante Externo</p>
                       <p className="text-sm text-muted-foreground">{reserva.nome_palestrante_externo}</p>
+                      {reserva.apresentacao_palestrante_externo && (
+                        <p className="text-sm text-muted-foreground">{reserva.apresentacao_palestrante_externo}</p>
+                      )}
                       {reserva.eh_pessoa_publica && (
                         <Badge variant="secondary" className="mt-1">Pessoa Pública</Badge>
                       )}
                     </div>
                   )}
 
+                  {/* Apoio Externo */}
+                  {reserva.ha_apoio_externo && (
+                    <div>
+                      <p className="text-sm font-medium">Apoio Externo</p>
+                      <p className="text-sm text-muted-foreground">Nome da Empresa: {reserva.nome_empresa_parceira}</p>
+                      <p className="text-sm text-muted-foreground">Como ajudará: {reserva.como_ajudara_organizacao}</p>
+                    </div>
+                  )}
+
+                  {/* Necessidade de Sala Plana */}
                   {reserva.necessidade_sala_plana && (
                     <div>
                       <p className="text-sm font-medium">Necessidade de Sala Plana</p>
@@ -165,6 +229,102 @@ export const MinhasReservas: React.FC = () => {
                     </div>
                   )}
 
+                  {/* Equipamentos para Auditório */}
+                  {reserva.tipo_reserva === 'auditorio' && (
+                    <div>
+                      <p className="text-sm font-medium">Equipamentos Solicitados</p>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {reserva.precisa_sistema_som && <Badge variant="outline">Som</Badge>}
+                        {reserva.precisa_projetor && <Badge variant="outline">Projetor</Badge>}
+                        {reserva.precisa_iluminacao_especial && <Badge variant="outline">Iluminação</Badge>}
+                        {reserva.precisa_montagem_palco && <Badge variant="outline">Palco</Badge>}
+                        {reserva.precisa_gravacao && <Badge variant="outline">Gravação</Badge>}
+                        {reserva.precisa_alimentacao && <Badge variant="outline">Alimentação</Badge>}
+                        {reserva.precisa_seguranca && <Badge variant="outline">Segurança</Badge>}
+                        {reserva.precisa_controle_acesso && <Badge variant="outline">Controle Acesso</Badge>}
+                        {reserva.precisa_limpeza_especial && <Badge variant="outline">Limpeza</Badge>}
+                        {reserva.precisa_manutencao && <Badge variant="outline">Manutenção</Badge>}
+                      </div>
+                      
+                      {/* Detalhes específicos dos equipamentos */}
+                      {reserva.motivo_gravacao && (
+                        <div className="mt-2">
+                          <p className="text-sm font-medium">Motivo da Gravação</p>
+                          <p className="text-sm text-muted-foreground">{reserva.motivo_gravacao}</p>
+                        </div>
+                      )}
+                      
+                      {reserva.equipamentos_adicionais && (
+                        <div className="mt-2">
+                          <p className="text-sm font-medium">Equipamentos Adicionais</p>
+                          <p className="text-sm text-muted-foreground">{reserva.equipamentos_adicionais}</p>
+                        </div>
+                      )}
+                      
+                      {reserva.precisa_suporte_tecnico && (
+                        <div className="mt-2">
+                          <p className="text-sm font-medium">Suporte Técnico</p>
+                          <p className="text-sm text-muted-foreground">{reserva.detalhes_suporte_tecnico}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Configuração da Sala */}
+                  {reserva.configuracao_sala && (
+                    <div>
+                      <p className="text-sm font-medium">Configuração da Sala</p>
+                      <p className="text-sm text-muted-foreground">{reserva.configuracao_sala}</p>
+                      {reserva.motivo_configuracao_sala && (
+                        <p className="text-sm text-muted-foreground">Motivo: {reserva.motivo_configuracao_sala}</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Alimentação */}
+                  {reserva.precisa_alimentacao && (
+                    <div>
+                      <p className="text-sm font-medium">Alimentação</p>
+                      <p className="text-sm text-muted-foreground">{reserva.detalhes_alimentacao}</p>
+                      {reserva.custo_estimado_alimentacao && (
+                        <p className="text-sm text-muted-foreground">Custo estimado: R$ {reserva.custo_estimado_alimentacao}</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Segurança */}
+                  {reserva.precisa_seguranca && (
+                    <div>
+                      <p className="text-sm font-medium">Segurança</p>
+                      <p className="text-sm text-muted-foreground">{reserva.detalhes_seguranca}</p>
+                    </div>
+                  )}
+
+                  {/* Controle de Acesso */}
+                  {reserva.precisa_controle_acesso && (
+                    <div>
+                      <p className="text-sm font-medium">Controle de Acesso</p>
+                      <p className="text-sm text-muted-foreground">{reserva.detalhes_controle_acesso}</p>
+                    </div>
+                  )}
+
+                  {/* Limpeza Especial */}
+                  {reserva.precisa_limpeza_especial && (
+                    <div>
+                      <p className="text-sm font-medium">Limpeza Especial</p>
+                      <p className="text-sm text-muted-foreground">{reserva.detalhes_limpeza_especial}</p>
+                    </div>
+                  )}
+
+                  {/* Manutenção */}
+                  {reserva.precisa_manutencao && (
+                    <div>
+                      <p className="text-sm font-medium">Manutenção</p>
+                      <p className="text-sm text-muted-foreground">{reserva.detalhes_manutencao}</p>
+                    </div>
+                  )}
+
+                  {/* Observações */}
                   {reserva.observacoes && (
                     <div>
                       <p className="text-sm font-medium">Observações</p>

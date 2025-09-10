@@ -43,9 +43,10 @@ interface ReservaCardProps {
   onRejeitar: (id: string, comentario: string) => void;
   loading: boolean;
   salasDisponiveis: any[];
+  salaAuditorio?: any;
 }
 
-const ReservaCard: React.FC<ReservaCardProps> = ({ reserva, onAprovar, onRejeitar, loading, salasDisponiveis }) => {
+const ReservaCard: React.FC<ReservaCardProps> = ({ reserva, onAprovar, onRejeitar, loading, salasDisponiveis, salaAuditorio }) => {
   const [comentario, setComentario] = useState('');
   const [local, setLocal] = useState(reserva.tipo_reserva === 'auditorio' ? 'Auditório Steffi e Max Perlaman' : '');
   const [salaSelecionada, setSalaSelecionada] = useState<number | undefined>(undefined);
@@ -56,7 +57,14 @@ const ReservaCard: React.FC<ReservaCardProps> = ({ reserva, onAprovar, onRejeita
       alert('Por favor, selecione uma sala.');
       return;
     }
-    onAprovar(reserva.reserva_id, comentario, local, salaSelecionada);
+    
+    // Para auditório, usar a sala do auditório automaticamente
+    const salaId = reserva.tipo_reserva === 'auditorio' ? salaAuditorio?.id : salaSelecionada;
+    const localFinal = reserva.tipo_reserva === 'auditorio' ? 
+      `${salaAuditorio?.sala} - ${salaAuditorio?.predio} (${salaAuditorio?.andar})` : 
+      local;
+    
+    onAprovar(reserva.reserva_id, comentario, localFinal, salaId);
     setComentario('');
     setLocal(reserva.tipo_reserva === 'auditorio' ? 'Auditório Steffi e Max Perlaman' : '');
     setSalaSelecionada(undefined);
@@ -135,11 +143,43 @@ const ReservaCard: React.FC<ReservaCardProps> = ({ reserva, onAprovar, onRejeita
             className="mb-2"
           >
             <Eye className="h-4 w-4 mr-2" />
-            {showDetails ? 'Ocultar' : 'Ver'} Detalhes
+            {showDetails ? 'Ocultar' : 'Ver'} Detalhes Completos
           </Button>
 
           {showDetails && (
-            <div className="space-y-3 p-4 border rounded-lg bg-muted/50">
+            <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
+              {/* Motivo da Reserva */}
+              {reserva.motivo_reserva && (
+                <div>
+                  <Label className="text-sm font-medium">Motivo da Reserva</Label>
+                  <p className="text-sm text-muted-foreground">{reserva.motivo_reserva}</p>
+                </div>
+              )}
+
+              {/* Título do Evento de Capacitação */}
+              {reserva.titulo_evento_capacitacao && (
+                <div>
+                  <Label className="text-sm font-medium">Título do Evento de Capacitação</Label>
+                  <p className="text-sm text-muted-foreground">{reserva.titulo_evento_capacitacao}</p>
+                </div>
+              )}
+
+              {/* Descrição das Pautas do Evento */}
+              {reserva.descricao_pautas_evento_capacitacao && (
+                <div>
+                  <Label className="text-sm font-medium">Descrição das Pautas do Evento</Label>
+                  <p className="text-sm text-muted-foreground">{reserva.descricao_pautas_evento_capacitacao}</p>
+                </div>
+              )}
+
+              {/* Descrição da Programação do Evento */}
+              {reserva.descricao_programacao_evento && (
+                <div>
+                  <Label className="text-sm font-medium">Descrição da Programação do Evento</Label>
+                  <p className="text-sm text-muted-foreground">{reserva.descricao_programacao_evento}</p>
+                </div>
+              )}
+
               {/* Palestrante Externo */}
               {reserva.tem_palestrante_externo && (
                 <div>
@@ -154,6 +194,23 @@ const ReservaCard: React.FC<ReservaCardProps> = ({ reserva, onAprovar, onRejeita
                   {reserva.eh_pessoa_publica && (
                     <Badge variant="secondary" className="mt-1">Pessoa Pública</Badge>
                   )}
+                </div>
+              )}
+
+              {/* Apoio Externo */}
+              {reserva.ha_apoio_externo && (
+                <div>
+                  <Label className="text-sm font-medium">Apoio Externo</Label>
+                  <p className="text-sm text-muted-foreground">Nome da Empresa: {reserva.nome_empresa_parceira}</p>
+                  <p className="text-sm text-muted-foreground">Como ajudará: {reserva.como_ajudara_organizacao}</p>
+                </div>
+              )}
+
+              {/* Necessidade de Sala Plana */}
+              {reserva.necessidade_sala_plana && (
+                <div>
+                  <Label className="text-sm font-medium">Necessidade de Sala Plana</Label>
+                  <p className="text-sm text-muted-foreground">{reserva.motivo_sala_plana}</p>
                 </div>
               )}
 
@@ -173,14 +230,82 @@ const ReservaCard: React.FC<ReservaCardProps> = ({ reserva, onAprovar, onRejeita
                     {reserva.precisa_limpeza_especial && <Badge variant="outline"><Sparkles className="h-3 w-3 mr-1" />Limpeza</Badge>}
                     {reserva.precisa_manutencao && <Badge variant="outline"><Wrench className="h-3 w-3 mr-1" />Manutenção</Badge>}
                   </div>
+                  
+                  {/* Detalhes específicos dos equipamentos */}
+                  {reserva.motivo_gravacao && (
+                    <div className="mt-2">
+                      <Label className="text-sm font-medium">Motivo da Gravação</Label>
+                      <p className="text-sm text-muted-foreground">{reserva.motivo_gravacao}</p>
+                    </div>
+                  )}
+                  
+                  {reserva.equipamentos_adicionais && (
+                    <div className="mt-2">
+                      <Label className="text-sm font-medium">Equipamentos Adicionais</Label>
+                      <p className="text-sm text-muted-foreground">{reserva.equipamentos_adicionais}</p>
+                    </div>
+                  )}
+                  
+                  {reserva.precisa_suporte_tecnico && (
+                    <div className="mt-2">
+                      <Label className="text-sm font-medium">Suporte Técnico</Label>
+                      <p className="text-sm text-muted-foreground">{reserva.detalhes_suporte_tecnico}</p>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* Necessidade de Sala Plana */}
-              {reserva.necessidade_sala_plana && (
+              {/* Configuração da Sala */}
+              {reserva.configuracao_sala && (
                 <div>
-                  <Label className="text-sm font-medium">Necessidade de Sala Plana</Label>
-                  <p className="text-sm text-muted-foreground">{reserva.motivo_sala_plana}</p>
+                  <Label className="text-sm font-medium">Configuração da Sala</Label>
+                  <p className="text-sm text-muted-foreground">{reserva.configuracao_sala}</p>
+                  {reserva.motivo_configuracao_sala && (
+                    <p className="text-sm text-muted-foreground">Motivo: {reserva.motivo_configuracao_sala}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Alimentação */}
+              {reserva.precisa_alimentacao && (
+                <div>
+                  <Label className="text-sm font-medium">Alimentação</Label>
+                  <p className="text-sm text-muted-foreground">{reserva.detalhes_alimentacao}</p>
+                  {reserva.custo_estimado_alimentacao && (
+                    <p className="text-sm text-muted-foreground">Custo estimado: R$ {reserva.custo_estimado_alimentacao}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Segurança */}
+              {reserva.precisa_seguranca && (
+                <div>
+                  <Label className="text-sm font-medium">Segurança</Label>
+                  <p className="text-sm text-muted-foreground">{reserva.detalhes_seguranca}</p>
+                </div>
+              )}
+
+              {/* Controle de Acesso */}
+              {reserva.precisa_controle_acesso && (
+                <div>
+                  <Label className="text-sm font-medium">Controle de Acesso</Label>
+                  <p className="text-sm text-muted-foreground">{reserva.detalhes_controle_acesso}</p>
+                </div>
+              )}
+
+              {/* Limpeza Especial */}
+              {reserva.precisa_limpeza_especial && (
+                <div>
+                  <Label className="text-sm font-medium">Limpeza Especial</Label>
+                  <p className="text-sm text-muted-foreground">{reserva.detalhes_limpeza_especial}</p>
+                </div>
+              )}
+
+              {/* Manutenção */}
+              {reserva.precisa_manutencao && (
+                <div>
+                  <Label className="text-sm font-medium">Manutenção</Label>
+                  <p className="text-sm text-muted-foreground">{reserva.detalhes_manutencao}</p>
                 </div>
               )}
 
@@ -225,16 +350,26 @@ const ReservaCard: React.FC<ReservaCardProps> = ({ reserva, onAprovar, onRejeita
             </div>
           ) : (
             <div>
-              <Label htmlFor={`local-${reserva.reserva_id}`}>
-                Nome do Auditório
-              </Label>
-              <Input
-                id={`local-${reserva.reserva_id}`}
-                value={local}
-                onChange={(e) => setLocal(e.target.value)}
-                placeholder="Ex: Auditório Steffi e Max Perlaman"
-                className="mb-3"
-              />
+              <Label className="text-sm font-medium">Sala do Auditório</Label>
+              {salaAuditorio ? (
+                <div className="p-3 bg-gray-50 rounded-md border mb-3">
+                  <div className="flex items-center gap-2">
+                    <Building className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="font-medium">{salaAuditorio.sala}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {salaAuditorio.predio} ({salaAuditorio.andar}) - {salaAuditorio.capacidade} pessoas
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 bg-yellow-50 rounded-md border mb-3">
+                  <p className="text-sm text-yellow-700">
+                    ⚠️ Sala do auditório não encontrada. Verifique se existe uma sala com "Auditório" e "Steffi" no nome.
+                  </p>
+                </div>
+              )}
             </div>
           )}
           
@@ -278,7 +413,7 @@ const ReservaCard: React.FC<ReservaCardProps> = ({ reserva, onAprovar, onRejeita
 export const DashboardAprovacaoReservas: React.FC = () => {
   const { reservasPendentes, loading, error, refetch } = useReservasPendentes();
   const { aprovarReserva, rejeitarReserva, loading: actionLoading } = useAprovarReservas();
-  const { salas, getSalasDisponiveis } = useSalas();
+  const { salas, getSalasDisponiveis, getSalaAuditorio } = useSalas();
   const [filters, setFilters] = useState<ReservasFiltersType>({});
 
   // Filtrar reservas baseado nos filtros aplicados
@@ -407,22 +542,26 @@ export const DashboardAprovacaoReservas: React.FC = () => {
         </Card>
       ) : (
         <div className="space-y-4">
-          {filteredReservas.map((reserva) => {
-            const salasDisponiveis = reserva.tipo_reserva === 'sala' 
-              ? getSalasDisponiveis(reserva.quantidade_pessoas)
-              : [];
-            
-            return (
-              <ReservaCard
-                key={reserva.reserva_id}
-                reserva={reserva}
-                onAprovar={handleAprovar}
-                onRejeitar={handleRejeitar}
-                loading={actionLoading}
-                salasDisponiveis={salasDisponiveis}
-              />
-            );
-          })}
+        {filteredReservas.map((reserva) => {
+          const salasDisponiveis = reserva.tipo_reserva === 'sala' 
+            ? getSalasDisponiveis(reserva.quantidade_pessoas)
+            : [];
+          const salaAuditorio = reserva.tipo_reserva === 'auditorio' 
+            ? getSalaAuditorio()
+            : undefined;
+          
+          return (
+            <ReservaCard
+              key={reserva.reserva_id}
+              reserva={reserva}
+              onAprovar={handleAprovar}
+              onRejeitar={handleRejeitar}
+              loading={actionLoading}
+              salasDisponiveis={salasDisponiveis}
+              salaAuditorio={salaAuditorio}
+            />
+          );
+        })}
         </div>
       )}
     </div>
