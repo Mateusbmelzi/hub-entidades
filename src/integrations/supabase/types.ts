@@ -842,6 +842,46 @@ export type Database = {
         }
         Relationships: []
       }
+      salas: {
+        Row: {
+          id: number
+          predio: string
+          sala: string
+          andar: string
+          capacidade: number
+          reserva_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          predio: string
+          sala: string
+          andar: string
+          capacidade: number
+          reserva_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          predio?: string
+          sala?: string
+          andar?: string
+          capacidade?: number
+          reserva_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salas_reserva_id_fkey"
+            columns: ["reserva_id"]
+            referencedRelation: "reservas"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never

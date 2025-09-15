@@ -52,6 +52,9 @@ const ReservaCard: React.FC<ReservaCardProps> = ({ reserva, onAprovar, onRejeita
   const [salaSelecionada, setSalaSelecionada] = useState<number | undefined>(undefined);
   const [showDetails, setShowDetails] = useState(false);
 
+  // Debug log para verificar o estado
+  console.log('🔍 ReservaCard renderizado para reserva:', reserva.id, 'showDetails:', showDetails);
+
   const handleAprovar = () => {
     if (reserva.tipo_reserva === 'sala' && !salaSelecionada) {
       alert('Por favor, selecione uma sala.');
@@ -64,7 +67,7 @@ const ReservaCard: React.FC<ReservaCardProps> = ({ reserva, onAprovar, onRejeita
       `${salaAuditorio?.sala} - ${salaAuditorio?.predio} (${salaAuditorio?.andar})` : 
       local;
     
-    onAprovar(reserva.reserva_id, comentario, localFinal, salaId);
+    onAprovar(reserva.id, comentario, localFinal, salaId);
     setComentario('');
     setLocal(reserva.tipo_reserva === 'auditorio' ? 'Auditório Steffi e Max Perlaman' : '');
     setSalaSelecionada(undefined);
@@ -75,7 +78,7 @@ const ReservaCard: React.FC<ReservaCardProps> = ({ reserva, onAprovar, onRejeita
       alert('Por favor, informe o motivo da rejeição.');
       return;
     }
-    onRejeitar(reserva.reserva_id, comentario);
+    onRejeitar(reserva.id, comentario);
     setComentario('');
   };
 
@@ -147,7 +150,8 @@ const ReservaCard: React.FC<ReservaCardProps> = ({ reserva, onAprovar, onRejeita
           </Button>
 
           {showDetails && (
-            <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
+            <div className="space-y-4 p-4 border-2 border-blue-300 rounded-lg bg-blue-50">
+              
               {/* Motivo da Reserva */}
               {reserva.motivo_reserva && (
                 <div>
@@ -324,7 +328,7 @@ const ReservaCard: React.FC<ReservaCardProps> = ({ reserva, onAprovar, onRejeita
         <div className="space-y-3">
           {reserva.tipo_reserva === 'sala' ? (
             <div>
-              <Label htmlFor={`sala-${reserva.reserva_id}`}>
+              <Label htmlFor={`sala-${reserva.id}`}>
                 Selecionar Sala *
               </Label>
               <Select
@@ -374,9 +378,9 @@ const ReservaCard: React.FC<ReservaCardProps> = ({ reserva, onAprovar, onRejeita
           )}
           
           <div>
-            <Label htmlFor={`comentario-${reserva.reserva_id}`}>Comentário (opcional)</Label>
+            <Label htmlFor={`comentario-${reserva.id}`}>Comentário (opcional)</Label>
             <Textarea
-              id={`comentario-${reserva.reserva_id}`}
+              id={`comentario-${reserva.id}`}
               value={comentario}
               onChange={(e) => setComentario(e.target.value)}
               placeholder="Adicione um comentário sobre a aprovação..."
@@ -413,8 +417,15 @@ const ReservaCard: React.FC<ReservaCardProps> = ({ reserva, onAprovar, onRejeita
 export const DashboardAprovacaoReservas: React.FC = () => {
   const { reservasPendentes, loading, error, refetch } = useReservasPendentes();
   const { aprovarReserva, rejeitarReserva, loading: actionLoading } = useAprovarReservas();
-  const { salas, getSalasDisponiveis, getSalaAuditorio } = useSalas();
+  const { salas, getSalasDisponiveis, getSalaAuditorio, loading: salasLoading, error: salasError } = useSalas();
   const [filters, setFilters] = useState<ReservasFiltersType>({});
+
+  // Debug logs
+  console.log('🔍 DashboardAprovacaoReservas - Estado das salas:', {
+    salas: salas.length,
+    loading: salasLoading,
+    error: salasError
+  });
 
   // Filtrar reservas baseado nos filtros aplicados
   const filteredReservas = useMemo(() => {
@@ -495,6 +506,16 @@ export const DashboardAprovacaoReservas: React.FC = () => {
     );
   }
 
+  if (salasError) {
+    return (
+      <Alert variant="destructive">
+        <AlertDescription>
+          Erro ao carregar salas: {salasError}
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -552,7 +573,7 @@ export const DashboardAprovacaoReservas: React.FC = () => {
           
           return (
             <ReservaCard
-              key={reserva.reserva_id}
+              key={reserva.id}
               reserva={reserva}
               onAprovar={handleAprovar}
               onRejeitar={handleRejeitar}

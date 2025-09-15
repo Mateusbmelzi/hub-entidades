@@ -4,6 +4,7 @@ import { AuthProvider } from '@/hooks/useAuth';
 import { EntityAuthProvider } from '@/hooks/useEntityAuth';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { SuperAdminRoute } from '@/components/SuperAdminRoute';
+import { AdminRoute } from '@/components/AdminRoute';
 import { WelcomeRoute } from '@/components/WelcomeRoute';
 
 import Navigation from '@/components/Navigation';
@@ -73,47 +74,47 @@ function AppRouter() {
           {/* Rota pública - Termos de Uso */}
           <Route path="/termos-uso" element={<TermosUso />} />
           
-          {/* Rota protegida - requer apenas super admin */}
+          {/* Rota protegida - requer admin ou super admin */}
           <Route path="/dashboard" element={
-            <SuperAdminRoute>
+            <AdminRoute>
               <Dashboard />
-            </SuperAdminRoute>
+            </AdminRoute>
           } />
           
           <Route path="/entidades" element={
-            <ProtectedRoute requireProfile={true}>
+            <ProtectedRoute>
               <Entidades />
             </ProtectedRoute>
           } />
           
           <Route path="/entidades/:id" element={
-            <ProtectedRoute requireProfile={true}>
+            <ProtectedRoute>
               <EntidadeDetalhes />
             </ProtectedRoute>
           } />
           
           <Route path="/entidades/:id/demonstracoes" element={
-            <ProtectedRoute requireProfile={true}>
+            <ProtectedRoute>
               <DemonstracoesInteresse />
             </ProtectedRoute>
           } />
           
           <Route path="/eventos" element={
-            <ProtectedRoute requireProfile={true}>
+            <ProtectedRoute>
               <Eventos />
             </ProtectedRoute>
           } />
           
           <Route path="/eventos/:id" element={
-            <ProtectedRoute requireProfile={true}>
+            <ProtectedRoute>
               <EventoDetalhes />
             </ProtectedRoute>
           } />
           
           <Route path="/criar-evento" element={
-            <ProtectedRoute>
+            <AdminRoute>
               <CriarEvento />
-            </ProtectedRoute>
+            </AdminRoute>
           } />
           
           <Route path="/demonstrar-interesse/:entidadeId" element={
@@ -141,38 +142,38 @@ function AppRouter() {
           } />
           
           <Route path="/cronograma" element={
-            <ProtectedRoute>
+            <AdminRoute>
               <Cronograma />
-            </ProtectedRoute>
+            </AdminRoute>
           } />
           
           <Route path="/participacao-entidade" element={
-            <ProtectedRoute>
+            <AdminRoute>
               <ParticipacaoEntidade />
-            </ProtectedRoute>
+            </AdminRoute>
           } />
           
           <Route path="/reserva-sala" element={
-            <ProtectedRoute requireProfile={true}>
+            <ProtectedRoute>
               <ReservaSala />
             </ProtectedRoute>
           } />
           
           <Route path="/reserva-auditorio" element={
-            <ProtectedRoute requireProfile={true}>
+            <ProtectedRoute>
               <ReservaAuditorio />
             </ProtectedRoute>
           } />
           
           {/* Rotas do Sistema de Reservas */}
           <Route path="/minhas-reservas" element={
-            <ProtectedRoute requireProfile={true}>
+            <ProtectedRoute>
               <MinhasReservas />
             </ProtectedRoute>
           } />
           
           <Route path="/calendario-reservas" element={
-            <ProtectedRoute requireProfile={true}>
+            <ProtectedRoute>
               <CalendarioReservas />
             </ProtectedRoute>
           } />
@@ -181,21 +182,21 @@ function AppRouter() {
           <Route path="/super-admin-auth" element={<SuperAdminAuth />} />
           <Route path="/admin-credenciais" element={<AdminCredenciais />} />
           <Route path="/aprovar-eventos" element={
-            <SuperAdminRoute>
+            <AdminRoute>
               <AprovarEventos />
-            </SuperAdminRoute>
+            </AdminRoute>
           } />
           
           <Route path="/aprovar-reservas" element={
-            <SuperAdminRoute>
+            <ProtectedRoute>
               <AprovarReservas />
-            </SuperAdminRoute>
+            </ProtectedRoute>
           } />
           
           <Route path="/historico-reservas" element={
-            <SuperAdminRoute>
+            <ProtectedRoute>
               <HistoricoReservas />
-            </SuperAdminRoute>
+            </ProtectedRoute>
           } />
           
           {/* Rota de verificação de email */}

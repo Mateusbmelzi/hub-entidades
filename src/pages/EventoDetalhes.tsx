@@ -29,7 +29,8 @@ const EventoDetalhes = () => {
   const { data: evento, isLoading: eventoLoading, error: eventoError } = useQuery({
     queryKey: ['evento', id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Primeiro buscar o evento
+      const { data: eventoData, error: eventoError } = await supabase
         .from('eventos')
         .select(`
           *,
@@ -38,8 +39,32 @@ const EventoDetalhes = () => {
         .eq('id', id)
         .single();
       
-      if (error) throw error;
-      return data;
+      if (eventoError) throw eventoError;
+      
+      // Buscar a reserva associada pelo nome do evento ou outros critérios
+      let reservaData = null;
+      if (eventoData) {
+        const { data: reserva, error: reservaError } = await supabase
+          .from('reservas')
+          .select(`
+            tem_palestrante_externo,
+            nome_palestrante_externo,
+            apresentacao_palestrante_externo,
+            eh_pessoa_publica
+          `)
+          .eq('status', 'aprovada')
+          .ilike('titulo_evento_capacitacao', `%${eventoData.nome}%`)
+          .single();
+        
+        if (!reservaError && reserva) {
+          reservaData = reserva;
+        }
+      }
+      
+      return {
+        ...eventoData,
+        reservas: reservaData
+      };
     },
     enabled: !!id
   });
@@ -493,6 +518,37 @@ const EventoDetalhes = () => {
                        Ver Perfil da Organização
                      </Link>
                    </Button>
+                 </CardContent>
+               </Card>
+             )}
+
+             {/* Palestrante Externo - Mostrar se houver palestrante externo */}
+             {evento.reservas && evento.reservas.tem_palestrante_externo && evento.reservas.nome_palestrante_externo && (
+               <Card className="border-0 shadow-lg bg-white">
+                 <CardHeader className="pb-4">
+                   <div className="flex items-center space-x-2">
+                     <User className="w-5 h-5 text-red-600" />
+                     <CardTitle className="text-xl">Palestrante Convidado</CardTitle>
+                   </div>
+                 </CardHeader>
+                 <CardContent className="space-y-4">
+                   <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                     <div className="flex items-start justify-between mb-3">
+                       <h3 className="font-bold text-lg text-gray-900">
+                         {evento.reservas.nome_palestrante_externo}
+                       </h3>
+                       {evento.reservas.eh_pessoa_publica && (
+                         <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 text-xs">
+                           Pessoa Pública
+                         </Badge>
+                       )}
+                     </div>
+                     {evento.reservas.apresentacao_palestrante_externo && (
+                       <p className="text-sm text-gray-600 leading-relaxed">
+                         {evento.reservas.apresentacao_palestrante_externo}
+                       </p>
+                     )}
+                   </div>
                  </CardContent>
                </Card>
              )}

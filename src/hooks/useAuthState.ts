@@ -130,6 +130,15 @@ export const useAuthState = () => {
     localStorage.removeItem('supabase.auth.token');
     localStorage.removeItem('supabase.auth.refreshToken');
     localStorage.removeItem('supabase.auth.expires_at');
+    localStorage.removeItem('supabase.auth.access_token');
+    localStorage.removeItem('supabase.auth.refresh_token');
+    
+    // Remover todas as chaves do Supabase
+    Object.keys(localStorage).forEach(key => {
+      if (key.includes('supabase')) {
+        localStorage.removeItem(key);
+      }
+    });
     
     setAuthState({
       type: null,
@@ -137,11 +146,7 @@ export const useAuthState = () => {
       isAuthenticated: false
     });
     
-    // Redirecionar para a página inicial após o logout
-    // Usar setTimeout para garantir que o estado seja limpo antes do redirecionamento
-    setTimeout(() => {
-      window.location.reload();
-    }, 100);
+    console.log('✅ Logout concluído - estado limpo');
   };
 
   const updateStudentUser = (user: any) => {

@@ -5,6 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 
 import { 
   BarChart3, 
@@ -54,6 +57,7 @@ import { ExportDashboardButton } from '@/components/ExportDashboardButton';
 import { DashboardSection, StatCard, StatusMetrics } from '@/components/DashboardSection';
 import { DashboardNavigation, DashboardSectionActions } from '@/components/DashboardNavigation';
 import { ReservasHistoricas } from '@/components/ReservasHistoricas';
+import { DashboardCalendar } from '@/components/DashboardCalendar';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -74,7 +78,14 @@ const Dashboard = () => {
   const { inscricoesPorCurso, loading: inscricoesPorCursoLoading, error: inscricoesPorCursoError, refetch: refetchInscricoesPorCurso } = useInscricoesPorCurso();
 
   // Estado para controlar qual seção está ativa
-  const [activeSection, setActiveSection] = useState<'overview' | 'eventos' | 'reservas' | 'organizacoes' | 'demonstracoes' | 'alunos'>('overview');
+  const [activeSection, setActiveSection] = useState<'overview' | 'eventos' | 'reservas' | 'calendario' | 'organizacoes' | 'demonstracoes' | 'alunos'>('overview');
+  
+  // Estado para modal de rejeição
+  const [rejeicaoModal, setRejeicaoModal] = useState({
+    isOpen: false,
+    reservaId: '',
+    comentario: ''
+  });
 
   // Verificar se o usuário é super admin
   const isSuperAdmin = 
@@ -103,8 +114,49 @@ const Dashboard = () => {
     }
   };
 
-  const handleCardClick = (section: 'overview' | 'eventos' | 'reservas' | 'organizacoes' | 'demonstracoes' | 'alunos') => {
+  const handleCardClick = (section: 'overview' | 'eventos' | 'reservas' | 'calendario' | 'organizacoes' | 'demonstracoes' | 'alunos') => {
     setActiveSection(section);
+  };
+
+  const handleAprovarReserva = async (reservaId: string, motivo: string) => {
+    try {
+      await aprovarReserva(reservaId, motivo);
+      // Recarregar a página após aprovar
+      window.location.reload();
+    } catch (error) {
+      console.error('Erro ao aprovar reserva:', error);
+    }
+  };
+
+  const handleAbrirModalRejeicao = (reservaId: string) => {
+    setRejeicaoModal({
+      isOpen: true,
+      reservaId,
+      comentario: ''
+    });
+  };
+
+  const handleFecharModalRejeicao = () => {
+    setRejeicaoModal({
+      isOpen: false,
+      reservaId: '',
+      comentario: ''
+    });
+  };
+
+  const handleConfirmarRejeicao = async () => {
+    if (!rejeicaoModal.comentario.trim()) {
+      alert('Por favor, forneça um comentário explicando o motivo da rejeição.');
+      return;
+    }
+
+    try {
+      await rejeitarReserva(rejeicaoModal.reservaId, rejeicaoModal.comentario);
+      // Recarregar a página após rejeitar
+      window.location.reload();
+    } catch (error) {
+      console.error('Erro ao rejeitar reserva:', error);
+    }
   };
 
   if (statsLoading || afinidadesLoading || taxaConversaoLoading || topEntidadesInteresseLoading || dashboardStatsLoading || demonstracoesPorAreaLoading || areasEntidadesLoading || alunosPorCursoLoading || alunosPorSemestreLoading || demonstracoesPorCursoLoading || inscricoesPorCursoLoading || (isSuperAdmin && (reservasPendentesLoading || todasReservasLoading))) {
@@ -281,22 +333,31 @@ const Dashboard = () => {
               </h2>
             </div>
 
-            {/* Reservas Pendentes */}
+            {/* Reservas Aguardando Aprovação */}
             <DashboardSection
               title="Reservas Aguardando Aprovação"
-              description="Reservas que precisam ser revisadas e aprovadas"
+              description="Todas as reservas que ainda não foram aprovadas"
               icon={<Clock className="h-5 w-5" />}
               iconColor="text-yellow-600"
               variant="gradient"
-              loading={reservasPendentesLoading}
-              isEmpty={!reservasPendentes || reservasPendentes.length === 0}
-              emptyMessage="Nenhuma reserva pendente"
+              loading={todasReservasLoading}
+              isEmpty={!todasReservas || todasReservas.filter(r => r.status !== 'aprovada').length === 0}
+              emptyMessage="Todas as reservas foram aprovadas"
               emptyIcon={<CheckCircle className="h-12 w-12 mx-auto text-green-400 mb-2" />}
             >
-              {reservasPendentes && reservasPendentes.length > 0 && (
+              {todasReservas && todasReservas.filter(r => r.status !== 'aprovada').length > 0 && (
                 <div className="space-y-3">
-                  {reservasPendentes.slice(0, 5).map((reserva, index) => (
-                    <div key={index} className="flex items-center justify-between p-4 bg-yellow-50 rounded-lg border border-yellow-200 hover:bg-yellow-100 hover:border-yellow-300 transition-all duration-200 cursor-pointer group">
+                  {todasReservas
+                    .filter(r => r.status !== 'aprovada')
+                    .slice(0, 5)
+                    .map((reserva, index) => (
+                    <div key={index} className={`flex items-center justify-between p-4 rounded-lg border transition-all duration-200 cursor-pointer group ${
+                      reserva.status === 'pendente' 
+                        ? 'bg-yellow-50 border-yellow-200 hover:bg-yellow-100 hover:border-yellow-300'
+                        : reserva.status === 'rejeitada'
+                        ? 'bg-red-50 border-red-200 hover:bg-red-100 hover:border-red-300'
+                        : 'bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-gray-300'
+                    }`}>
                       <div 
                         className="flex-1"
                         onClick={() => navigate('/aprovar-reservas')}
@@ -307,46 +368,61 @@ const Dashboard = () => {
                         <div className="text-xs text-gray-600 mt-1 group-hover:text-gray-500">
                           Solicitante: {reserva.nome_solicitante} • Data: {new Date(reserva.data_reserva).toLocaleDateString('pt-BR')}
                         </div>
-                        <div className="text-xs text-blue-600 mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                          Clique para gerenciar reserva →
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="secondary" className={`text-xs ${
+                            reserva.status === 'pendente' 
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : reserva.status === 'rejeitada'
+                              ? 'bg-red-100 text-red-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {reserva.status === 'pendente' ? 'Pendente' : 
+                             reserva.status === 'rejeitada' ? 'Rejeitada' : 
+                             reserva.status === 'cancelada' ? 'Cancelada' : 'Outro'}
+                          </Badge>
+                          <div className="text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                            Clique para gerenciar reserva →
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Button 
-                          size="sm" 
-                          className="bg-green-600 hover:bg-green-700 text-white"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            aprovarReserva(reserva.id, 'Aprovada via dashboard');
-                          }}
-                          disabled={acaoReservaLoading}
-                        >
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          Aprovar
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="destructive"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            rejeitarReserva(reserva.id, 'Rejeitada via dashboard');
-                          }}
-                          disabled={acaoReservaLoading}
-                        >
-                          <XCircle className="h-4 w-4 mr-1" />
-                          Rejeitar
-                        </Button>
-                      </div>
+                      {reserva.status === 'pendente' && (
+                        <div className="flex items-center gap-2">
+                          <Button 
+                            size="sm" 
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAprovarReserva(reserva.id, 'Aprovada via dashboard');
+                            }}
+                            disabled={acaoReservaLoading}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            Aprovar
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAbrirModalRejeicao(reserva.id);
+                            }}
+                            disabled={acaoReservaLoading}
+                          >
+                            <XCircle className="h-4 w-4 mr-1" />
+                            Rejeitar
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   ))}
-                  {reservasPendentes.length > 5 && (
+                  {todasReservas.filter(r => r.status !== 'aprovada').length > 5 && (
                     <div className="text-center pt-2">
                       <Button 
                         variant="outline" 
                         size="sm"
                         onClick={() => navigate('/aprovar-reservas')}
                       >
-                        Ver todas as {reservasPendentes.length} reservas pendentes
+                        Ver todas as {todasReservas.filter(r => r.status !== 'aprovada').length} reservas não aprovadas
                       </Button>
                     </div>
                   )}
@@ -365,32 +441,32 @@ const Dashboard = () => {
               <StatusMetrics
                 metrics={[
                   {
-                    label: 'Total Pendentes',
-                    value: reservasPendentes?.length || 0,
+                    label: 'Total de Eventos',
+                    value: todasReservas?.length || 0,
                     color: 'blue',
                     bgColor: 'bg-blue-50',
                     textColor: 'text-blue-700'
                   },
                   {
-                    label: 'Auditório',
-                    value: reservasPendentes?.filter(r => r.tipo_reserva === 'auditorio').length || 0,
-                    color: 'purple',
-                    bgColor: 'bg-purple-50',
-                    textColor: 'text-purple-700'
+                    label: 'Pendentes',
+                    value: todasReservas?.filter(r => r.status === 'pendente').length || 0,
+                    color: 'yellow',
+                    bgColor: 'bg-yellow-50',
+                    textColor: 'text-yellow-700'
                   },
                   {
-                    label: 'Salas',
-                    value: reservasPendentes?.filter(r => r.tipo_reserva === 'sala').length || 0,
-                    color: 'indigo',
-                    bgColor: 'bg-indigo-50',
-                    textColor: 'text-indigo-700'
-                  },
-                  {
-                    label: 'Com Evento',
-                    value: reservasPendentes?.filter(r => r.nome_evento).length || 0,
+                    label: 'Aprovados',
+                    value: todasReservas?.filter(r => r.status === 'aprovada').length || 0,
                     color: 'green',
                     bgColor: 'bg-green-50',
                     textColor: 'text-green-700'
+                  },
+                  {
+                    label: 'Rejeitados',
+                    value: todasReservas?.filter(r => r.status === 'rejeitada').length || 0,
+                    color: 'red',
+                    bgColor: 'bg-red-50',
+                    textColor: 'text-red-700'
                   }
                 ]}
               />
@@ -407,32 +483,46 @@ const Dashboard = () => {
               <StatusMetrics
                 metrics={[
                   {
-                    label: 'Total de Reservas',
+                    label: 'Total de Eventos',
                     value: todasReservas?.length || 0,
                     color: 'blue',
                     bgColor: 'bg-blue-50',
                     textColor: 'text-blue-700'
                   },
                   {
-                    label: 'Aprovadas',
+                    label: 'Pendentes',
+                    value: todasReservas?.filter(r => r.status === 'pendente').length || 0,
+                    color: 'yellow',
+                    bgColor: 'bg-yellow-50',
+                    textColor: 'text-yellow-700'
+                  },
+                  {
+                    label: 'Aprovados',
                     value: todasReservas?.filter(r => r.status === 'aprovada').length || 0,
                     color: 'green',
                     bgColor: 'bg-green-50',
                     textColor: 'text-green-700'
                   },
                   {
-                    label: 'Rejeitadas',
+                    label: 'Rejeitados',
                     value: todasReservas?.filter(r => r.status === 'rejeitada').length || 0,
                     color: 'red',
                     bgColor: 'bg-red-50',
                     textColor: 'text-red-700'
                   },
                   {
-                    label: 'Canceladas',
+                    label: 'Cancelados',
                     value: todasReservas?.filter(r => r.status === 'cancelada').length || 0,
                     color: 'gray',
                     bgColor: 'bg-gray-50',
                     textColor: 'text-gray-700'
+                  },
+                  {
+                    label: 'Não Aprovados',
+                    value: todasReservas?.filter(r => r.status !== 'aprovada').length || 0,
+                    color: 'orange',
+                    bgColor: 'bg-orange-50',
+                    textColor: 'text-orange-700'
                   }
                 ]}
               />
@@ -539,7 +629,7 @@ const Dashboard = () => {
                               className="bg-green-600 hover:bg-green-700 text-white"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                aprovarReserva(reserva.id, 'Aprovada via dashboard');
+                                handleAprovarReserva(reserva.id, 'Aprovada via dashboard');
                               }}
                               disabled={acaoReservaLoading}
                             >
@@ -551,7 +641,7 @@ const Dashboard = () => {
                               variant="destructive"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                rejeitarReserva(reserva.id, 'Rejeitada via dashboard');
+                                handleAbrirModalRejeicao(reserva.id);
                               }}
                               disabled={acaoReservaLoading}
                             >
@@ -689,6 +779,45 @@ const Dashboard = () => {
               onExport={(reservas) => {
                 // Implementar exportação se necessário
                 console.log('Exportando reservas:', reservas);
+              }}
+            />
+          </div>
+        )}
+
+        {/* Seção de Calendário de Eventos */}
+        {activeSection === 'calendario' && (
+          <div className="space-y-6">
+            <DashboardSectionActions
+              title="Calendário de Eventos"
+              description="Visualize todos os eventos e reservas em formato de calendário"
+              actions={
+                <>
+                  <Button 
+                    onClick={() => navigate('/aprovar-reservas')}
+                    className="bg-orange-600 hover:bg-orange-700 text-white"
+                  >
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Gerenciar Reservas
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleCardClick('overview')}
+                    className="flex items-center gap-2"
+                  >
+                    ← Voltar à Visão Geral
+                  </Button>
+                </>
+              }
+            />
+
+            <DashboardCalendar 
+              reservas={todasReservas || []}
+              loading={todasReservasLoading}
+              onReservaClick={(reserva) => {
+                console.log('Reserva clicada:', reserva);
+                // Aqui você pode implementar uma ação quando uma reserva for clicada
+                // Por exemplo, abrir um modal com detalhes ou navegar para a página de aprovação
               }}
             />
           </div>
@@ -855,6 +984,47 @@ const Dashboard = () => {
         </div>
         )}
 
+        {/* Modal de Rejeição de Reserva */}
+        <Dialog open={rejeicaoModal.isOpen} onOpenChange={handleFecharModalRejeicao}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <XCircle className="h-5 w-5 text-red-500" />
+                Rejeitar Reserva
+              </DialogTitle>
+              <DialogDescription>
+                Para rejeitar esta reserva, é obrigatório fornecer um comentário explicando o motivo da rejeição.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="comentario" className="text-right">
+                  Comentário *
+                </Label>
+                <Textarea
+                  id="comentario"
+                  placeholder="Digite o motivo da rejeição..."
+                  value={rejeicaoModal.comentario}
+                  onChange={(e) => setRejeicaoModal(prev => ({ ...prev, comentario: e.target.value }))}
+                  className="col-span-3"
+                  rows={4}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={handleFecharModalRejeicao}>
+                Cancelar
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={handleConfirmarRejeicao}
+                disabled={!rejeicaoModal.comentario.trim() || acaoReservaLoading}
+              >
+                {acaoReservaLoading ? 'Rejeitando...' : 'Confirmar Rejeição'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
       </div>
     </div>

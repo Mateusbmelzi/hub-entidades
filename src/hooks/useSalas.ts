@@ -21,21 +21,26 @@ export const useSalas = () => {
     try {
       setLoading(true);
       setError(null);
+      console.log('🔍 Buscando salas...');
 
       const { data, error: fetchError } = await supabase
-        .from('salas')
+        .from('salas' as any)
         .select('*')
         .order('predio', { ascending: true })
         .order('andar', { ascending: true })
         .order('sala', { ascending: true });
 
+      console.log('📊 Resultado da busca de salas:', { data, error: fetchError });
+
       if (fetchError) {
+        console.error('❌ Erro ao buscar salas:', fetchError);
         throw fetchError;
       }
 
-      setSalas(data || []);
+      console.log('✅ Salas carregadas:', data?.length || 0);
+      setSalas((data as unknown as Sala[]) || []);
     } catch (err) {
-      console.error('Erro ao buscar salas:', err);
+      console.error('❌ Erro ao buscar salas:', err);
       setError(err instanceof Error ? err.message : 'Erro desconhecido');
     } finally {
       setLoading(false);
@@ -79,7 +84,7 @@ export const useSalas = () => {
   const associarSalaReserva = async (salaId: number, reservaId: string) => {
     try {
       const { error } = await supabase
-        .from('salas')
+        .from('salas' as any)
         .update({ reserva_id: reservaId })
         .eq('id', salaId);
 
@@ -107,7 +112,7 @@ export const useSalas = () => {
   const desassociarSalaReserva = async (salaId: number) => {
     try {
       const { error } = await supabase
-        .from('salas')
+        .from('salas' as any)
         .update({ reserva_id: null })
         .eq('id', salaId);
 

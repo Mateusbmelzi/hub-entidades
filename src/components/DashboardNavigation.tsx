@@ -11,7 +11,8 @@ import {
   Target,
   Activity,
   History,
-  Clock
+  Clock,
+  CalendarDays
 } from 'lucide-react';
 
 export interface DashboardNavigationProps {
@@ -72,6 +73,18 @@ export const DashboardNavigation: React.FC<DashboardNavigationProps> = ({
       statLabel: 'Total'
     },
     {
+      id: 'calendario',
+      title: 'Calendário',
+      description: 'Visualização de eventos',
+      icon: <CalendarDays className="h-5 w-5" />,
+      iconColor: 'text-cyan-600',
+      bgColor: 'bg-cyan-50',
+      borderColor: 'border-cyan-200',
+      textColor: 'text-cyan-800',
+      stat: stats.totalReservas || 0,
+      statLabel: 'Eventos'
+    },
+    {
       id: 'organizacoes',
       title: 'Organizações',
       description: 'Entidades e demonstrações',
@@ -98,7 +111,7 @@ export const DashboardNavigation: React.FC<DashboardNavigationProps> = ({
   ];
 
   return (
-    <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6 ${className}`}>
+    <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6 ${className}`}>
       {sections.map((section) => {
         const isActive = activeSection === section.id;
         

@@ -38,24 +38,40 @@ const Navigation: React.FC = () => {
     
     try {
       console.log('🚪 Iniciando logout...');
+      console.log('🔍 Estado atual:', { user: !!user, isSuperAdmin, type });
       
+      // Limpar todos os dados de autenticação independente do tipo
       if (user) {
         console.log('👨‍🎓 Logout de aluno');
         await signOut();
-      } else if (isSuperAdmin) {
+      }
+      
+      if (isSuperAdmin || type === 'superAdmin') {
         console.log('👑 Logout de super admin');
         logout();
       }
       
+      // Limpeza adicional para garantir que tudo seja removido
+      localStorage.removeItem('superAdminAuthenticated');
+      localStorage.removeItem('superAdminEmail');
+      
+      // Remover todas as chaves do Supabase
+      Object.keys(localStorage).forEach(key => {
+        if (key.includes('supabase')) {
+          localStorage.removeItem(key);
+        }
+      });
+      
       console.log('✅ Logout concluído');
       
-      // Redirecionar para a página inicial após o logout
-      // Usar setTimeout para garantir que o estado seja limpo antes do redirecionamento
-      setTimeout(() => {
-        window.location.reload();
-      }, 100);
+      // Redirecionar para a página inicial
+      window.location.href = '/';
+      
     } catch (error) {
       console.error('❌ Erro durante logout:', error);
+      // Mesmo com erro, tentar limpar e redirecionar
+      localStorage.clear();
+      window.location.href = '/';
     } finally {
       setIsLoggingOut(false);
     }

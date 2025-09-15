@@ -44,14 +44,44 @@ export const useReservasPendentes = () => {
   const fetchReservasPendentes = async () => {
     try {
       setLoading(true);
+      console.log('🔍 Buscando reservas pendentes...');
+      
       const { data, error } = await supabase
-        .from('reservas_pendentes_aprovacao')
+        .from('reservas')
         .select('*')
+        .eq('status', 'pendente')
         .order('created_at', { ascending: true });
 
+      console.log('📊 Resultado da busca de reservas pendentes:', { data, error });
+
       if (error) throw error;
-      setReservasPendentes(data || []);
+      
+      // Mapear os dados para o formato ReservaDetalhada
+      const reservasDetalhadas: ReservaDetalhada[] = (data || []).map((reserva: any) => ({
+        ...reserva,
+        reserva_id: reserva.id,
+        // Inicializar campos relacionados como null
+        nome_usuario: null,
+        curso_usuario: null,
+        celular_usuario: null,
+        nome_entidade: null,
+        contato_entidade: null,
+        email_entidade: null,
+        nome_evento: null,
+        descricao_evento: null,
+        sala_id: null,
+        sala_nome: null,
+        sala_predio: null,
+        sala_andar: null,
+        sala_capacidade: null
+      }));
+      
+      console.log('✅ Reservas pendentes mapeadas:', reservasDetalhadas.length);
+      console.log('📋 Primeira reserva (exemplo):', reservasDetalhadas[0]);
+      
+      setReservasPendentes(reservasDetalhadas);
     } catch (err) {
+      console.error('❌ Erro ao buscar reservas pendentes:', err);
       setError(err instanceof Error ? err.message : 'Erro ao carregar reservas pendentes');
     } finally {
       setLoading(false);
