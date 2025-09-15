@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -52,9 +52,27 @@ const ReservaCard: React.FC<ReservaCardProps> = ({ reserva, onAprovar, onRejeita
   const [local, setLocal] = useState(reserva.tipo_reserva === 'auditorio' ? 'Auditório Steffi e Max Perlaman' : '');
   const [salaSelecionada, setSalaSelecionada] = useState<number | undefined>(undefined);
   const [showDetails, setShowDetails] = useState(false);
+  const [filtroPredio, setFiltroPredio] = useState<string>('');
+  const [filtroAndar, setFiltroAndar] = useState<string>('');
 
   // Debug log para verificar o estado
   console.log('🔍 ReservaCard renderizado para reserva:', reserva.id, 'showDetails:', showDetails);
+
+  // Filtrar salas baseado nos filtros
+  const salasFiltradas = salasDisponiveis.filter(sala => {
+    const predioMatch = !filtroPredio || filtroPredio === 'todos' || sala.predio === filtroPredio;
+    const andarMatch = !filtroAndar || filtroAndar === 'todos' || sala.andar === filtroAndar;
+    return predioMatch && andarMatch;
+  });
+
+  // Obter lista única de prédios e andares
+  const prediosUnicos = [...new Set(salasDisponiveis.map(sala => sala.predio))].sort();
+  const andaresUnicos = [...new Set(salasDisponiveis.map(sala => sala.andar))].sort();
+
+  // Resetar sala selecionada quando filtros mudarem
+  useEffect(() => {
+    setSalaSelecionada(undefined);
+  }, [filtroPredio, filtroAndar]);
 
   const handleAprovar = () => {
     if (reserva.tipo_reserva === 'sala' && !salaSelecionada) {
@@ -332,6 +350,55 @@ const ReservaCard: React.FC<ReservaCardProps> = ({ reserva, onAprovar, onRejeita
               <Label htmlFor={`sala-${reserva.id}`}>
                 Selecionar Sala *
               </Label>
+              
+              {/* Filtros para salas */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                <div>
+                  <Label htmlFor={`predio-${reserva.id}`} className="text-xs text-muted-foreground">
+                    Filtrar por Prédio
+                  </Label>
+                  <Select
+                    value={filtroPredio}
+                    onValueChange={setFiltroPredio}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Todos os prédios" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos os prédios</SelectItem>
+                      {prediosUnicos.map((predio) => (
+                        <SelectItem key={predio} value={predio}>
+                          {predio}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label htmlFor={`andar-${reserva.id}`} className="text-xs text-muted-foreground">
+                    Filtrar por Andar
+                  </Label>
+                  <Select
+                    value={filtroAndar}
+                    onValueChange={setFiltroAndar}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Todos os andares" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos os andares</SelectItem>
+                      {andaresUnicos.map((andar) => (
+                        <SelectItem key={andar} value={andar}>
+                          {andar}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Seleção de sala */}
               <Select
                 value={salaSelecionada?.toString() || ''}
                 onValueChange={(value) => setSalaSelecionada(parseInt(value))}
@@ -340,18 +407,28 @@ const ReservaCard: React.FC<ReservaCardProps> = ({ reserva, onAprovar, onRejeita
                   <SelectValue placeholder="Escolha uma sala disponível..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {salasDisponiveis.map((sala) => (
+                  {salasFiltradas.map((sala) => (
                     <SelectItem key={sala.id} value={sala.id.toString()}>
                       {sala.sala} - {sala.predio} ({sala.andar}) - {sala.capacidade} pessoas
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {salasDisponiveis.length === 0 && (
-                <p className="text-sm text-muted-foreground mb-3">
-                  Nenhuma sala disponível com capacidade para {reserva.quantidade_pessoas} pessoas.
-                </p>
-              )}
+              
+              {/* Informações sobre filtros */}
+              <div className="text-xs text-muted-foreground mb-3">
+                {salasFiltradas.length > 0 ? (
+                  <span>
+                    Mostrando {salasFiltradas.length} de {salasDisponiveis.length} salas disponíveis
+                    {filtroPredio && ` no ${filtroPredio}`}
+                    {filtroAndar && ` no ${filtroAndar}`}
+                  </span>
+                ) : salasDisponiveis.length === 0 ? (
+                  <span>Nenhuma sala disponível com capacidade para {reserva.quantidade_pessoas} pessoas.</span>
+                ) : (
+                  <span>Nenhuma sala encontrada com os filtros aplicados. Tente ajustar os filtros.</span>
+                )}
+              </div>
             </div>
           ) : (
             <div>
