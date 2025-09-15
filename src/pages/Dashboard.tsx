@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -118,8 +119,77 @@ const Dashboard = () => {
     setActiveSection(section);
   };
 
+  const verificarConflitoReserva = async (reservaId: string) => {
+    try {
+      // Buscar a reserva que está sendo aprovada
+      const { data: reservaAtual, error: reservaError } = await supabase
+        .from('reservas')
+        .select('*')
+        .eq('id', reservaId)
+        .single();
+
+      if (reservaError) {
+        console.error('Erro ao buscar reserva:', reservaError);
+        return { temConflito: false, conflitos: [] };
+      }
+
+      // Buscar reservas aprovadas no mesmo horário e local
+      const { data: reservasConflitantes, error: conflitoError } = await supabase
+        .from('reservas')
+        .select('*')
+        .eq('status', 'aprovada')
+        .eq('tipo_reserva', reservaAtual.tipo_reserva)
+        .eq('data_reserva', reservaAtual.data_reserva)
+        .neq('id', reservaId); // Excluir a própria reserva
+
+      if (conflitoError) {
+        console.error('Erro ao verificar conflitos:', conflitoError);
+        return { temConflito: false, conflitos: [] };
+      }
+
+      // Verificar se há sobreposição de horários
+      const conflitos = reservasConflitantes.filter(reserva => {
+        const inicioAtual = new Date(`${reservaAtual.data_reserva}T${reservaAtual.horario_inicio}`);
+        const fimAtual = new Date(`${reservaAtual.data_reserva}T${reservaAtual.horario_termino}`);
+        const inicioExistente = new Date(`${reserva.data_reserva}T${reserva.horario_inicio}`);
+        const fimExistente = new Date(`${reserva.data_reserva}T${reserva.horario_termino}`);
+
+        // Verificar se há sobreposição de horários
+        return (inicioAtual < fimExistente && fimAtual > inicioExistente);
+      });
+
+      return {
+        temConflito: conflitos.length > 0,
+        conflitos: conflitos
+      };
+    } catch (error) {
+      console.error('Erro ao verificar conflito:', error);
+      return { temConflito: false, conflitos: [] };
+    }
+  };
+
   const handleAprovarReserva = async (reservaId: string, motivo: string) => {
     try {
+      // Verificar conflitos antes de aprovar
+      const { temConflito, conflitos } = await verificarConflitoReserva(reservaId);
+      
+      if (temConflito) {
+        const conflitosInfo = conflitos.map(c => 
+          `• ${c.nome_solicitante} - ${c.tipo_reserva === 'auditorio' ? 'Auditório' : 'Sala'} (${c.horario_inicio} - ${c.horario_termino})`
+        ).join('\n');
+        
+        const confirmacao = window.confirm(
+          `⚠️ CONFLITO DETECTADO!\n\n` +
+          `Já existe uma reserva aprovada no mesmo horário e local:\n\n` +
+          `${conflitosInfo}\n\n` +
+          `Deseja mesmo aprovar esta reserva? Isso pode causar conflitos de agendamento.`
+        );
+        
+        if (!confirmacao) {
+          return; // Cancelar aprovação
+        }
+      }
+
       await aprovarReserva(reservaId, motivo);
       // Recarregar a página após aprovar
       window.location.reload();
@@ -366,7 +436,7 @@ const Dashboard = () => {
                           {reserva.nome_evento || 'Reserva de ' + (reserva.tipo_reserva === 'auditorio' ? 'Auditório' : 'Sala')}
                         </div>
                         <div className="text-xs text-gray-600 mt-1 group-hover:text-gray-500">
-                          Solicitante: {reserva.nome_solicitante} • Data: {new Date(reserva.data_reserva).toLocaleDateString('pt-BR')}
+                          Solicitante: {reserva.nome_solicitante} • Data: {new Date(reserva.data_reserva + 'T00:00:00').toLocaleDateString('pt-BR')}
                         </div>
                         <div className="flex items-center gap-2 mt-1">
                           <Badge variant="secondary" className={`text-xs ${
@@ -617,7 +687,7 @@ const Dashboard = () => {
                               {reserva.nome_evento || 'Reserva de ' + (reserva.tipo_reserva === 'auditorio' ? 'Auditório' : 'Sala')}
                             </div>
                             <div className="text-xs text-gray-600 mt-1 group-hover:text-gray-500">
-                              Solicitante: {reserva.nome_solicitante} • Data: {new Date(reserva.data_reserva).toLocaleDateString('pt-BR')}
+                              Solicitante: {reserva.nome_solicitante} • Data: {new Date(reserva.data_reserva + 'T00:00:00').toLocaleDateString('pt-BR')}
                             </div>
                             <div className="text-xs text-blue-600 mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                               Clique para gerenciar reserva →

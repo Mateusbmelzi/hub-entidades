@@ -14,6 +14,7 @@ import { useSalas } from '@/hooks/useSalas';
 import { ReservasFilters, ReservasFilters as ReservasFiltersType } from '@/components/ReservasFilters';
 import { ExportReservasButton } from '@/components/ExportReservasButton';
 import { ReservaDetalhada, STATUS_LABELS, TIPO_RESERVA_LABELS } from '@/types/reserva';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   Calendar, 
   Clock, 
@@ -103,7 +104,7 @@ const ReservaCard: React.FC<ReservaCardProps> = ({ reserva, onAprovar, onRejeita
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm">{new Date(reserva.data_reserva).toLocaleDateString('pt-BR')}</span>
+            <span className="text-sm">{new Date(reserva.data_reserva + 'T00:00:00').toLocaleDateString('pt-BR')}</span>
           </div>
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-muted-foreground" />
@@ -475,10 +476,83 @@ export const DashboardAprovacaoReservas: React.FC = () => {
     setFilters({});
   };
 
+  const verificarConflitoReserva = async (reservaId: string) => {
+    try {
+      // Buscar a reserva que está sendo aprovada
+      const { data: reservaAtual, error: reservaError } = await supabase
+        .from('reservas')
+        .select('*')
+        .eq('id', reservaId)
+        .single();
+
+      if (reservaError) {
+        console.error('Erro ao buscar reserva:', reservaError);
+        return { temConflito: false, conflitos: [] };
+      }
+
+      // Buscar reservas aprovadas no mesmo horário e local
+      const { data: reservasConflitantes, error: conflitoError } = await supabase
+        .from('reservas')
+        .select('*')
+        .eq('status', 'aprovada')
+        .eq('tipo_reserva', reservaAtual.tipo_reserva)
+        .eq('data_reserva', reservaAtual.data_reserva)
+        .neq('id', reservaId); // Excluir a própria reserva
+
+      if (conflitoError) {
+        console.error('Erro ao verificar conflitos:', conflitoError);
+        return { temConflito: false, conflitos: [] };
+      }
+
+      // Verificar se há sobreposição de horários
+      const conflitos = reservasConflitantes.filter(reserva => {
+        const inicioAtual = new Date(`${reservaAtual.data_reserva}T${reservaAtual.horario_inicio}`);
+        const fimAtual = new Date(`${reservaAtual.data_reserva}T${reservaAtual.horario_termino}`);
+        const inicioExistente = new Date(`${reserva.data_reserva}T${reserva.horario_inicio}`);
+        const fimExistente = new Date(`${reserva.data_reserva}T${reserva.horario_termino}`);
+
+        // Verificar se há sobreposição de horários
+        return (inicioAtual < fimExistente && fimAtual > inicioExistente);
+      });
+
+      return {
+        temConflito: conflitos.length > 0,
+        conflitos: conflitos
+      };
+    } catch (error) {
+      console.error('Erro ao verificar conflito:', error);
+      return { temConflito: false, conflitos: [] };
+    }
+  };
+
   const handleAprovar = async (reservaId: string, comentario?: string, local?: string, salaId?: number) => {
-    const success = await aprovarReserva(reservaId, comentario, local, salaId);
-    if (success) {
-      refetch();
+    try {
+      // Verificar conflitos antes de aprovar
+      const { temConflito, conflitos } = await verificarConflitoReserva(reservaId);
+      
+      if (temConflito) {
+        const conflitosInfo = conflitos.map(c => 
+          `• ${c.nome_solicitante} - ${c.tipo_reserva === 'auditorio' ? 'Auditório' : 'Sala'} (${c.horario_inicio} - ${c.horario_termino})`
+        ).join('\n');
+        
+        const confirmacao = window.confirm(
+          `⚠️ CONFLITO DETECTADO!\n\n` +
+          `Já existe uma reserva aprovada no mesmo horário e local:\n\n` +
+          `${conflitosInfo}\n\n` +
+          `Deseja mesmo aprovar esta reserva? Isso pode causar conflitos de agendamento.`
+        );
+        
+        if (!confirmacao) {
+          return; // Cancelar aprovação
+        }
+      }
+
+      const success = await aprovarReserva(reservaId, comentario, local, salaId);
+      if (success) {
+        refetch();
+      }
+    } catch (error) {
+      console.error('Erro ao aprovar reserva:', error);
     }
   };
 

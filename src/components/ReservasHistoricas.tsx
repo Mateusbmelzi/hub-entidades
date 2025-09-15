@@ -70,7 +70,7 @@ const ReservaDetalhesModal: React.FC<{ reserva: ReservaDetalhada }> = ({ reserva
             <div>
               <Label className="text-sm font-medium">Data da Reserva</Label>
               <p className="text-sm text-muted-foreground">
-                {new Date(reserva.data_reserva).toLocaleDateString('pt-BR')}
+                {new Date(reserva.data_reserva + 'T00:00:00').toLocaleDateString('pt-BR')}
               </p>
             </div>
             <div>
@@ -561,7 +561,7 @@ export const ReservasHistoricas: React.FC<ReservasHistoricasProps> = ({ onExport
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {new Date(reserva.data_reserva).toLocaleDateString('pt-BR')}
+                      {new Date(reserva.data_reserva + 'T00:00:00').toLocaleDateString('pt-BR')}
                     </TableCell>
                     <TableCell>
                       {reserva.horario_inicio} - {reserva.horario_termino}

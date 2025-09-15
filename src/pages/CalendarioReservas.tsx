@@ -97,7 +97,7 @@ const CalendarioReservas: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">
-                        {new Date(selectedReserva.data_reserva).toLocaleDateString('pt-BR')}
+                        {new Date(selectedReserva.data_reserva + 'T00:00:00').toLocaleDateString('pt-BR')}
                       </span>
                     </div>
                     

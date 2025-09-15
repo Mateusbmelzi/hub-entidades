@@ -125,7 +125,7 @@ const generateCSVContent = (reservas: ReservaDetalhada[], options: ExportOptions
   reservas.forEach(reserva => {
     const row = [
       escapeCSV(reserva.id),
-      escapeCSV(new Date(reserva.data_reserva).toLocaleDateString('pt-BR')),
+      escapeCSV(new Date(reserva.data_reserva + 'T00:00:00').toLocaleDateString('pt-BR')),
       escapeCSV(reserva.horario_inicio),
       escapeCSV(reserva.horario_termino),
       escapeCSV(TIPO_RESERVA_LABELS[reserva.tipo_reserva]),
@@ -257,7 +257,7 @@ const generatePDFContent = (reservas: ReservaDetalhada[], options: ExportOptions
     const statusClass = `status-${reserva.status}`;
     html += `
       <tr class="${statusClass}">
-        <td>${new Date(reserva.data_reserva).toLocaleDateString('pt-BR')}</td>
+        <td>${new Date(reserva.data_reserva + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
         <td>${reserva.horario_inicio} - ${reserva.horario_termino}</td>
         <td>${TIPO_RESERVA_LABELS[reserva.tipo_reserva]}</td>
         <td>${STATUS_LABELS[reserva.status]}</td>
