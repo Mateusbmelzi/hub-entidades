@@ -11,12 +11,16 @@ interface DashboardCalendarProps {
   reservas: ReservaDetalhada[];
   onReservaClick?: (reserva: ReservaDetalhada) => void;
   loading?: boolean;
+  isAdmin?: boolean;
+  onSalaAlterada?: () => void;
 }
 
 export const DashboardCalendar: React.FC<DashboardCalendarProps> = ({
   reservas,
   onReservaClick,
-  loading = false
+  loading = false,
+  isAdmin = false,
+  onSalaAlterada
 }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
@@ -389,6 +393,8 @@ export const DashboardCalendar: React.FC<DashboardCalendarProps> = ({
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         showActions={false}
+        isAdmin={isAdmin}
+        onSalaAlterada={onSalaAlterada}
       />
     </Card>
   );

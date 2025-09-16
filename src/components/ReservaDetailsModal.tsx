@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,9 +15,11 @@ import {
   AlertCircle,
   Building2,
   FileText,
-  Settings
+  Settings,
+  Edit
 } from 'lucide-react';
 import { ReservaDetalhada, STATUS_LABELS, TIPO_RESERVA_LABELS } from '@/types/reserva';
+import { AlterarSalaModal } from './AlterarSalaModal';
 
 interface ReservaDetailsModalProps {
   reserva: ReservaDetalhada | null;
@@ -27,6 +29,8 @@ interface ReservaDetailsModalProps {
   onRejeitar?: (reservaId: string) => void;
   showActions?: boolean;
   loading?: boolean;
+  isAdmin?: boolean;
+  onSalaAlterada?: () => void;
 }
 
 export const ReservaDetailsModal: React.FC<ReservaDetailsModalProps> = ({
@@ -36,8 +40,11 @@ export const ReservaDetailsModal: React.FC<ReservaDetailsModalProps> = ({
   onAprovar,
   onRejeitar,
   showActions = false,
-  loading = false
+  loading = false,
+  isAdmin = false,
+  onSalaAlterada
 }) => {
+  const [isAlterarSalaModalOpen, setIsAlterarSalaModalOpen] = useState(false);
   if (!reserva) return null;
 
   const getStatusColor = (status: string) => {
@@ -171,10 +178,23 @@ export const ReservaDetailsModal: React.FC<ReservaDetailsModalProps> = ({
           {/* Informações da Sala/Auditório */}
           {(reserva.sala_nome || reserva.sala_predio) && (
             <div className="space-y-3">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <Building2 className="h-5 w-5" />
-                Local
-              </h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <Building2 className="h-5 w-5" />
+                  Local
+                </h3>
+                {isAdmin && reserva.status === 'aprovada' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsAlterarSalaModalOpen(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <Edit className="h-4 w-4" />
+                    Alterar Sala
+                  </Button>
+                )}
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {reserva.sala_nome && (
                   <div className="p-3 bg-purple-50 rounded-lg">
@@ -267,6 +287,17 @@ export const ReservaDetailsModal: React.FC<ReservaDetailsModalProps> = ({
           )}
         </div>
       </DialogContent>
+
+      {/* Modal de Alterar Sala */}
+      <AlterarSalaModal
+        reserva={reserva}
+        isOpen={isAlterarSalaModalOpen}
+        onClose={() => setIsAlterarSalaModalOpen(false)}
+        onSuccess={() => {
+          onSalaAlterada?.();
+          setIsAlterarSalaModalOpen(false);
+        }}
+      />
     </Dialog>
   );
 };

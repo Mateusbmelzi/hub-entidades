@@ -99,6 +99,7 @@ export interface Reserva {
   sala_nome?: string;
   sala_predio?: string;
   sala_andar?: string;
+  sala_capacidade?: number;
   
   // Observações adicionais
   observacoes?: string;

@@ -889,10 +889,15 @@ const Dashboard = () => {
             <DashboardCalendar 
               reservas={todasReservas || []}
               loading={todasReservasLoading}
+              isAdmin={isSuperAdmin}
               onReservaClick={(reserva) => {
                 console.log('Reserva clicada:', reserva);
                 // Aqui você pode implementar uma ação quando uma reserva for clicada
                 // Por exemplo, abrir um modal com detalhes ou navegar para a página de aprovação
+              }}
+              onSalaAlterada={() => {
+                // Recarregar dados quando sala for alterada
+                refetchTodasReservas();
               }}
             />
           </div>
