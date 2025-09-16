@@ -28,7 +28,7 @@ import CriarProjetoForm from '@/components/CriarProjetoForm';
 import EditarProjetoForm from '@/components/EditarProjetoForm';
 import CriarEventoEntidade from '@/components/CriarEventoEntidade';
 import GerenciarAreasInternas from '@/components/GerenciarAreasInternas';
-import { GerenciarEmpresasParceirasSimplificado } from '@/components/GerenciarEmpresasParceirasSimplificado';
+import { GerenciarEmpresasParceiras } from '@/components/GerenciarEmpresasParceiras';
 import { EmpresasParceirasDisplay } from '@/components/EmpresasParceirasDisplay';
 import { ToastAction } from '@/components/ui/toast';
 import { AreaAtuacaoDisplay } from '@/components/ui/area-atuacao-display';
@@ -56,6 +56,13 @@ const EntidadeDetalhes = () => {
   const { entidade, loading, error, refetch: refetchEntidade } = useEntidade(id, handleEntidadeUpdate);
   // console.log(entidade.encerramento_primeira_fase) 
   const { projetos, loading: projetosLoading, refetch: refetchProjetos } = useProjetos(entidade?.id);
+  
+  // Debug log para verificar o entidade.id
+  console.log('=== DEBUG EntidadeDetalhes - entidade ===');
+  console.log('entidade:', entidade);
+  console.log('entidade?.id:', entidade?.id);
+  console.log('Tipo do entidade?.id:', typeof entidade?.id);
+  console.log('=== FIM DEBUG ===');
   // const { eventos, loading: eventosLoading, refetch: refetchEventos } = useEventosEntidade(entidade?.id);
   
   const { entidadeId, isAuthenticated, logout } = useEntityAuth();
@@ -370,6 +377,8 @@ const EntidadeDetalhes = () => {
                   </div>
                   <AreaAtuacaoDisplay
                     area_atuacao={entidade.area_atuacao}
+                    entidadeId={entidade.id}
+                    showEmpresasLogos={true}
                     className="text-xs"
                     compact={true}
                   />
@@ -452,11 +461,15 @@ const EntidadeDetalhes = () => {
                   />
                   
                   {/* Terceira linha - Empresas Parceiras */}
-                  <GerenciarEmpresasParceirasSimplificado 
+                  <GerenciarEmpresasParceiras 
                     entidadeId={entidade.id}
                     entidadeNome={entidade.nome || 'Entidade'}
                     onSuccess={() => {
-                      // console.log('Empresas parceiras atualizadas');
+                      console.log('=== DEBUG EntidadeDetalhes ===');
+                      console.log('entidade.id:', entidade.id);
+                      console.log('entidade.nome:', entidade.nome);
+                      console.log('Tipo do entidade.id:', typeof entidade.id);
+                      console.log('=== FIM DEBUG ===');
                       refetchEntidade();
                     }}
                   />
@@ -566,6 +579,8 @@ const EntidadeDetalhes = () => {
                 <div className="flex flex-wrap gap-3 items-center">
                   <AreaAtuacaoDisplay 
                     area_atuacao={entidade.area_atuacao}
+                    entidadeId={entidade.id}
+                    showEmpresasLogos={true}
                     variant="secondary"
                     className="text-sm font-medium"
                     compact={true}

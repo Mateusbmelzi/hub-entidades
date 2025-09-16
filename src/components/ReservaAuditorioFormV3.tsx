@@ -163,13 +163,13 @@ export const ReservaAuditorioFormV3: React.FC = () => {
         }
         
         if (formData.ha_apoio_externo) {
-          // Validação do nome da empresa parceira
-          if (!formData.nome_empresa_parceira) {
-            newErrors.nome_empresa_parceira = 'Nome da empresa parceira é obrigatório';
-          } else if (formData.nome_empresa_parceira.length < 3) {
-            newErrors.nome_empresa_parceira = 'Nome da empresa deve ter pelo menos 3 caracteres';
-          } else if (formData.nome_empresa_parceira.length > 100) {
-            newErrors.nome_empresa_parceira = 'Nome da empresa não pode ter mais que 100 caracteres';
+          // Validação do apoio externo
+          if (!formData.como_ajudara_organizacao) {
+            newErrors.como_ajudara_organizacao = 'Descrição do apoio é obrigatória';
+          } else if (formData.como_ajudara_organizacao.length < 10) {
+            newErrors.como_ajudara_organizacao = 'Descrição deve ter pelo menos 10 caracteres';
+          } else if (formData.como_ajudara_organizacao.length > 500) {
+            newErrors.como_ajudara_organizacao = 'Descrição não pode ter mais que 500 caracteres';
           }
           
           // Validação da descrição de como ajudará
@@ -628,27 +628,6 @@ const ConditionalFieldsStep: React.FC<{
                 
                 {formData.ha_apoio_externo && (
                   <div className="ml-6 space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="nome_empresa_parceira">Informar o nome da empresa parceira e em como ajudará a organização estudantil: *</Label>
-                      <Input
-                        id="nome_empresa_parceira"
-                        value={formData.nome_empresa_parceira || ''}
-                        onChange={(e) => updateFormData('nome_empresa_parceira', e.target.value)}
-                        className={errors.nome_empresa_parceira ? 'border-red-500' : ''}
-                        maxLength={100}
-                        placeholder="Digite o nome da empresa parceira"
-                      />
-                      <div className="flex justify-between items-center">
-                        {errors.nome_empresa_parceira ? (
-                          <p className="text-sm text-red-500">{errors.nome_empresa_parceira}</p>
-                        ) : (
-                          <p className="text-xs text-gray-500">Mínimo: 3 caracteres, Máximo: 100</p>
-                        )}
-                        <span className="text-xs text-gray-400">
-                          {formData.nome_empresa_parceira?.length || 0}/100
-                        </span>
-                      </div>
-                    </div>
                     
                     <div className="space-y-2">
                       <Label htmlFor="como_ajudara_organizacao">Como a empresa ajudará a organização estudantil? *</Label>

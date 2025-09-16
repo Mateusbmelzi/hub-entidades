@@ -48,6 +48,8 @@ import { useDemonstracoesPorCurso } from '@/hooks/useDemonstracoesPorCurso';
 import { useInscricoesPorCurso } from '@/hooks/useInscricoesPorCurso';
 import { useAuthStateContext } from '@/components/AuthStateProvider';
 import { TopEntidadesInteresseChart } from '@/components/TopEntidadesInteresseChart';
+import { AdminEmpresasParceiras } from '@/components/AdminEmpresasParceiras';
+import { useEmpresasParceiras } from '@/hooks/useEmpresasParceiras';
 import { DemonstracoesPorAreaChart } from '@/components/DemonstracoesPorAreaChart';
 import { AreasEntidadesChart } from '@/components/AreasEntidadesChart';
 import { AlunosPorCursoChart } from '@/components/AlunosPorCursoChart';
@@ -77,9 +79,10 @@ const Dashboard = () => {
   const { alunosPorSemestre, loading: alunosPorSemestreLoading, error: alunosPorSemestreError, refetch: refetchAlunosPorSemestre } = useAlunosPorSemestre();
   const { demonstracoesPorCurso, loading: demonstracoesPorCursoLoading, error: demonstracoesPorCursoError, refetch: refetchDemonstracoesPorCurso } = useDemonstracoesPorCurso();
   const { inscricoesPorCurso, loading: inscricoesPorCursoLoading, error: inscricoesPorCursoError, refetch: refetchInscricoesPorCurso } = useInscricoesPorCurso();
+  const { empresas: empresasParceiras, loading: empresasLoading, error: empresasError, refetch: refetchEmpresas } = useEmpresasParceiras();
 
   // Estado para controlar qual seção está ativa
-  const [activeSection, setActiveSection] = useState<'overview' | 'eventos' | 'reservas' | 'calendario' | 'organizacoes' | 'demonstracoes' | 'alunos'>('overview');
+  const [activeSection, setActiveSection] = useState<'overview' | 'eventos' | 'reservas' | 'calendario' | 'organizacoes' | 'demonstracoes' | 'alunos' | 'empresas'>('overview');
   
   // Estado para modal de rejeição
   const [rejeicaoModal, setRejeicaoModal] = useState({
@@ -112,10 +115,11 @@ const Dashboard = () => {
     if (isSuperAdmin) {
       refetchReservasPendentes();
       refetchTodasReservas();
+      refetchEmpresas();
     }
   };
 
-  const handleCardClick = (section: 'overview' | 'eventos' | 'reservas' | 'calendario' | 'organizacoes' | 'demonstracoes' | 'alunos') => {
+  const handleCardClick = (section: 'overview' | 'eventos' | 'reservas' | 'calendario' | 'organizacoes' | 'demonstracoes' | 'alunos' | 'empresas') => {
     setActiveSection(section);
   };
 
@@ -360,7 +364,8 @@ const Dashboard = () => {
             totalEventos: totalEventos || 0,
             totalDemonstracoes: totalDemonstracoes || 0,
             totalReservas: todasReservas?.length || 0,
-            reservasPendentes: reservasPendentes?.length || 0
+            reservasPendentes: reservasPendentes?.length || 0,
+            totalEmpresas: empresasParceiras?.length || 0
           }}
         />
 
@@ -1095,6 +1100,13 @@ const Dashboard = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Seção de Empresas Parceiras */}
+        {activeSection === 'empresas' && (
+          <div className="space-y-6">
+            <AdminEmpresasParceiras />
+          </div>
+        )}
 
       </div>
     </div>

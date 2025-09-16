@@ -1,49 +1,64 @@
 import React from 'react';
-import { useEmpresasParceirasEntidade } from '../hooks/useEmpresasParceirasEntidade';
+import { useEntidadeEmpresasParceiras } from '@/hooks/useEntidadeEmpresasParceiras';
 import { Building2 } from 'lucide-react';
 
 interface EmpresasParceirasLogosProps {
   entidadeId: number;
   className?: string;
   maxLogos?: number;
+  size?: 'sm' | 'md' | 'lg';
 }
 
-export function EmpresasParceirasLogos({ 
-  entidadeId, 
-  className = '', 
-  maxLogos = 3 
-}: EmpresasParceirasLogosProps) {
-  const { empresas, loading } = useEmpresasParceirasEntidade(entidadeId);
+export const EmpresasParceirasLogos: React.FC<EmpresasParceirasLogosProps> = ({
+  entidadeId,
+  className = '',
+  maxLogos = 5,
+  size = 'sm'
+}) => {
+  const { empresasAssociadas, loading } = useEntidadeEmpresasParceiras(entidadeId);
 
   if (loading) {
     return (
-      <div className={`flex items-center space-x-2 ${className}`}>
-        <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse"></div>
-        <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse"></div>
-        <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse"></div>
+      <div className={`flex items-center gap-2 ${className}`}>
+        <div className="flex gap-1">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className={`bg-gray-200 rounded-full animate-pulse ${
+                size === 'sm' ? 'h-6 w-6' : size === 'md' ? 'h-8 w-8' : 'h-10 w-10'
+              }`}
+            />
+          ))}
+        </div>
       </div>
     );
   }
 
-  if (!empresas || empresas.length === 0) {
+  if (!empresasAssociadas || empresasAssociadas.length === 0) {
     return null;
   }
 
-  const empresasToShow = empresas.slice(0, maxLogos);
-  const hasMore = empresas.length > maxLogos;
+  const logosToShow = empresasAssociadas.slice(0, maxLogos);
+  const remainingCount = empresasAssociadas.length - maxLogos;
+
+  const sizeClasses = {
+    sm: 'h-6 w-6',
+    md: 'h-8 w-8', 
+    lg: 'h-10 w-10'
+  };
 
   return (
-    <div className={`flex items-center space-x-2 ${className}`}>
-      {empresasToShow.map((empresa, index) => (
-        <div
-          key={empresa.id}
-          className="relative group"
-          title={empresa.nome}
-        >
-          <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-100 border-2 border-white shadow-sm hover:shadow-md transition-shadow duration-200">
-            {empresa.logo_url ? (
+    <div className={`flex items-center gap-2 ${className}`}>
+      <div className="flex -space-x-1">
+        {logosToShow.map((empresa) => (
+          <div
+            key={empresa.id}
+            className={`relative ${sizeClasses[size]} rounded-full border-2 border-white shadow-sm overflow-hidden`}
+            title={empresa.nome}
+          >
+            {empresa.logo ? (
               <img
-                src={empresa.logo_url}
+                src={empresa.logo}
                 alt={`Logo ${empresa.nome}`}
                 className="w-full h-full object-cover"
                 onError={(e) => {
@@ -52,8 +67,8 @@ export function EmpresasParceirasLogos({
                   const parent = target.parentElement;
                   if (parent) {
                     parent.innerHTML = `
-                      <div class="w-full h-full flex items-center justify-center bg-gray-200 text-gray-500">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div class="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                        <svg class="w-3/4 h-3/4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                         </svg>
                       </div>
@@ -62,26 +77,21 @@ export function EmpresasParceirasLogos({
                 }}
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
-                <Building2 className="w-4 h-4 text-gray-400" />
+              <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                <Building2 className={`${size === 'sm' ? 'h-3 w-3' : size === 'md' ? 'h-4 w-4' : 'h-5 w-5'} text-gray-400`} />
               </div>
             )}
           </div>
-          
-          {/* Tooltip */}
-          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-            {empresa.nome}
-          </div>
-        </div>
-      ))}
+        ))}
+      </div>
       
-      {hasMore && (
-        <div className="w-8 h-8 rounded-full bg-gray-100 border-2 border-white shadow-sm flex items-center justify-center">
-          <span className="text-xs font-semibold text-gray-600">
-            +{empresas.length - maxLogos}
+      {remainingCount > 0 && (
+        <div className={`${sizeClasses[size]} rounded-full bg-gray-100 border-2 border-white shadow-sm flex items-center justify-center`}>
+          <span className={`${size === 'sm' ? 'text-xs' : size === 'md' ? 'text-sm' : 'text-base'} font-medium text-gray-600`}>
+            +{remainingCount}
           </span>
         </div>
       )}
     </div>
   );
-}
+};

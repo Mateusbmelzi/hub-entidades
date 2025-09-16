@@ -48,7 +48,6 @@ export const useCreateReserva = () => {
           apresentacao_palestrante_externo: formData.apresentacao_palestrante_externo,
           eh_pessoa_publica: formData.eh_pessoa_publica,
           ha_apoio_externo: formData.ha_apoio_externo,
-          nome_empresa_parceira: formData.nome_empresa_parceira,
           como_ajudara_organizacao: formData.como_ajudara_organizacao,
           necessidade_sala_plana: formData.necessidade_sala_plana,
           motivo_sala_plana: formData.motivo_sala_plana,

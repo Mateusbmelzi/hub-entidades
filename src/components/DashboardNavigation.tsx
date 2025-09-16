@@ -12,7 +12,8 @@ import {
   Activity,
   History,
   Clock,
-  CalendarDays
+  CalendarDays,
+  Building
 } from 'lucide-react';
 
 export interface DashboardNavigationProps {
@@ -25,6 +26,7 @@ export interface DashboardNavigationProps {
     totalDemonstracoes?: number;
     totalReservas?: number;
     reservasPendentes?: number;
+    totalEmpresas?: number;
   };
   className?: string;
 }
@@ -107,11 +109,23 @@ export const DashboardNavigation: React.FC<DashboardNavigationProps> = ({
       textColor: 'text-indigo-800',
       stat: stats.totalAlunos || 0,
       statLabel: 'Alunos'
+    },
+    {
+      id: 'empresas',
+      title: 'Empresas Parceiras',
+      description: 'Gerenciar empresas parceiras',
+      icon: <Building className="h-5 w-5" />,
+      iconColor: 'text-red-600',
+      bgColor: 'bg-red-50',
+      borderColor: 'border-red-200',
+      textColor: 'text-red-800',
+      stat: stats.totalEmpresas || 0,
+      statLabel: 'Empresas'
     }
   ];
 
   return (
-    <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6 ${className}`}>
+    <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4 mb-6 ${className}`}>
       {sections.map((section) => {
         const isActive = activeSection === section.id;
         

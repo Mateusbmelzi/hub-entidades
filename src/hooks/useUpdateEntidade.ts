@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { Entidade } from './useEntidade';
-import { EmpresasParceiras } from '@/types/empresa-parceira';
 
 
 interface UpdateEntidadeData {
@@ -31,7 +30,6 @@ interface UpdateEntidadeData {
   encerramento_segunda_fase?: string;
   data_terceira_fase?: string;
   encerramento_terceira_fase?: string;
-  empresas_parceiras?: EmpresasParceiras;
 }
 
 export const useUpdateEntidade = () => {
@@ -79,7 +77,6 @@ export const useUpdateEntidade = () => {
           encerramento_terceira_fase: data.encerramento_terceira_fase,
           abertura_processo_seletivo: data.abertura_processo_seletivo,
           fechamento_processo_seletivo: data.fechamento_processo_seletivo,
-          empresas_parceiras: data.empresas_parceiras
         })
         .eq('id', id)
         .select();

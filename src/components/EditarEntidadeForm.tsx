@@ -14,8 +14,6 @@ import { X } from 'lucide-react';
 import { useUpdateEntidade } from '@/hooks/useUpdateEntidade';
 import { useToast } from '@/hooks/use-toast';
 import { AREAS_ATUACAO } from '@/lib/constants';
-import { GerenciarEmpresasParceiras } from './GerenciarEmpresasParceiras';
-import { EmpresaParceira } from '@/types/empresa-parceira';
 
 const formSchema = z.object({
   nome: z.string().min(1, 'Nome é obrigatório').max(100, 'Nome deve ter no máximo 100 caracteres'),
@@ -63,13 +61,6 @@ export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade
   const { updateEntidade, loading } = useUpdateEntidade();
   const { toast } = useToast();
   
-  // Estado para empresas parceiras
-  const [empresasParceiras, setEmpresasParceiras] = useState<EmpresaParceira[]>(() => {
-    if (entidade.empresas_parceiras && Array.isArray(entidade.empresas_parceiras)) {
-      return entidade.empresas_parceiras;
-    }
-    return [];
-  });
 
   // Converter area_atuacao para array se for string
   const getInitialAreaAtuacao = () => {
@@ -554,12 +545,6 @@ export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade
         </div>
       </CardContent>
     </Card>
-
-    {/* Card para Empresas Parceiras */}
-    <GerenciarEmpresasParceiras
-      empresasParceiras={empresasParceiras}
-      onEmpresasChange={setEmpresasParceiras}
-    />
 
       <div className="flex justify-end">
         <Button type="submit" disabled={loading}>

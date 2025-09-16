@@ -1,28 +1,23 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../integrations/supabase/client';
-import { EmpresaParceira, CreateEmpresaParceiraData, UpdateEmpresaParceiraData } from '../types/empresa-parceira';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import type { EmpresaParceira, CreateEmpresaParceiraData, UpdateEmpresaParceiraData } from '@/types/empresa-parceira';
 
-export function useEmpresasParceiras(entidadeId?: number) {
+export const useEmpresasParceiras = () => {
   const [empresas, setEmpresas] = useState<EmpresaParceira[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const fetchEmpresas = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      let query = supabase
+      const { data, error: fetchError } = await supabase
         .from('empresas_parceiras')
         .select('*')
-        .eq('ativo', true)
-        .order('created_at', { ascending: false });
-
-      if (entidadeId) {
-        query = query.eq('entidade_id', entidadeId);
-      }
-
-      const { data, error: fetchError } = await query;
+        .order('nome', { ascending: true });
 
       if (fetchError) {
         throw fetchError;
@@ -30,37 +25,62 @@ export function useEmpresasParceiras(entidadeId?: number) {
 
       setEmpresas(data || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao carregar empresas parceiras');
-      console.error('Erro ao buscar empresas parceiras:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar empresas parceiras';
+      setError(errorMessage);
+      toast({
+        title: 'Erro',
+        description: errorMessage,
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const createEmpresa = async (empresaData: CreateEmpresaParceiraData) => {
+  const createEmpresa = async (empresaData: CreateEmpresaParceiraData): Promise<EmpresaParceira | null> => {
     try {
+      console.log('🚀 Iniciando criação de empresa:', empresaData);
       setError(null);
 
-      const { data, error: insertError } = await supabase
+      const { data, error: createError } = await supabase
         .from('empresas_parceiras')
         .insert([empresaData])
         .select()
         .single();
 
-      if (insertError) {
-        throw insertError;
+      console.log('📤 Resposta da API:', { data, error: createError });
+
+      if (createError) {
+        console.error('❌ Erro na API:', createError);
+        throw createError;
       }
 
-      setEmpresas(prev => [data, ...prev]);
-      return data;
+      if (data) {
+        console.log('✅ Empresa criada com sucesso:', data);
+        setEmpresas(prev => [...prev, data].sort((a, b) => a.nome.localeCompare(b.nome)));
+        toast({
+          title: 'Sucesso',
+          description: 'Empresa parceira criada com sucesso!',
+        });
+        return data;
+      }
+
+      console.warn('⚠️ Nenhum dado retornado da API');
+      return null;
     } catch (err) {
+      console.error('💥 Erro geral na criação:', err);
       const errorMessage = err instanceof Error ? err.message : 'Erro ao criar empresa parceira';
       setError(errorMessage);
-      throw new Error(errorMessage);
+      toast({
+        title: 'Erro',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+      return null;
     }
   };
 
-  const updateEmpresa = async (id: number, empresaData: UpdateEmpresaParceiraData) => {
+  const updateEmpresa = async (id: number, empresaData: UpdateEmpresaParceiraData): Promise<EmpresaParceira | null> => {
     try {
       setError(null);
 
@@ -75,24 +95,39 @@ export function useEmpresasParceiras(entidadeId?: number) {
         throw updateError;
       }
 
-      setEmpresas(prev => 
-        prev.map(empresa => empresa.id === id ? data : empresa)
-      );
-      return data;
+      if (data) {
+        setEmpresas(prev => 
+          prev.map(empresa => 
+            empresa.id === id ? data : empresa
+          ).sort((a, b) => a.nome.localeCompare(b.nome))
+        );
+        toast({
+          title: 'Sucesso',
+          description: 'Empresa parceira atualizada com sucesso!',
+        });
+        return data;
+      }
+
+      return null;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao atualizar empresa parceira';
       setError(errorMessage);
-      throw new Error(errorMessage);
+      toast({
+        title: 'Erro',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+      return null;
     }
   };
 
-  const deleteEmpresa = async (id: number) => {
+  const deleteEmpresa = async (id: number): Promise<boolean> => {
     try {
       setError(null);
 
       const { error: deleteError } = await supabase
         .from('empresas_parceiras')
-        .update({ ativo: false })
+        .delete()
         .eq('id', id);
 
       if (deleteError) {
@@ -100,51 +135,34 @@ export function useEmpresasParceiras(entidadeId?: number) {
       }
 
       setEmpresas(prev => prev.filter(empresa => empresa.id !== id));
+      toast({
+        title: 'Sucesso',
+        description: 'Empresa parceira removida com sucesso!',
+      });
+      return true;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao excluir empresa parceira';
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao remover empresa parceira';
       setError(errorMessage);
-      throw new Error(errorMessage);
-    }
-  };
-
-  const getEmpresasByArea = async (area: string) => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const { data, error: fetchError } = await supabase
-        .from('empresas_parceiras')
-        .select('*')
-        .contains('area_atuacao', [area])
-        .eq('ativo', true)
-        .order('created_at', { ascending: false });
-
-      if (fetchError) {
-        throw fetchError;
-      }
-
-      return data || [];
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao buscar empresas por área';
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    } finally {
-      setLoading(false);
+      toast({
+        title: 'Erro',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+      return false;
     }
   };
 
   useEffect(() => {
     fetchEmpresas();
-  }, [entidadeId]);
+  }, []);
 
   return {
     empresas,
     loading,
     error,
-    fetchEmpresas,
+    refetch: fetchEmpresas,
     createEmpresa,
     updateEmpresa,
     deleteEmpresa,
-    getEmpresasByArea,
   };
-}
+};

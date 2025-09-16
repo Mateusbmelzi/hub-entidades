@@ -12,7 +12,6 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { AreaAtuacaoDisplay } from '@/components/ui/area-atuacao-display';
 import { AREAS_ATUACAO, getFirstAreaColor, getAreaColor } from '@/lib/constants';
 import { FotoPerfilEntidade } from '@/components/FotoPerfilEntidade';
-import { EmpresasParceirasLogos } from '@/components/EmpresasParceirasLogos';
 import { parseAreasAtuacao, getFirstArea } from '@/lib/area-utils';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -685,20 +684,15 @@ const Entidades = () => {
 
                       <CardContent className="pt-0 flex-1 flex flex-col">
                         <div className="space-y-4 flex-1">
-                          {/* Áreas de Atuação e Empresas Parceiras - Na mesma linha */}
-                          <div className="flex items-center justify-between">
+                          {/* Áreas de Atuação e Empresas Parceiras */}
+                          <div className="space-y-3">
                             <AreaAtuacaoDisplay
                               area_atuacao={entity.area_atuacao}
+                              entidadeId={entity.id}
+                              showEmpresasLogos={true}
                               variant="secondary"
                               className="bg-white/10 text-white border-white/20 hover:bg-white/20 transition-colors"
                               compact={true}
-                            />
-                            
-                            {/* Empresas Parceiras - Logos circulares */}
-                            <EmpresasParceirasLogos 
-                              entidadeId={entity.id}
-                              className="ml-3"
-                              maxLogos={3}
                             />
                           </div>
 

@@ -375,6 +375,8 @@ const DemonstrarInteresse: React.FC = () => {
                     <h4 className="font-medium text-sm text-gray-700">Áreas de Atuação</h4>
                     <AreaAtuacaoDisplay
                       area_atuacao={entidade.area_atuacao}
+                      entidadeId={entidade.id}
+                      showEmpresasLogos={true}
                       variant="outline"
                       className="mt-1"
                       compact={true}

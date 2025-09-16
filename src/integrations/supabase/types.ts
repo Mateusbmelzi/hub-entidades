@@ -97,52 +97,68 @@ export type Database = {
       empresas_parceiras: {
         Row: {
           id: number
-          entidade_id: number
-          nome: string
-          descricao: string | null
-          site_url: string | null
-          logo_url: string | null
-          email_contato: string | null
-          telefone_contato: string | null
-          area_atuacao: string[]
-          ativo: boolean
           created_at: string
           updated_at: string
+          nome: string
+          descricao: string | null
+          link: string | null
+          logo: string | null
         }
         Insert: {
           id?: number
-          entidade_id: number
-          nome: string
-          descricao?: string | null
-          site_url?: string | null
-          logo_url?: string | null
-          email_contato?: string | null
-          telefone_contato?: string | null
-          area_atuacao?: string[]
-          ativo?: boolean
           created_at?: string
           updated_at?: string
+          nome: string
+          descricao?: string | null
+          link?: string | null
+          logo?: string | null
         }
         Update: {
           id?: number
-          entidade_id?: number
-          nome?: string
-          descricao?: string | null
-          site_url?: string | null
-          logo_url?: string | null
-          email_contato?: string | null
-          telefone_contato?: string | null
-          area_atuacao?: string[]
-          ativo?: boolean
           created_at?: string
           updated_at?: string
+          nome?: string
+          descricao?: string | null
+          link?: string | null
+          logo?: string | null
+        }
+        Relationships: []
+      }
+      entidade_empresa_parceira: {
+        Row: {
+          id: number
+          created_at: string
+          updated_at: string
+          entidade_id: number
+          empresa_parceira_id: number
+        }
+        Insert: {
+          id?: number
+          created_at?: string
+          updated_at?: string
+          entidade_id: number
+          empresa_parceira_id: number
+        }
+        Update: {
+          id?: number
+          created_at?: string
+          updated_at?: string
+          entidade_id?: number
+          empresa_parceira_id?: number
         }
         Relationships: [
           {
-            foreignKeyName: "empresas_parceiras_entidade_id_fkey"
+            foreignKeyName: "entidade_empresa_parceira_entidade_id_fkey"
             columns: ["entidade_id"]
             isOneToOne: false
             referencedRelation: "entidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entidade_empresa_parceira_empresa_parceira_id_fkey"
+            columns: ["empresa_parceira_id"]
+            isOneToOne: false
+            referencedRelation: "empresas_parceiras"
             referencedColumns: ["id"]
           }
         ]
@@ -163,7 +179,6 @@ export type Database = {
           descricao_curta: string | null
           descricao_detalhada: string | null
           email_contato: string | null
-          empresas_parceiras: Json | null
           foto_perfil_url: string | null
           grau_exigencia: string | null
           horario_apresentacao: string | null
@@ -201,7 +216,6 @@ export type Database = {
           descricao_curta?: string | null
           descricao_detalhada?: string | null
           email_contato?: string | null
-          empresas_parceiras?: Json | null
           foto_perfil_url?: string | null
           grau_exigencia?: string | null
           horario_apresentacao?: string | null
@@ -234,7 +248,6 @@ export type Database = {
           descricao_curta?: string | null
           descricao_detalhada?: string | null
           email_contato?: string | null
-          empresas_parceiras?: Json | null
           foto_perfil_url?: string | null
           grau_exigencia?: string | null
           horario_apresentacao?: string | null

@@ -1,19 +1,24 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { parseAreasAtuacao, getFirstArea } from '@/lib/area-utils';
+import { EmpresasParceirasLogos } from '@/components/EmpresasParceirasLogos';
 
 interface AreaAtuacaoDisplayProps {
   area_atuacao: string[] | string | null;
   variant?: 'default' | 'secondary' | 'outline';
   className?: string;
   compact?: boolean; // Nova prop para versão mais compacta
+  entidadeId?: number; // ID da entidade para buscar empresas parceiras
+  showEmpresasLogos?: boolean; // Se deve mostrar os logos das empresas
 }
 
 export const AreaAtuacaoDisplay: React.FC<AreaAtuacaoDisplayProps> = ({
   area_atuacao,
   variant = 'secondary',
   className = '',
-  compact = false
+  compact = false,
+  entidadeId,
+  showEmpresasLogos = false
 }) => {
   if (!area_atuacao) return null;
   
@@ -29,8 +34,39 @@ export const AreaAtuacaoDisplay: React.FC<AreaAtuacaoDisplayProps> = ({
     const remainingCount = validAreas.length - 2;
     
     return (
-      <div className={`flex flex-wrap items-center gap-1.5 ${className}`}>
-        {displayedAreas.map((area, index) => (
+      <div className={`flex flex-wrap items-center gap-2 ${className}`}>
+        <div className="flex flex-wrap gap-1.5">
+          {displayedAreas.map((area, index) => (
+            <Badge
+              key={`${area}-${index}`}
+              variant={variant}
+              className="text-xs px-2 py-0.5"
+            >
+              {area}
+            </Badge>
+          ))}
+          <Badge
+            variant="outline"
+            className="text-xs px-2 py-0.5 text-gray-600 border-gray-300"
+          >
+            +{remainingCount} mais
+          </Badge>
+        </div>
+        {showEmpresasLogos && entidadeId && (
+          <EmpresasParceirasLogos 
+            entidadeId={entidadeId} 
+            size="sm" 
+            maxLogos={3}
+          />
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className={`flex flex-wrap items-center gap-2 ${className}`}>
+      <div className="flex flex-wrap gap-1.5">
+        {validAreas.map((area, index) => (
           <Badge
             key={`${area}-${index}`}
             variant={variant}
@@ -39,27 +75,14 @@ export const AreaAtuacaoDisplay: React.FC<AreaAtuacaoDisplayProps> = ({
             {area}
           </Badge>
         ))}
-        <Badge
-          variant="outline"
-          className="text-xs px-2 py-0.5 text-gray-600 border-gray-300"
-        >
-          +{remainingCount} mais
-        </Badge>
       </div>
-    );
-  }
-
-  return (
-    <div className={`flex flex-wrap gap-1.5 ${className}`}>
-      {validAreas.map((area, index) => (
-        <Badge
-          key={`${area}-${index}`}
-          variant={variant}
-          className="text-xs px-2 py-0.5"
-        >
-          {area}
-        </Badge>
-      ))}
+      {showEmpresasLogos && entidadeId && (
+        <EmpresasParceirasLogos 
+          entidadeId={entidadeId} 
+          size="sm" 
+          maxLogos={5}
+        />
+      )}
     </div>
   );
 };

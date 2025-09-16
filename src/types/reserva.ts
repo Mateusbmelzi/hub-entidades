@@ -50,7 +50,6 @@ export interface Reserva {
   
   // Campos para apoio externo
   ha_apoio_externo?: boolean;
-  nome_empresa_parceira?: string;
   como_ajudara_organizacao?: string;
   
   // Campos específicos para sala
@@ -144,7 +143,6 @@ export interface ReservaFormData {
   
   // Campos para apoio externo
   ha_apoio_externo?: boolean;
-  nome_empresa_parceira?: string;
   como_ajudara_organizacao?: string;
   
   // Campos específicos para sala
