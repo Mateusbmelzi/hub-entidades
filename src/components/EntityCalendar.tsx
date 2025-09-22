@@ -2,7 +2,10 @@ import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, MapPin, Users } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface EntidadeCalendarEvent {
   id: string;
@@ -21,6 +24,41 @@ interface EntityCalendarProps {
 export const EntityCalendar: React.FC<EntityCalendarProps> = ({ eventos, title = 'Calendário da Entidade' }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
+  const navigate = useNavigate();
+  const [selectedEvent, setSelectedEvent] = useState<EntidadeCalendarEvent | null>(null);
+  const [open, setOpen] = useState(false);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [eventDetails, setEventDetails] = useState<{ local?: string | null; capacidade?: number | null; inscritos?: number }>({});
+
+  React.useEffect(() => {
+    const fetchDetails = async () => {
+      if (!open || !selectedEvent) return;
+      try {
+        setDetailsLoading(true);
+        // Buscar detalhes do evento
+        const { data: evento, error: eventoError } = await supabase
+          .from('eventos')
+          .select('local, capacidade')
+          .eq('id', selectedEvent.id)
+          .single();
+        if (eventoError) throw eventoError;
+
+        // Contar inscritos
+        const { count, error: countError } = await supabase
+          .from('participantes_evento')
+          .select('id', { count: 'exact', head: true })
+          .eq('evento_id', selectedEvent.id);
+        if (countError) throw countError;
+
+        setEventDetails({ local: evento?.local || null, capacidade: evento?.capacidade || null, inscritos: count || 0 });
+      } catch (e) {
+        setEventDetails({});
+      } finally {
+        setDetailsLoading(false);
+      }
+    };
+    fetchDetails();
+  }, [open, selectedEvent]);
 
   const currentMonth = currentDate.getMonth();
   const currentYear = currentDate.getFullYear();
@@ -92,6 +130,7 @@ export const EntityCalendar: React.FC<EntityCalendarProps> = ({ eventos, title =
   };
 
   return (
+    <>
     <Card>
       <CardHeader className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-2">
@@ -139,7 +178,12 @@ export const EntityCalendar: React.FC<EntityCalendarProps> = ({ eventos, title =
                     </div>
                     <div className="space-y-1 max-h-[100px] overflow-y-auto pr-1">
                       {dayEvents.map((ev) => (
-                        <div key={ev.id} className="p-2 rounded border hover:bg-muted cursor-default">
+                        <button
+                          key={ev.id}
+                          type="button"
+                          onClick={() => { setSelectedEvent(ev); setOpen(true); }}
+                          className="w-full text-left p-2 rounded border hover:bg-muted cursor-pointer"
+                        >
                           <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
                             <Clock className="h-3 w-3" />
                             <span>
@@ -153,7 +197,7 @@ export const EntityCalendar: React.FC<EntityCalendarProps> = ({ eventos, title =
                             )}
                           </div>
                           <div className="text-sm font-medium leading-snug line-clamp-2">{ev.nome}</div>
-                        </div>
+                        </button>
                       ))}
                       {dayEvents.length === 0 && <div className="text-xs text-muted-foreground">Sem eventos</div>}
                     </div>
@@ -167,6 +211,54 @@ export const EntityCalendar: React.FC<EntityCalendarProps> = ({ eventos, title =
         )}
       </CardContent>
     </Card>
+
+    {/* Modal de detalhes do evento */}
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <CalendarIcon className="h-5 w-5" />
+            {selectedEvent?.nome || 'Evento'}
+          </DialogTitle>
+        </DialogHeader>
+
+        {selectedEvent && (
+          <div className="space-y-3 text-sm">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Clock className="h-4 w-4" />
+              <span>
+                {new Date(selectedEvent.data + 'T00:00:00').toLocaleDateString('pt-BR')} • {selectedEvent.horario_inicio || '--:--'}{selectedEvent.horario_termino ? ` - ${selectedEvent.horario_termino}` : ''}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <MapPin className="h-4 w-4" />
+              <span>{detailsLoading ? 'Carregando local…' : (eventDetails.local || 'Local não informado')}</span>
+            </div>
+            <div className="flex items-center gap-4 text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                <span>Inscritos: {detailsLoading ? '—' : (eventDetails.inscritos ?? 0)}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                <span>Capacidade: {detailsLoading ? '—' : (eventDetails.capacidade ?? '—')}</span>
+              </div>
+            </div>
+            {selectedEvent.status_aprovacao && (
+              <div>
+                <Badge variant={statusVariant(selectedEvent.status_aprovacao)}>{selectedEvent.status_aprovacao}</Badge>
+              </div>
+            )}
+          </div>
+        )}
+
+        <DialogFooter className="gap-2 sm:gap-2">
+          <Button variant="outline" onClick={() => setOpen(false)}>Fechar</Button>
+          <Button onClick={() => { if (selectedEvent) navigate(`/eventos/${selectedEvent.id}`); }}>Ver detalhes</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 };
 

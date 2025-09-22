@@ -265,6 +265,13 @@ const EventEditRequestCard = ({ request, onApprove }: { request: any; onApprove:
               <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
               Resumo das Alterações
             </h5>
+            
+            {/* Aviso sobre sincronização de reservas */}
+            {changedFields.includes('nome') && (
+              <div className="mb-3 p-2 bg-blue-100 border border-blue-300 rounded text-xs text-blue-700">
+                <strong>ℹ️ Sincronização:</strong> Ao aprovar a alteração do nome, todas as reservas associadas a este evento também terão o "Título do Evento de Capacitação" atualizado automaticamente.
+              </div>
+            )}
             <div className="text-sm text-blue-700">
               <ul className="space-y-2">
                 {changedFields.map((field) => {
