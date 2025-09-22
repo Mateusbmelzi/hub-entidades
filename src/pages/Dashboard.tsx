@@ -123,7 +123,7 @@ const Dashboard = () => {
     setActiveSection(section);
   };
 
-  const verificarConflitoReserva = async (reservaId: string) => {
+  const verificarConflitoReserva = async (reservaId: string, salaIdSelecionada?: number) => {
     try {
       // Buscar a reserva que está sendo aprovada
       const { data: reservaAtual, error: reservaError } = await supabase
@@ -137,14 +137,22 @@ const Dashboard = () => {
         return { temConflito: false, conflitos: [] };
       }
 
-      // Buscar reservas aprovadas no mesmo horário e local
-      const { data: reservasConflitantes, error: conflitoError } = await supabase
+      // Para auditório: verificar conflitos apenas com outras reservas de auditório
+      // Para salas: verificar conflitos apenas com reservas na mesma sala específica
+      let query = supabase
         .from('reservas')
         .select('*')
         .eq('status', 'aprovada')
         .eq('tipo_reserva', reservaAtual.tipo_reserva)
         .eq('data_reserva', reservaAtual.data_reserva)
         .neq('id', reservaId); // Excluir a própria reserva
+
+      // Se for reserva de sala e uma sala foi selecionada, filtrar por essa sala
+      if (reservaAtual.tipo_reserva === 'sala' && salaIdSelecionada) {
+        query = query.eq('sala_id', salaIdSelecionada);
+      }
+
+      const { data: reservasConflitantes, error: conflitoError } = await query;
 
       if (conflitoError) {
         console.error('Erro ao verificar conflitos:', conflitoError);

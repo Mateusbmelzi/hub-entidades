@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuthState } from './useAuthState';
+import { useNotificationSystem } from './useNotificationSystem';
 
 export const useAprovarReservas = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { type, user, isAuthenticated } = useAuthState();
+  const { notifyReservationStatusChange } = useNotificationSystem();
 
   const aprovarReserva = async (reservaId: string, comentario?: string, local?: string, salaId?: number): Promise<boolean> => {
     try {
@@ -44,6 +46,27 @@ export const useAprovarReservas = () => {
       if (data && typeof data === 'object' && 'success' in data) {
         if (data.success) {
           console.log('✅ Reserva aprovada com sucesso:', data);
+          
+          // Buscar email do solicitante para enviar notificação
+          try {
+            const { data: reservaData, error: reservaError } = await supabase
+              .from('reservas')
+              .select('user_email, tipo_reserva')
+              .eq('id', reservaId)
+              .single();
+            
+            if (!reservaError && reservaData?.user_email) {
+              await notifyReservationStatusChange(
+                reservaData.user_email,
+                reservaData.tipo_reserva || 'sala',
+                'aprovada',
+                reservaId,
+                comentario
+              );
+            }
+          } catch (notifError) {
+            console.error('❌ Erro ao enviar notificação:', notifError);
+          }
           
           // Se uma sala foi selecionada, associar à reserva e buscar informações da sala
           if (salaId) {
@@ -181,6 +204,27 @@ export const useAprovarReservas = () => {
       });
 
       if (error) throw error;
+
+      // Buscar email do solicitante para enviar notificação
+      try {
+        const { data: reservaData, error: reservaError } = await supabase
+          .from('reservas')
+          .select('user_email, tipo_reserva')
+          .eq('id', reservaId)
+          .single();
+        
+        if (!reservaError && reservaData?.user_email) {
+          await notifyReservationStatusChange(
+            reservaData.user_email,
+            reservaData.tipo_reserva || 'sala',
+            'rejeitada',
+            reservaId,
+            comentario
+          );
+        }
+      } catch (notifError) {
+        console.error('❌ Erro ao enviar notificação:', notifError);
+      }
 
       toast.success('Reserva rejeitada.');
       return true;

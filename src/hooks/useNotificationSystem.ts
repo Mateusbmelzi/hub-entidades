@@ -139,11 +139,44 @@ export const useNotificationSystem = () => {
     return success;
   };
 
+  const notifyReservationStatusChange = async (
+    userEmail: string,
+    reservationType: string,
+    status: 'aprovada' | 'rejeitada',
+    reservationId: string,
+    comment?: string
+  ) => {
+    const title = status === 'aprovada' 
+      ? 'Reserva Aprovada! ✅' 
+      : 'Reserva Não Aprovada';
+
+    const typeLabel = reservationType === 'auditorio' ? 'Auditório' : 'Sala';
+    const message = status === 'aprovada'
+      ? `Sua reserva de ${typeLabel} foi aprovada! ${comment ? `Comentário: ${comment}` : ''}`
+      : `Sua reserva de ${typeLabel} não foi aprovada. ${comment ? `Motivo: ${comment}` : 'Entre em contato para mais informações.'}`;
+
+    const type = status === 'aprovada' ? 'success' : 'warning';
+
+    const success = await createNotification(
+      userEmail,
+      title,
+      message,
+      type
+    );
+
+    if (success) {
+      console.log(`Notificação de reserva enviada para ${userEmail} sobre status ${status}`);
+    }
+
+    return success;
+  };
+
   return {
     createNotification,
     markAsRead,
     getNotifications,
     getUnreadCount,
-    notifyDemonstrationStatusChange
+    notifyDemonstrationStatusChange,
+    notifyReservationStatusChange
   };
 }; 
