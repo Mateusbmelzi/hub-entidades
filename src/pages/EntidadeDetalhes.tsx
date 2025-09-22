@@ -88,7 +88,7 @@ const EntidadeDetalhes = () => {
   const { eventos: allEventos, loading: eventosLoading, refetch: refetchEventos } = useEventosEntidade(entidade?.id, isOwner);
   const eventos = allEventos?.filter(ev => {
     const hoje = new Date();
-    const dataEvento = combineDataHorario(ev.data, ev.horario);
+    const dataEvento = combineDataHorario(ev.data, ev.horario_inicio);
     return dataEvento >= hoje;
   });
 
@@ -870,24 +870,12 @@ const EntidadeDetalhes = () => {
                     <Calendar className="w-5 h-5 text-red-600" />
                     <CardTitle className="text-2xl text-gray-900">Eventos</CardTitle>
                   </div>
-                  {isOwner && (
-                    <Dialog open={showCreateProjectDialog} onOpenChange={setShowCreateProjectDialog}>
-                      <DialogTrigger asChild>
-                        <Button size="sm" className="bg-red-600 hover:bg-red-700 shadow-sm hover:shadow-md transition-all duration-200">
-                          <Plus className="mr-2 h-4 w-4" />
-                          Criar Evento
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                        <CriarEventoEntidade 
-                          onSuccess={() => {
-                            setShowCreateProjectDialog(false);
-                            refetchEventos();
-                          }} 
-                        />
-                      </DialogContent>
-                    </Dialog>
-                  )}
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="outline" onClick={() => navigate(`/entidades/${id}/calendario`)}>
+                      <Calendar className="mr-2 h-4 w-4" />
+                      Ver calendário
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -959,7 +947,10 @@ const EntidadeDetalhes = () => {
                           </div>
                           <div className="flex items-center text-gray-600">
                             <Clock className="mr-2 h-4 w-4 text-red-500 flex-shrink-0" />
-                            <span className="font-medium">{evento.horario}</span>
+                            <span className="font-medium">
+                              {evento.horario_inicio || '--:--'}
+                              {evento.horario_termino ? ` - ${evento.horario_termino}` : ''}
+                            </span>
                           </div>
                           {evento.local && (
                             <div className="flex items-center text-gray-600 sm:col-span-2">
@@ -998,15 +989,7 @@ const EntidadeDetalhes = () => {
                         : 'Esta organização ainda não possui eventos cadastrados. Fique atento às atualizações!'
                       }
                     </p>
-                    {isOwner && (
-                      <Button 
-                        onClick={() => setShowCreateProjectDialog(true)}
-                        className="bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-                      >
-                        <Plus className="mr-2 h-4 w-4" />
-                        Criar Primeiro Evento
-                      </Button>
-                    )}
+                    {/* Botão de criar evento removido conforme solicitado */}
                   </div>
                 )}
               </CardContent>

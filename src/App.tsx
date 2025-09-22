@@ -47,6 +47,7 @@ import MinhasReservas from '@/pages/MinhasReservas';
 import CalendarioReservas from '@/pages/CalendarioReservas';
 import HistoricoReservas from '@/pages/HistoricoReservas';
 import Footer from '@/components/Footer';
+import CalendarioEntidade from '@/pages/CalendarioEntidade';
 
 const queryClient = new QueryClient();
 
@@ -90,6 +91,11 @@ function AppRouter() {
           <Route path="/entidades/:id" element={
             <ProtectedRoute>
               <EntidadeDetalhes />
+            </ProtectedRoute>
+          } />
+          <Route path="/entidades/:id/calendario" element={
+            <ProtectedRoute>
+              <CalendarioEntidade />
             </ProtectedRoute>
           } />
           

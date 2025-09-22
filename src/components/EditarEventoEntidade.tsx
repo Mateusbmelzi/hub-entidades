@@ -4,13 +4,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Calendar, MapPin, Users, Target } from 'lucide-react';
-import { useUpdateEventoAsEntity } from '@/hooks/useUpdateEventoAsEntity';
+import { Calendar, MapPin, Users, Target, Building } from 'lucide-react';
+import { useRequestEditEvento } from '@/hooks/useRequestEditEvento';
 import type { Evento } from '@/hooks/useEventosEntidade';
 import { AREAS_ATUACAO } from '@/lib/constants';
 import { supabase } from '@/integrations/supabase/client';
 import { DateTimeInput } from '@/components/ui/datetime-input';
 import { parseDateTime, validateDateTime, convertFromDateTimeLocal } from '@/lib/datetime-input-utils';
+import { useSalas } from '@/hooks/useSalas';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface EditarEventoEntidadeProps {
   evento: Evento;
@@ -51,7 +53,28 @@ export default function EditarEventoEntidade({ evento, entidadeId, onSuccess }: 
   const [dateTimeError, setDateTimeError] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const { updateEvento, loading } = useUpdateEventoAsEntity();
+  const { requestEdit, loading } = useRequestEditEvento();
+  const { salas, getSalasDisponiveis, loading: salasLoading, error: salasError } = useSalas();
+
+  // Seleção de Sala (mesma lógica do dashboard)
+  const [filtroPredio, setFiltroPredio] = useState<string>('');
+  const [filtroAndar, setFiltroAndar] = useState<string>('');
+  const [salaSelecionada, setSalaSelecionada] = useState<number | undefined>(undefined);
+
+  const capacidadeNumber = capacidade ? parseInt(capacidade) : undefined;
+  const salasBase = capacidadeNumber ? getSalasDisponiveis(capacidadeNumber) : salas;
+  const prediosUnicos = [...new Set(salasBase.map((s: any) => s.predio))].sort();
+  const andaresUnicos = [...new Set(salasBase.map((s: any) => s.andar))].sort();
+  const salasFiltradas = salasBase.filter((s: any) => {
+    const predioMatch = !filtroPredio || filtroPredio === 'todos' || s.predio === filtroPredio;
+    const andarMatch = !filtroAndar || filtroAndar === 'todos' || s.andar === filtroAndar;
+    return predioMatch && andarMatch;
+  });
+
+  const aplicarSalaNoLocal = (sala: any) => {
+    const label = `${sala.sala} - ${sala.predio} (${sala.andar})`;
+    setLocal(label);
+  };
 
   // Carregar áreas de atuação da entidade se o evento não tiver áreas definidas
   useEffect(() => {
@@ -171,7 +194,8 @@ export default function EditarEventoEntidade({ evento, entidadeId, onSuccess }: 
       local: local.trim() || null,
       capacidade: capacidade ? parseInt(capacidade) : null,
       data: dataStr,
-      horario: horarioStr,
+      horario_inicio: horarioStr,
+      horario_termino: null,
       area_atuacao: selectedAreas,
     };
 
@@ -179,12 +203,12 @@ export default function EditarEventoEntidade({ evento, entidadeId, onSuccess }: 
     console.log('🆔 IDs:', { eventoId: evento.id, entidadeId });
 
     try {
-      const result = await updateEvento(evento.id, entidadeId, updateData);
+      const result = await requestEdit(evento.id, entidadeId, updateData);
 
       console.log('📥 Resultado do update:', result);
 
       if (result.success) {
-        console.log('✅ Update realizado com sucesso, chamando onSuccess');
+        console.log('✅ Solicitação enviada com sucesso, chamando onSuccess');
         onSuccess();
       } else {
         console.error('❌ Falha no update:', result.error);
@@ -257,6 +281,72 @@ export default function EditarEventoEntidade({ evento, entidadeId, onSuccess }: 
               onChange={(e) => setLocal(e.target.value)}
               placeholder="Ex: Auditório A, Online"
             />
+
+            {/* Selecionar sala (preenche o campo Local) */}
+            <div className="mt-3 border rounded-md p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Building className="h-4 w-4 text-muted-foreground" />
+                <p className="text-sm font-medium">Selecionar Sala (preenche o campo Local)</p>
+              </div>
+
+              {/* Filtros */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                <div>
+                  <Label htmlFor="filtro-predio" className="text-xs text-muted-foreground">Filtrar por Prédio</Label>
+                  <Select value={filtroPredio} onValueChange={setFiltroPredio}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Todos os prédios" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos os prédios</SelectItem>
+                      {prediosUnicos.map((predio) => (
+                        <SelectItem key={predio} value={predio}>{predio}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="filtro-andar" className="text-xs text-muted-foreground">Filtrar por Andar</Label>
+                  <Select value={filtroAndar} onValueChange={setFiltroAndar}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Todos os andares" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos os andares</SelectItem>
+                      {andaresUnicos.map((andar) => (
+                        <SelectItem key={andar} value={andar}>{andar}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Seleção */}
+              <Select
+                value={salaSelecionada?.toString() || ''}
+                onValueChange={(value) => {
+                  const id = parseInt(value);
+                  setSalaSelecionada(id);
+                  const sala = salasFiltradas.find((s: any) => s.id === id);
+                  if (sala) aplicarSalaNoLocal(sala);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={salasLoading ? 'Carregando salas…' : 'Escolha uma sala disponível...'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {salasFiltradas.map((s: any) => (
+                    <SelectItem key={s.id} value={s.id.toString()}>
+                      {s.sala} - {s.predio} ({s.andar}) - {s.capacidade} pessoas
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <p className="text-xs text-muted-foreground mt-2">
+                {salasFiltradas.length} sala(s) encontrada(s){capacidadeNumber ? ` com capacidade ≥ ${capacidadeNumber}` : ''}
+              </p>
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -352,7 +442,7 @@ export default function EditarEventoEntidade({ evento, entidadeId, onSuccess }: 
 
         <div className="flex gap-3 pt-4">
           <Button type="submit" disabled={loading} className="flex-1">
-            {loading ? 'Salvando...' : 'Salvar Alterações'}
+            {loading ? 'Enviando...' : 'Solicitar Alterações'}
           </Button>
         </div>
       </form>

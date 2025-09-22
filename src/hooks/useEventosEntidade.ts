@@ -7,7 +7,8 @@ export interface Evento {
   descricao?: string;
   local?: string;
   data: string;
-  horario?: string;
+  horario_inicio?: string | null;
+  horario_termino?: string | null;
   capacidade?: number;
   link_evento?: string;
   status: string;
@@ -37,39 +38,51 @@ export const useEventosEntidade = (entidadeId?: number, isEntityOwner: boolean =
       setLoading(true);
       setError(null);
       
-      let query = supabase
+      // Query básica para testar
+      console.log('🔍 Testando query básica para entidade:', entidadeId);
+      const { data, error } = await supabase
         .from('eventos')
         .select('*')
         .eq('entidade_id', entidadeId);
       
+      console.log('📊 Resultado da query básica:', { 
+        dataCount: data?.length || 0, 
+        error: error?.message || 'Nenhum erro',
+        firstEvent: data?.[0]
+      });
+      
       // Se não for o proprietário da entidade, filtrar apenas eventos aprovados
+      let filteredData = data;
       if (!isEntityOwner) {
         console.log('🔒 useEventosEntidade: filtrando apenas eventos aprovados para usuário comum');
-        query = query.eq('status_aprovacao', 'aprovado');
+        filteredData = data?.filter(e => e.status_aprovacao === 'aprovado') || [];
       } else {
         console.log('👑 useEventosEntidade: mostrando todos os eventos para proprietário da entidade');
       }
-      
-      const { data, error } = await query
-        .order('data', { ascending: true })
-        .order('horario', { ascending: true });
 
       if (error) {
         console.error('❌ useEventosEntidade: erro na busca:', error);
+        console.error('❌ Detalhes do erro:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
         throw error;
       }
       
-      console.log('✅ useEventosEntidade: eventos carregados:', data?.length || 0);
+      console.log('✅ useEventosEntidade: eventos carregados:', filteredData?.length || 0);
+      console.log('📊 Primeiro evento (exemplo):', filteredData?.[0]);
       if (!isEntityOwner) {
-        console.log('📊 useEventosEntidade: eventos aprovados encontrados:', data?.length || 0);
+        console.log('📊 useEventosEntidade: eventos aprovados encontrados:', filteredData?.length || 0);
       } else {
-        const aprovados = data?.filter(e => e.status_aprovacao === 'aprovado')?.length || 0;
-        const pendentes = data?.filter(e => e.status_aprovacao === 'pendente')?.length || 0;
-        const rejeitados = data?.filter(e => e.status_aprovacao === 'rejeitado')?.length || 0;
+        const aprovados = filteredData?.filter(e => e.status_aprovacao === 'aprovado')?.length || 0;
+        const pendentes = filteredData?.filter(e => e.status_aprovacao === 'pendente')?.length || 0;
+        const rejeitados = filteredData?.filter(e => e.status_aprovacao === 'rejeitado')?.length || 0;
         console.log('📊 useEventosEntidade: status dos eventos:', { aprovados, pendentes, rejeitados });
       }
       
-      setEventos(data || []);
+      setEventos(filteredData || []);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao carregar eventos';
       console.error('❌ useEventosEntidade: erro:', err);
@@ -83,10 +96,12 @@ export const useEventosEntidade = (entidadeId?: number, isEntityOwner: boolean =
   const refetch = useCallback(async () => {
     console.log('🔄 useEventosEntidade: refetch solicitado');
     await fetchEventos();
-  }, [entidadeId, isEntityOwner]);
+  }, []);
 
   useEffect(() => {
-    fetchEventos();
+    if (entidadeId) {
+      fetchEventos();
+    }
   }, [entidadeId, isEntityOwner]);
 
   return { eventos, loading, error, refetch };
