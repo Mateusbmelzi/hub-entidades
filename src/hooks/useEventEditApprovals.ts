@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useNotificationSystem } from './useNotificationSystem';
 
 export interface EventEditRequest {
   id: string;
@@ -23,13 +24,14 @@ export interface EventEditRequest {
     link_evento?: string;
     area_atuacao?: string[];
   } | null;
-  entidades?: { nome: string } | null;
+  entidades?: { nome: string } | null;  
 }
 
 export const useEventEditApprovals = () => {
   const [requests, setRequests] = useState<EventEditRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { createNotification } = useNotificationSystem();
 
   const fetchRequests = async () => {
     try {
@@ -95,41 +97,99 @@ export const useEventEditApprovals = () => {
         .eq('id', requestId);
       if (error) throw error;
 
-      // If approved, apply changes to event and sync with reservations
+      // Notificar solicitante da edição (requested_by)
+      const req = requests.find(r => r.id === requestId);
+      if (req) {
+        try {
+          console.log('🔍 Buscando solicitante para notificação:', req.requested_by);
+
+          // Buscar perfil do solicitante
+          let recipientKey: string | null = null;
+          if (req.requested_by) {
+            const { data: requesterProfile, error: requesterErr } = await supabase
+              .from('profiles')
+              .select('email, nome')
+              .eq('id', req.requested_by)
+              .single();
+
+            if (!requesterErr && requesterProfile && typeof requesterProfile === 'object') {
+              const emailVal = (requesterProfile as any).email as string | null | undefined;
+              const nomeVal = (requesterProfile as any).nome as string | null | undefined;
+              recipientKey = emailVal || nomeVal || null;
+              console.log('✅ Destinatário (solicitante) definido como:', recipientKey);
+            } else {
+              console.warn('⚠️ Não foi possível obter perfil do solicitante:', requesterErr);
+            }
+          }
+
+          // Fallback: tentar por nome da entidade
+          if (!recipientKey && req.entidades?.nome) {
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('email')
+              .ilike('nome', req.entidades.nome)
+              .single();
+            if (!profileError && profileData && typeof profileData === 'object' && 'email' in (profileData as any) && (profileData as any).email) {
+              recipientKey = (profileData as any).email as string;
+              console.log('✅ Destinatário (email por nome da entidade):', recipientKey);
+            } else {
+              recipientKey = req.entidades?.nome || null;
+              console.log('ℹ️ Destinatário (nome da entidade como fallback):', recipientKey);
+            }
+          }
+
+          const title = approve 
+            ? 'Solicitação de Edição Aprovada! ✅' 
+            : 'Solicitação de Edição Rejeitada';
+          const message = approve
+            ? `Sua solicitação de edição do evento "${req.eventos?.nome}" foi aprovada! ${comment ? `Comentário: ${comment}` : ''}`
+            : `Sua solicitação de edição do evento "${req.eventos?.nome}" foi rejeitada. ${comment ? `Motivo: ${comment}` : 'Entre em contato para mais informações.'}`;
+          const type = approve ? 'success' : 'warning';
+
+          if (recipientKey) {
+            await createNotification(
+              recipientKey,
+              title,
+              message,
+              type,
+              req.entidade_id
+            );
+            console.log('✅ Notificação enviada para:', recipientKey);
+          } else {
+            console.warn('⚠️ Nenhum destinatário encontrado para notificação de edição');
+          }
+        } catch (notifError) {
+          console.error('❌ Erro ao enviar notificação:', notifError);
+        }
+      }
+
+      // Se aprovado, aplica alterações e sincroniza com reservas
       if (approve) {
-        const req = requests.find(r => r.id === requestId);
         if (req) {
-          // Update the event
           const { error: updError } = await supabase
             .from('eventos')
             .update(req.changes)
             .eq('id', req.evento_id);
           if (updError) throw updError;
 
-          // If the event name changed, update the associated reservations
           if (req.changes.nome) {
             console.log('🔄 Sincronizando nome do evento com reservas...');
-            
-            // Find all reservations linked to this event
             const { data: reservas, error: reservasError } = await supabase
               .from('reservas')
               .select('id, titulo_evento_capacitacao')
               .eq('evento_id', req.evento_id);
-
-            if (reservasError) {
-              console.error('❌ Erro ao buscar reservas:', reservasError);
-            } else if (reservas && reservas.length > 0) {
-              // Update titulo_evento_capacitacao in all associated reservations
+            if (!reservasError && reservas && reservas.length > 0) {
               const { error: updateReservasError } = await supabase
                 .from('reservas')
                 .update({ titulo_evento_capacitacao: req.changes.nome } as any)
                 .eq('evento_id', req.evento_id);
-
               if (updateReservasError) {
                 console.error('❌ Erro ao atualizar reservas:', updateReservasError);
               } else {
                 console.log('✅ Reservas sincronizadas com sucesso');
               }
+            } else if (reservasError) {
+              console.error('❌ Erro ao buscar reservas:', reservasError);
             }
           }
         }

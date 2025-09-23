@@ -49,20 +49,85 @@ export const useAprovarReservas = () => {
           
           // Buscar email do solicitante para enviar notificação
           try {
+            console.log('🔍 Buscando dados da reserva para notificação:', reservaId);
+            
             const { data: reservaData, error: reservaError } = await supabase
               .from('reservas')
-              .select('user_email, tipo_reserva')
+              .select('tipo_reserva, profile_id, nome_solicitante, telefone_solicitante')
               .eq('id', reservaId)
               .single();
+
+            // Usar nome do solicitante da reserva
+            let solicitanteEmail = null;
+            let solicitanteNome = null;
             
-            if (!reservaError && reservaData?.user_email) {
-              await notifyReservationStatusChange(
-                reservaData.user_email,
-                reservaData.tipo_reserva || 'sala',
-                'aprovada',
-                reservaId,
-                comentario
-              );
+            if (!reservaError && reservaData) {
+              solicitanteNome = reservaData.nome_solicitante;
+              console.log('📊 Dados da reserva encontrados:', {
+                reservaData,
+                reservaError,
+                nomeSolicitante: reservaData.nome_solicitante,
+                telefoneSolicitante: reservaData.telefone_solicitante
+              });
+              
+              // Tentar buscar email do profile como fallback
+              if (reservaData.profile_id) {
+                console.log('🔍 Tentando buscar email do profile:', reservaData.profile_id);
+                
+                const { data: profileData, error: profileError } = await supabase
+                  .from('profiles')
+                  .select('email')
+                  .eq('id', reservaData.profile_id)
+                  .single();
+                
+                if (!profileError && profileData?.email) {
+                  solicitanteEmail = profileData.email;
+                  console.log('✅ Email encontrado no profile:', solicitanteEmail);
+                } else {
+                  console.log('⚠️ Email não encontrado no profile, usando nome do solicitante');
+                }
+              }
+            } else {
+              console.warn('⚠️ Reserva não encontrada:', { reservaError });
+            }
+
+            console.log('📊 Dados da reserva encontrados:', {
+              reservaData,
+              reservaError,
+              profileId: reservaData?.profile_id,
+              solicitanteEmail,
+              solicitanteNome
+            });
+
+            if (reservaError) {
+              console.error('❌ Erro ao buscar dados da reserva:', reservaError);
+            } else {
+              console.log('📧 Email do solicitante encontrado:', solicitanteEmail);
+              console.log('👤 Nome do solicitante encontrado:', solicitanteNome);
+              
+              if (solicitanteEmail) {
+                console.log('📤 Enviando notificação para (email):', solicitanteEmail);
+                const notifResult = await notifyReservationStatusChange(
+                  solicitanteEmail,
+                  reservaData?.tipo_reserva || 'sala',
+                  'aprovada',
+                  reservaId,
+                  comentario
+                );
+                console.log('✅ Resultado da notificação:', notifResult);
+              } else if (solicitanteNome) {
+                console.log('📤 Enviando notificação para (nome):', solicitanteNome);
+                const notifResult = await notifyReservationStatusChange(
+                  solicitanteNome,
+                  reservaData?.tipo_reserva || 'sala',
+                  'aprovada',
+                  reservaId,
+                  comentario
+                );
+                console.log('✅ Resultado da notificação:', notifResult);
+              } else {
+                console.warn('⚠️ Nem email nem nome do solicitante encontrados');
+              }
             }
           } catch (notifError) {
             console.error('❌ Erro ao enviar notificação:', notifError);
@@ -209,14 +274,43 @@ export const useAprovarReservas = () => {
       try {
         const { data: reservaData, error: reservaError } = await supabase
           .from('reservas')
-          .select('user_email, tipo_reserva')
+          .select('tipo_reserva, profile_id, nome_solicitante, telefone_solicitante')
           .eq('id', reservaId)
           .single();
+
+        // Usar nome do solicitante da reserva
+        let solicitanteEmail = null;
+        let solicitanteNome = null;
         
-        if (!reservaError && reservaData?.user_email) {
+        if (!reservaError && reservaData) {
+          solicitanteNome = reservaData.nome_solicitante;
+          
+          // Tentar buscar email do profile como fallback
+          if (reservaData.profile_id) {
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('email')
+              .eq('id', reservaData.profile_id)
+              .single();
+            
+            if (!profileError && profileData?.email) {
+              solicitanteEmail = profileData.email;
+            }
+          }
+        }
+        
+        if (solicitanteEmail) {
           await notifyReservationStatusChange(
-            reservaData.user_email,
-            reservaData.tipo_reserva || 'sala',
+            solicitanteEmail,
+            reservaData?.tipo_reserva || 'sala',
+            'rejeitada',
+            reservaId,
+            comentario
+          );
+        } else if (solicitanteNome) {
+          await notifyReservationStatusChange(
+            solicitanteNome,
+            reservaData?.tipo_reserva || 'sala',
             'rejeitada',
             reservaId,
             comentario

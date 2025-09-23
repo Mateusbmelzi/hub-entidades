@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Bell, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,26 +9,37 @@ import { useNotificationSystem, Notification } from '@/hooks/useNotificationSyst
 import { toast } from 'sonner';
 
 const NotificationBell = () => {
-  const { user } = useAuth();
-  const { getNotifications, getUnreadCount, markAsRead } = useNotificationSystem();
+  const { user, profile } = useAuth();
+  const { getNotifications, getUnreadCount, markAsRead, archiveAllNotifications, debugAllNotifications } = useNotificationSystem();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
 
-  useEffect(() => {
-    if (user?.email) {
-      fetchNotifications();
-      fetchUnreadCount();
-    }
-  }, [user?.email]);
+  // Identificadores possíveis: email e nome
+  const notificationKeys = useMemo(() => {
+    const keys: string[] = [];
+    if (user?.email) keys.push(user.email);
+    if (profile?.nome) keys.push(profile.nome);
+    return keys.length > 0 ? keys : null;
+  }, [user?.email, profile?.nome]);
 
   const fetchNotifications = async () => {
-    if (!user?.email) return;
-
+    console.log('🔔 NotificationBell - Buscando notificações:', { 
+      notificationKeys, 
+      user: user?.email, 
+      profile: profile?.nome,
+      userExists: !!user,
+      profileExists: !!profile
+    });
+    setLoading(true);
     try {
-      setLoading(true);
-      const data = await getNotifications(user.email);
+      const data = await getNotifications(notificationKeys);
+      console.log('🔔 NotificationBell - Notificações encontradas:', { 
+        count: data?.length || 0, 
+        data: data,
+        firstNotification: data?.[0]
+      });
       setNotifications(data);
     } catch (error) {
       console.error('Erro ao buscar notificações:', error);
@@ -38,19 +49,29 @@ const NotificationBell = () => {
   };
 
   const fetchUnreadCount = async () => {
-    if (!user?.email) return;
-
+    console.log('🔔 NotificationBell - Buscando contagem:', { notificationKeys });
     try {
-      const count = await getUnreadCount(user.email);
+      const count = await getUnreadCount(notificationKeys);
+      console.log('🔔 NotificationBell - Contagem encontrada:', count);
       setUnreadCount(count);
     } catch (error) {
       console.error('Erro ao buscar contagem de notificações:', error);
     }
   };
 
+  useEffect(() => {
+    if (notificationKeys) {
+      fetchNotifications();
+      fetchUnreadCount();
+    }
+  }, [notificationKeys]);
+
   const handleMarkAsRead = async (notificationId: number) => {
     try {
+      console.log('🔔 NotificationBell - Marcando notificação como lida:', notificationId);
       const success = await markAsRead(notificationId);
+      console.log('🔔 NotificationBell - Resultado do markAsRead:', success);
+      
       if (success) {
         // Atualizar a lista local
         setNotifications(prev => 
@@ -58,6 +79,9 @@ const NotificationBell = () => {
         );
         // Atualizar contagem
         fetchUnreadCount();
+        toast.success('Notificação marcada como lida');
+      } else {
+        toast.error('Erro ao marcar notificação como lida');
       }
     } catch (error) {
       console.error('Erro ao marcar notificação como lida:', error);
@@ -78,6 +102,56 @@ const NotificationBell = () => {
     } catch (error) {
       console.error('Erro ao marcar todas como lidas:', error);
       toast.error('Erro ao marcar notificações como lidas');
+    }
+  };
+
+  const handleClearAllNotifications = async () => {
+    try {
+      console.log('🔔 NotificationBell - Limpando todas as notificações');
+      const success = await archiveAllNotifications(notificationKeys);
+      
+      if (success) {
+        // Atualizar lista local - remover todas as notificações
+        setNotifications([]);
+        setUnreadCount(0);
+        toast.success('Todas as notificações foram removidas');
+      } else {
+        toast.error('Erro ao limpar notificações');
+      }
+    } catch (error) {
+      console.error('Erro ao limpar notificações:', error);
+      toast.error('Erro ao limpar notificações');
+    }
+  };
+
+  const handleDebugNotifications = async () => {
+    try {
+      console.log('🔍 ===== DEBUG SININHO =====');
+      console.log('👤 User Email:', user?.email);
+      console.log('👤 Profile Nome:', profile?.nome);
+      console.log('🔑 Notification Keys:', notificationKeys);
+      console.log('---');
+      
+      await debugAllNotifications();
+      
+      console.log('🔍 ===== TESTE DE BUSCA =====');
+      console.log('🔍 Testando busca com as chaves do sininho...');
+      const testData = await getNotifications(notificationKeys);
+      console.log('📊 Resultado da busca do sininho:', {
+        count: testData?.length || 0,
+        data: testData?.map(n => ({
+          id: n.id,
+          user_email: n.user_email,
+          title: n.title,
+          archived: n.archived
+        }))
+      });
+      console.log('🔍 ===== FIM DEBUG SININHO =====');
+      
+      toast.success('Debug executado - verifique o console');
+    } catch (error) {
+      console.error('Erro no debug:', error);
+      toast.error('Erro no debug');
     }
   };
 
@@ -107,7 +181,7 @@ const NotificationBell = () => {
     }
   };
 
-  if (!user) return null;
+  if (!user && !profile) return null;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -128,16 +202,36 @@ const NotificationBell = () => {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg">Notificações</CardTitle>
-            {unreadCount > 0 && (
+            <div className="flex gap-2">
+              {unreadCount > 0 && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleMarkAllAsRead}
+                  className="text-xs"
+                >
+                  Marcar todas como lidas
+                </Button>
+              )}
+              {notifications.length > 0 && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleClearAllNotifications}
+                  className="text-xs text-red-600 hover:text-red-700"
+                >
+                  Limpar todas
+                </Button>
+              )}
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={handleMarkAllAsRead}
-                className="text-xs"
+                onClick={handleDebugNotifications}
+                className="text-xs text-blue-600 hover:text-blue-700"
               >
-                Marcar todas como lidas
+                Debug
               </Button>
-            )}
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-2">
