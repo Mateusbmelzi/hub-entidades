@@ -861,8 +861,7 @@ const EntidadeDetalhes = () => {
 
 
 
-            {/* Eventos - Visível apenas se houver eventos */}
-            {eventos && eventos.length > 0 && (
+            {/* Eventos - Sempre visível para mostrar calendário */}
             <Card className="border-0 shadow-lg bg-white hover:shadow-xl transition-shadow duration-300">
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
@@ -994,7 +993,6 @@ const EntidadeDetalhes = () => {
                 )}
               </CardContent>
             </Card>
-            )}
 
             {/* Projetos */}
             {(projetos.length > 0 || isOwner) && (

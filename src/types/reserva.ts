@@ -140,6 +140,7 @@ export interface ReservaFormData {
   quantidade_pessoas: number;
   nome_solicitante: string;
   telefone_solicitante: string;
+  sala_id?: number; // ID da sala selecionada
   
   // Motivo da reserva (seguindo o fluxo)
   motivo_reserva?: MotivoReservaAuditorio | MotivoReservaSala;

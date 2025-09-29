@@ -537,6 +537,7 @@ export type Database = {
           data_aprovacao: string | null
           aprovador_email: string | null
           observacoes: string | null
+          sala_id: number | null
         }
         Insert: {
           id?: string
@@ -585,6 +586,7 @@ export type Database = {
           data_aprovacao?: string | null
           aprovador_email?: string | null
           observacoes?: string | null
+          sala_id?: number | null
         }
         Update: {
           id?: string
@@ -633,6 +635,7 @@ export type Database = {
           data_aprovacao?: string | null
           aprovador_email?: string | null
           observacoes?: string | null
+          sala_id?: number | null
         }
         Relationships: [
           {

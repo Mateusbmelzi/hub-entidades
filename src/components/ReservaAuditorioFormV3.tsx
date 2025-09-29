@@ -13,8 +13,10 @@ import { Calendar, Clock, Users, User, Phone, FileText, CheckCircle, Building, M
 import { useCreateReserva } from '@/hooks/useCreateReserva';
 import { useEntityAuth } from '@/hooks/useEntityAuth';
 import { useAuth } from '@/hooks/useAuth';
+import { useSalas } from '@/hooks/useSalas';
 import { ReservaFormData, MOTIVO_AUDITORIO_LABELS, ProfessorConvidado } from '@/types/reserva';
 import { ProfessoresConvidadosManager } from '@/components/ProfessoresConvidadosManager';
+import { SalaSelector } from '@/components/SalaSelector';
 import { toast } from 'sonner';
 
 const TOTAL_STEPS = 4;
@@ -34,6 +36,8 @@ export const ReservaAuditorioFormV3: React.FC = () => {
   const { createReserva, loading: createLoading } = useCreateReserva();
   const { isAuthenticated: isEntityAuthenticated, entidadeId } = useEntityAuth();
   const { profile } = useAuth();
+  const { salas, loading: salasLoading, getSalaAuditorio } = useSalas();
+
 
   // Preencher automaticamente o nome e telefone do solicitante quando o perfil do usuário for carregado
   useEffect(() => {
@@ -107,6 +111,9 @@ export const ReservaAuditorioFormV3: React.FC = () => {
         }
         if (!formData.telefone_solicitante) {
           newErrors.telefone_solicitante = 'Telefone é obrigatório';
+        }
+        if (!formData.sala_id) {
+          newErrors.sala_id = 'Seleção do auditório é obrigatória';
         }
         break;
 
@@ -276,13 +283,17 @@ export const ReservaAuditorioFormV3: React.FC = () => {
   const renderStep = () => {
     switch (currentStep) {
       case 1:
-        return <BasicInfoStep formData={formData} updateFormData={updateFormData} errors={errors} />;
+        return <BasicInfoStep 
+          formData={formData} 
+          updateFormData={updateFormData} 
+          errors={errors} 
+        />;
       case 2:
         return <ReasonStep formData={formData} updateFormData={updateFormData} errors={errors} />;
       case 3:
         return <ConditionalFieldsStep formData={formData} updateFormData={updateFormData} errors={errors} />;
       case 4:
-        return <ReviewStep formData={formData} />;
+        return <ReviewStep formData={formData} salas={salas} />;
       default:
         return null;
     }
@@ -462,6 +473,15 @@ const BasicInfoStep: React.FC<{
           {errors.telefone_solicitante && <p className="text-sm text-red-500">{errors.telefone_solicitante}</p>}
         </div>
       </div>
+
+      {/* Seleção de Auditório */}
+      <SalaSelector
+        tipo="auditorio"
+        quantidadePessoas={formData.quantidade_pessoas}
+        salaId={formData.sala_id}
+        onSalaChange={(salaId) => updateFormData('sala_id', salaId)}
+        errors={errors}
+      />
     </div>
   );
 };
@@ -598,7 +618,8 @@ const ConditionalFieldsStep: React.FC<{
 // Componente para revisão (Passo 4)
 const ReviewStep: React.FC<{
   formData: Partial<ReservaFormData>;
-}> = ({ formData }) => {
+  salas: any[];
+}> = ({ formData, salas }) => {
   const formatDate = (date: string) => {
     if (!date) return 'Não informado';
     return new Date(date).toLocaleDateString('pt-BR');
@@ -654,6 +675,17 @@ const ReviewStep: React.FC<{
               <div>
                 <span className="font-medium">Telefone:</span>
                 <p className="text-sm text-gray-600">{formData.telefone_solicitante || 'Não informado'}</p>
+              </div>
+              <div>
+                <span className="font-medium">Auditório:</span>
+                <p className="text-sm text-gray-600">
+                  {formData.sala_id ? (() => {
+                    const auditorioSelecionado = salas.find(s => s.id === formData.sala_id);
+                    return auditorioSelecionado 
+                      ? `${auditorioSelecionado.predio} - ${auditorioSelecionado.andar}º andar - ${auditorioSelecionado.sala} (Capacidade: ${auditorioSelecionado.capacidade} pessoas)`
+                      : 'Auditório não encontrado';
+                  })() : 'Não selecionado'}
+                </p>
               </div>
             </div>
           </CardContent>

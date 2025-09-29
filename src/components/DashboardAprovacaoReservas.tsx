@@ -7,11 +7,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useReservasPendentes } from '@/hooks/useReservas';
+import { useEntidadesLista } from '@/hooks/useEntidadesLista';
 import { useAprovarReservas } from '@/hooks/useAprovarReservas';
 import { useSalas } from '@/hooks/useSalas';
-import { ReservasFilters, ReservasFilters as ReservasFiltersType } from '@/components/ReservasFilters';
 import { ExportReservasButton } from '@/components/ExportReservasButton';
 import { ReservaDetalhada, STATUS_LABELS, TIPO_RESERVA_LABELS } from '@/types/reserva';
 import { supabase } from '@/integrations/supabase/client';
@@ -35,7 +36,11 @@ import {
   Shield,
   Key,
   Sparkles,
-  Wrench
+  Wrench,
+  CheckSquare,
+  Square,
+  Check,
+  Filter
 } from 'lucide-react';
 
 interface ReservaCardProps {
@@ -50,7 +55,7 @@ interface ReservaCardProps {
 const ReservaCard: React.FC<ReservaCardProps> = ({ reserva, onAprovar, onRejeitar, loading, salasDisponiveis, salaAuditorio }) => {
   const [comentario, setComentario] = useState('');
   const [local, setLocal] = useState(reserva.tipo_reserva === 'auditorio' ? 'Auditório Steffi e Max Perlaman' : '');
-  const [salaSelecionada, setSalaSelecionada] = useState<number | undefined>(undefined);
+  const [salaSelecionada, setSalaSelecionada] = useState<number | undefined>(reserva.sala_id || undefined);
   const [showDetails, setShowDetails] = useState(false);
   const [filtroPredio, setFiltroPredio] = useState<string>('');
   const [filtroAndar, setFiltroAndar] = useState<string>('');
@@ -69,19 +74,30 @@ const ReservaCard: React.FC<ReservaCardProps> = ({ reserva, onAprovar, onRejeita
   const prediosUnicos = [...new Set(salasDisponiveis.map(sala => sala.predio))].sort();
   const andaresUnicos = [...new Set(salasDisponiveis.map(sala => sala.andar))].sort();
 
-  // Resetar sala selecionada quando filtros mudarem
+  // Atualizar sala selecionada quando a reserva mudar
   useEffect(() => {
+    setSalaSelecionada(reserva.sala_id || undefined);
+  }, [reserva.sala_id]);
+
+  // Resetar sala selecionada quando filtros mudarem (apenas se não há sala pré-selecionada)
+  useEffect(() => {
+    if (!reserva.sala_id) {
     setSalaSelecionada(undefined);
-  }, [filtroPredio, filtroAndar]);
+    }
+  }, [filtroPredio, filtroAndar, reserva.sala_id]);
 
   const handleAprovar = () => {
-    if (reserva.tipo_reserva === 'sala' && !salaSelecionada) {
+    if (reserva.tipo_reserva === 'sala' && !salaSelecionada && !reserva.sala_id) {
       alert('Por favor, selecione uma sala.');
       return;
     }
     
     // Para auditório, usar a sala do auditório automaticamente
-    const salaId = reserva.tipo_reserva === 'auditorio' ? salaAuditorio?.id : salaSelecionada;
+    // Para sala, usar a sala selecionada pelo admin ou a sala escolhida pela entidade
+    const salaId = reserva.tipo_reserva === 'auditorio' 
+      ? salaAuditorio?.id 
+      : (salaSelecionada || reserva.sala_id);
+    
     const localFinal = reserva.tipo_reserva === 'auditorio' ? 
       `${salaAuditorio?.sala} - ${salaAuditorio?.predio} (${salaAuditorio?.andar})` : 
       local;
@@ -347,8 +363,18 @@ const ReservaCard: React.FC<ReservaCardProps> = ({ reserva, onAprovar, onRejeita
         <div className="space-y-3">
           {reserva.tipo_reserva === 'sala' ? (
             <div>
+              {/* Sala selecionada pela entidade */}
+              {reserva.sala_id && (
+                <div className="mb-4 p-3 bg-green-50 rounded-lg border border-green-200">
+                  <Label className="text-sm font-medium text-green-900">✓ Sala Pré-selecionada pela Entidade</Label>
+                  <p className="text-sm text-green-700 mt-1">
+                    A sala escolhida pela entidade já está selecionada abaixo. Você pode alterar se necessário.
+                  </p>
+                </div>
+              )}
+              
               <Label htmlFor={`sala-${reserva.id}`}>
-                Selecionar Sala *
+                {reserva.sala_id ? 'Alterar Sala (opcional)' : 'Selecionar Sala *'}
               </Label>
               
               {/* Filtros para salas */}
@@ -493,10 +519,18 @@ const ReservaCard: React.FC<ReservaCardProps> = ({ reserva, onAprovar, onRejeita
 };
 
 export const DashboardAprovacaoReservas: React.FC = () => {
-  const { reservasPendentes, loading, error, refetch } = useReservasPendentes();
+  const [filtroEntidade, setFiltroEntidade] = useState<number | undefined>(undefined);
+  const [filtroSolicitante, setFiltroSolicitante] = useState('');
+  const [reservasSelecionadas, setReservasSelecionadas] = useState<Set<string>>(new Set());
+  const [modoSelecao, setModoSelecao] = useState(false);
+  const [comentarioLote, setComentarioLote] = useState('');
+  const [localLote, setLocalLote] = useState('');
+  const [salaLote, setSalaLote] = useState<number | undefined>(undefined);
+  
+  const { reservasPendentes, loading, error, refetch } = useReservasPendentes(filtroEntidade);
+  const { entidades, loading: entidadesLoading } = useEntidadesLista();
   const { aprovarReserva, rejeitarReserva, loading: actionLoading } = useAprovarReservas();
   const { salas, getSalasDisponiveis, getSalaAuditorio, loading: salasLoading, error: salasError } = useSalas();
-  const [filters, setFilters] = useState<ReservasFiltersType>({});
 
   // Debug logs
   console.log('🔍 DashboardAprovacaoReservas - Estado das salas:', {
@@ -505,53 +539,91 @@ export const DashboardAprovacaoReservas: React.FC = () => {
     error: salasError
   });
 
+  // Funções para gerenciar seleção múltipla
+  const toggleSelecaoReserva = (reservaId: string) => {
+    setReservasSelecionadas(prev => {
+      const novo = new Set(prev);
+      if (novo.has(reservaId)) {
+        novo.delete(reservaId);
+      } else {
+        novo.add(reservaId);
+      }
+      return novo;
+    });
+  };
+
+  const selecionarTodas = () => {
+    setReservasSelecionadas(new Set(filteredReservas.map(r => r.id)));
+  };
+
+  const deselecionarTodas = () => {
+    setReservasSelecionadas(new Set());
+  };
+
+  const toggleModoSelecao = () => {
+    setModoSelecao(!modoSelecao);
+    if (modoSelecao) {
+      setReservasSelecionadas(new Set());
+    }
+  };
+
+  // Funções para ações em lote
+  const handleAprovarLote = async () => {
+    if (reservasSelecionadas.size === 0) return;
+
+    const reservasParaAprovar = filteredReservas.filter(r => reservasSelecionadas.has(r.id));
+    
+    for (const reserva of reservasParaAprovar) {
+      try {
+        await aprovarReserva(
+          reserva.id,
+          comentarioLote || undefined,
+          localLote || undefined,
+          salaLote || reserva.sala_id || undefined
+        );
+      } catch (error) {
+        console.error(`Erro ao aprovar reserva ${reserva.id}:`, error);
+      }
+    }
+
+    setReservasSelecionadas(new Set());
+    setComentarioLote('');
+    setLocalLote('');
+    setSalaLote(undefined);
+    refetch();
+  };
+
+  const handleRejeitarLote = async () => {
+    if (reservasSelecionadas.size === 0) return;
+
+    const reservasParaRejeitar = filteredReservas.filter(r => reservasSelecionadas.has(r.id));
+    
+    for (const reserva of reservasParaRejeitar) {
+      try {
+        await rejeitarReserva(reserva.id, comentarioLote);
+      } catch (error) {
+        console.error(`Erro ao rejeitar reserva ${reserva.id}:`, error);
+      }
+    }
+
+    setReservasSelecionadas(new Set());
+    setComentarioLote('');
+    refetch();
+  };
+
   // Filtrar reservas baseado nos filtros aplicados
   const filteredReservas = useMemo(() => {
     return reservasPendentes.filter(reserva => {
-      // Filtro por status
-      if (filters.status?.length && !filters.status.includes(reserva.status)) {
-        return false;
-      }
-
-      // Filtro por tipo de reserva
-      if (filters.tipo_reserva?.length && !filters.tipo_reserva.includes(reserva.tipo_reserva)) {
-        return false;
-      }
-
-      // Filtro por data de início
-      if (filters.data_inicio && new Date(reserva.data_reserva) < new Date(filters.data_inicio)) {
-        return false;
-      }
-
-      // Filtro por data de fim
-      if (filters.data_fim && new Date(reserva.data_reserva) > new Date(filters.data_fim)) {
-        return false;
-      }
-
       // Filtro por nome do solicitante
-      if (filters.nome_solicitante && 
-          !reserva.nome_solicitante.toLowerCase().includes(filters.nome_solicitante.toLowerCase())) {
-        return false;
-      }
-
-      // Filtro por nome do evento
-      if (filters.nome_evento && 
-          reserva.nome_evento && 
-          !reserva.nome_evento.toLowerCase().includes(filters.nome_evento.toLowerCase())) {
+      if (filtroSolicitante && 
+          !reserva.nome_solicitante.toLowerCase().includes(filtroSolicitante.toLowerCase())) {
         return false;
       }
 
       return true;
     });
-  }, [reservasPendentes, filters]);
+  }, [reservasPendentes, filtroSolicitante]);
 
-  const handleFiltersChange = (newFilters: ReservasFiltersType) => {
-    setFilters(newFilters);
-  };
-
-  const handleClearFilters = () => {
-    setFilters({});
-  };
 
   const verificarConflitoReserva = async (reservaId: string, salaIdSelecionada?: number) => {
     try {
@@ -648,6 +720,56 @@ export const DashboardAprovacaoReservas: React.FC = () => {
     }
   };
 
+  // Função para verificar e corrigir reservas aprovadas sem eventos
+  const verificarReservasAprovadasSemEventos = async () => {
+    try {
+      console.log('🔍 Verificando reservas aprovadas sem eventos...');
+      
+      const { data: reservasAprovadas, error } = await supabase
+        .from('reservas')
+        .select('id, nome_solicitante, evento_id')
+        .eq('status', 'aprovada')
+        .is('evento_id', null);
+
+      if (error) {
+        console.error('❌ Erro ao buscar reservas aprovadas:', error);
+        return;
+      }
+
+      if (reservasAprovadas && reservasAprovadas.length > 0) {
+        console.log(`⚠️ Encontradas ${reservasAprovadas.length} reservas aprovadas sem eventos:`, reservasAprovadas);
+        
+        // Reverter essas reservas para pendente
+        for (const reserva of reservasAprovadas) {
+          console.log(`🔄 Revertendo reserva ${reserva.id} (${reserva.nome_solicitante})...`);
+          
+          const { error: updateError } = await supabase
+            .from('reservas')
+            .update({
+              status: 'pendente',
+              comentario_aprovacao: null,
+              data_aprovacao: null,
+              aprovador_email: null
+            })
+            .eq('id', reserva.id);
+          
+          if (updateError) {
+            console.error(`❌ Erro ao reverter reserva ${reserva.id}:`, updateError);
+          } else {
+            console.log(`✅ Reserva ${reserva.id} revertida para pendente`);
+          }
+        }
+        
+        // Recarregar dados
+        refetch();
+      } else {
+        console.log('✅ Todas as reservas aprovadas têm eventos associados');
+      }
+    } catch (error) {
+      console.error('❌ Erro ao verificar reservas aprovadas:', error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -682,9 +804,27 @@ export const DashboardAprovacaoReservas: React.FC = () => {
           <h2 className="text-2xl font-bold">Aprovação de Reservas</h2>
           <p className="text-muted-foreground">
             {filteredReservas.length} de {reservasPendentes.length} reserva(s) aguardando aprovação
+            {filtroEntidade && ` (filtrado por entidade)`}
           </p>
         </div>
         <div className="flex gap-2">
+          <Button 
+            onClick={verificarReservasAprovadasSemEventos} 
+            variant="outline"
+            size="sm"
+            className="text-orange-600 border-orange-300 hover:bg-orange-50"
+          >
+            <Wrench className="h-4 w-4 mr-2" />
+            Corrigir Reservas
+          </Button>
+          <Button 
+            onClick={toggleModoSelecao} 
+            variant={modoSelecao ? "default" : "outline"}
+            size="sm"
+          >
+            {modoSelecao ? <CheckSquare className="h-4 w-4 mr-2" /> : <Square className="h-4 w-4 mr-2" />}
+            {modoSelecao ? 'Sair da Seleção' : 'Seleção Múltipla'}
+          </Button>
           <ExportReservasButton 
             reservas={filteredReservas}
             variant="outline"
@@ -696,14 +836,149 @@ export const DashboardAprovacaoReservas: React.FC = () => {
         </div>
       </div>
 
+
+      {/* Controles de seleção múltipla */}
+      {modoSelecao && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-4">
+                <span className="font-medium">
+                  {reservasSelecionadas.size} de {filteredReservas.length} reserva(s) selecionada(s)
+                </span>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={selecionarTodas} 
+                    variant="outline" 
+                    size="sm"
+                    disabled={reservasSelecionadas.size === filteredReservas.length}
+                  >
+                    <Check className="h-4 w-4 mr-1" />
+                    Selecionar Todas
+                  </Button>
+                  <Button 
+                    onClick={deselecionarTodas} 
+                    variant="outline" 
+                    size="sm"
+                    disabled={reservasSelecionadas.size === 0}
+                  >
+                    <XCircle className="h-4 w-4 mr-1" />
+                    Deselecionar Todas
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {reservasSelecionadas.size > 0 && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="comentario-lote">Comentário (opcional)</Label>
+                    <Textarea
+                      id="comentario-lote"
+                      placeholder="Comentário para todas as reservas..."
+                      value={comentarioLote}
+                      onChange={(e) => setComentarioLote(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="local-lote">Local (opcional)</Label>
+                    <Input
+                      id="local-lote"
+                      placeholder="Local para todas as reservas..."
+                      value={localLote}
+                      onChange={(e) => setLocalLote(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="sala-lote">Sala (opcional)</Label>
+                    <Select 
+                      value={salaLote?.toString() || ''} 
+                      onValueChange={(value) => setSalaLote(value ? parseInt(value) : undefined)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Escolha uma sala..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {salas.map((sala) => (
+                          <SelectItem key={sala.id} value={sala.id.toString()}>
+                            {sala.sala} - {sala.predio} ({sala.andar}) - {sala.capacidade} pessoas
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={handleAprovarLote} 
+                    disabled={actionLoading}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Aprovar Selecionadas ({reservasSelecionadas.size})
+                  </Button>
+                  <Button 
+                    onClick={handleRejeitarLote} 
+                    variant="destructive"
+                    disabled={actionLoading}
+                  >
+                    <XCircle className="h-4 w-4 mr-2" />
+                    Rejeitar Selecionadas ({reservasSelecionadas.size})
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Filtros */}
-      <ReservasFilters
-        filters={filters}
-        onFiltersChange={handleFiltersChange}
-        onClearFilters={handleClearFilters}
-        totalCount={reservasPendentes.length}
-        filteredCount={filteredReservas.length}
-      />
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Filter className="h-5 w-5" />
+              Filtros
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {filteredReservas.length} de {reservasPendentes.length} reserva(s)
+            </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="filtro-entidade">Filtrar por Entidade</Label>
+              <Select 
+                value={filtroEntidade?.toString() || 'todas'} 
+                onValueChange={(value) => setFiltroEntidade(value === 'todas' ? undefined : parseInt(value))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Todas as entidades" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas as entidades</SelectItem>
+                  {entidades.map((entidade) => (
+                    <SelectItem key={entidade.id} value={entidade.id.toString()}>
+                      {entidade.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="filtro-solicitante">Filtrar por Solicitante</Label>
+              <Input
+                id="filtro-solicitante"
+                placeholder="Nome do solicitante..."
+                value={filtroSolicitante}
+                onChange={(e) => setFiltroSolicitante(e.target.value)}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {filteredReservas.length === 0 ? (
         <Card>
@@ -731,8 +1006,18 @@ export const DashboardAprovacaoReservas: React.FC = () => {
             : undefined;
           
           return (
+            <div key={reserva.id} className="relative">
+              {modoSelecao && (
+                <div className="absolute top-4 left-4 z-10">
+                  <Checkbox
+                    checked={reservasSelecionadas.has(reserva.id)}
+                    onCheckedChange={() => toggleSelecaoReserva(reserva.id)}
+                    className="h-5 w-5"
+                  />
+                </div>
+              )}
+              <div className={modoSelecao ? "ml-8" : ""}>
             <ReservaCard
-              key={reserva.id}
               reserva={reserva}
               onAprovar={handleAprovar}
               onRejeitar={handleRejeitar}
@@ -740,6 +1025,8 @@ export const DashboardAprovacaoReservas: React.FC = () => {
               salasDisponiveis={salasDisponiveis}
               salaAuditorio={salaAuditorio}
             />
+              </div>
+            </div>
           );
         })}
         </div>

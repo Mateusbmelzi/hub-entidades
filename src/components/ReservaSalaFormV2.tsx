@@ -14,8 +14,10 @@ import { useCreateReserva } from '@/hooks/useCreateReserva';
 import { useEntidades } from '@/hooks/useEntidades';
 import { useEntityAuth } from '@/hooks/useEntityAuth';
 import { useAuth } from '@/hooks/useAuth';
+import { useSalas } from '@/hooks/useSalas';
 import { ReservaFormData, ProfessorConvidado } from '@/types/reserva';
 import { ProfessoresConvidadosManager } from '@/components/ProfessoresConvidadosManager';
+import { SalaSelector } from '@/components/SalaSelector';
 import { toast } from 'sonner';
 
 const TOTAL_STEPS = 4;
@@ -36,6 +38,8 @@ export const ReservaSalaFormV2: React.FC = () => {
   const { entidades, loading: entidadesLoading } = useEntidades();
   const { isAuthenticated: isEntityAuthenticated, entidadeId } = useEntityAuth();
   const { profile } = useAuth();
+  const { salas, loading: salasLoading, getSalasDisponiveis } = useSalas();
+
 
   // Preencher automaticamente o nome e telefone do solicitante quando o perfil do usuário for carregado
   useEffect(() => {
@@ -109,6 +113,9 @@ export const ReservaSalaFormV2: React.FC = () => {
         }
         if (!formData.telefone_solicitante) {
           newErrors.telefone_solicitante = 'Telefone é obrigatório';
+        }
+        if (!formData.sala_id) {
+          newErrors.sala_id = 'Seleção da sala é obrigatória';
         }
         break;
 
@@ -285,13 +292,17 @@ export const ReservaSalaFormV2: React.FC = () => {
   const renderStep = () => {
     switch (currentStep) {
       case 1:
-        return <BasicInfoStep formData={formData} updateFormData={updateFormData} errors={errors} />;
+        return <BasicInfoStep 
+          formData={formData} 
+          updateFormData={updateFormData} 
+          errors={errors} 
+        />;
       case 2:
         return <ReasonStep formData={formData} updateFormData={updateFormData} errors={errors} />;
       case 3:
         return <ConditionalFieldsStep formData={formData} updateFormData={updateFormData} errors={errors} />;
       case 4:
-        return <ReviewStep formData={formData} />;
+        return <ReviewStep formData={formData} salas={salas} />;
       default:
         return null;
     }
@@ -475,6 +486,15 @@ const BasicInfoStep: React.FC<{
           {errors.telefone_solicitante && <p className="text-sm text-red-500">{errors.telefone_solicitante}</p>}
         </div>
       </div>
+
+      {/* Seleção de Sala */}
+      <SalaSelector
+        tipo="sala"
+        quantidadePessoas={formData.quantidade_pessoas}
+        salaId={formData.sala_id}
+        onSalaChange={(salaId) => updateFormData('sala_id', salaId)}
+        errors={errors}
+      />
     </div>
   );
 };
@@ -566,7 +586,8 @@ const ConditionalFieldsStep: React.FC<{
 // Componente para revisão
 const ReviewStep: React.FC<{
   formData: Partial<ReservaFormData>;
-}> = ({ formData }) => {
+  salas: any[];
+}> = ({ formData, salas }) => {
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold flex items-center gap-2">
@@ -605,6 +626,16 @@ const ReviewStep: React.FC<{
             formData.motivo_reserva === 'reuniao' ? 'Reunião' :
             formData.motivo_reserva === 'processo_seletivo' ? 'Processo Seletivo' :
             formData.motivo_reserva
+          }
+        </div>
+        <div>
+          <strong>Sala:</strong> {
+            formData.sala_id ? (() => {
+              const salaSelecionada = salas.find(s => s.id === formData.sala_id);
+              return salaSelecionada 
+                ? `${salaSelecionada.predio} - ${salaSelecionada.andar}º andar - Sala ${salaSelecionada.sala} (Capacidade: ${salaSelecionada.capacidade} pessoas)`
+                : 'Sala não encontrada';
+            })() : 'Não selecionada'
           }
         </div>
       </div>

@@ -75,6 +75,7 @@ export const useCreateReserva = () => {
           detalhes_manutencao: formData.detalhes_manutencao,
           observacoes: formData.observacoes,
           status: 'pendente',
+          sala_id: formData.sala_id, // ID da sala selecionada
           // Armazenar professores como JSON para compatibilidade
           professores_convidados_json: formData.professores_convidados ? JSON.stringify(formData.professores_convidados) : null
         })

@@ -36,7 +36,7 @@ export const useReservas = () => {
   };
 };
 
-export const useReservasPendentes = () => {
+export const useReservasPendentes = (filtroEntidade?: number) => {
   const [reservasPendentes, setReservasPendentes] = useState<ReservaDetalhada[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,17 +44,50 @@ export const useReservasPendentes = () => {
   const fetchReservasPendentes = async () => {
     try {
       setLoading(true);
-      console.log('🔍 Buscando reservas pendentes...');
+      console.log('🔍 Buscando reservas pendentes...', filtroEntidade ? `Filtro entidade: ${filtroEntidade}` : 'Sem filtro');
       
-      const { data, error } = await supabase
+      let query = supabase
         .from('reservas')
-        .select('*')
+        .select(`
+          *,
+          entidades!left (
+            id,
+            nome,
+            contato,
+            email_contato
+          )
+        `)
         .eq('status', 'pendente')
         .order('created_at', { ascending: true });
+
+      // Aplicar filtro por entidade se especificado
+      if (filtroEntidade) {
+        query = query.eq('entidade_id', filtroEntidade);
+      }
+
+      const { data, error } = await query;
 
       console.log('📊 Resultado da busca de reservas pendentes:', { data, error });
 
       if (error) throw error;
+      
+      // Debug: verificar dados da entidade
+      if (data && data.length > 0) {
+        console.log('🔍 Debug - Primeira reserva com dados de entidade:', {
+          reserva_id: data[0].id,
+          entidade_id: data[0].entidade_id,
+          entidades: data[0].entidades
+        });
+        
+        // Verificar quantas reservas têm entidade_id
+        const reservasComEntidade = data.filter(r => r.entidade_id !== null);
+        const reservasSemEntidade = data.filter(r => r.entidade_id === null);
+        console.log('📊 Debug - Reservas com/sem entidade:', {
+          total: data.length,
+          com_entidade: reservasComEntidade.length,
+          sem_entidade: reservasSemEntidade.length
+        });
+      }
       
       // Mapear os dados para o formato ReservaDetalhada
       const reservasDetalhadas: ReservaDetalhada[] = (data || []).map((reserva: any) => ({
@@ -64,12 +97,14 @@ export const useReservasPendentes = () => {
         nome_usuario: null,
         curso_usuario: null,
         celular_usuario: null,
-        nome_entidade: null,
-        contato_entidade: null,
-        email_entidade: null,
+        // Dados da entidade
+        nome_entidade: reserva.entidades?.nome || null,
+        contato_entidade: reserva.entidades?.contato || null,
+        email_entidade: reserva.entidades?.email_contato || null,
         nome_evento: null,
         descricao_evento: null,
-        sala_id: null,
+        // Manter o sala_id da reserva original
+        sala_id: reserva.sala_id || null,
         sala_nome: null,
         sala_predio: null,
         sala_andar: null,
@@ -90,7 +125,7 @@ export const useReservasPendentes = () => {
 
   useEffect(() => {
     fetchReservasPendentes();
-  }, []);
+  }, [filtroEntidade]);
 
   return {
     reservasPendentes,
