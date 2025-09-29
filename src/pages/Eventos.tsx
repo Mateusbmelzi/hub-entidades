@@ -712,6 +712,31 @@ const Eventos = () => {
                           </div>
                         )}
 
+                        {/* Professores Convidados */}
+                        {evento.reservas && evento.reservas.length > 0 && evento.reservas[0].professores_convidados_json && (
+                          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3">
+                            <div className="flex items-center gap-2 text-sm font-medium text-insper-dark-gray mb-2">
+                              <Users className="w-4 h-4 text-insper-red" />
+                              Professores Convidados
+                            </div>
+                            <div className="text-sm text-gray-700">
+                              {(() => {
+                                try {
+                                  const professores = JSON.parse(evento.reservas[0].professores_convidados_json);
+                                  return professores.map((professor: any, index: number) => (
+                                    <span key={index}>
+                                      {professor.nomeCompleto}
+                                      {index < professores.length - 1 ? ', ' : ''}
+                                    </span>
+                                  ));
+                                } catch (e) {
+                                  return null;
+                                }
+                              })()}
+                            </div>
+                          </div>
+                        )}
+
                         {/* Informações adicionais em cards destacados */}
                         <div className="space-y-3">
                           {evento.local && (

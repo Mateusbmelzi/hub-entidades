@@ -500,122 +500,6 @@ const ConditionalFieldsStep: React.FC<{
         errors={errors}
       />
       
-      {/* Manter campos antigos para compatibilidade */}
-      <div className="space-y-4">
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="tem_palestrante_externo"
-            checked={formData.tem_palestrante_externo || false}
-            onCheckedChange={(checked) => updateFormData('tem_palestrante_externo', checked)}
-          />
-          <Label htmlFor="tem_palestrante_externo">
-            Professor ou palestrante externo? (Método antigo - use o gerenciador acima)
-          </Label>
-        </div>
-        
-        {formData.tem_palestrante_externo && (
-          <div className="ml-6 space-y-4 p-4 border rounded-lg bg-muted/50">
-            <div className="space-y-2">
-              <Label htmlFor="nome_palestrante_externo">Nome Completo do Professor/Palestrante *</Label>
-              <Input
-                id="nome_palestrante_externo"
-                value={formData.nome_palestrante_externo || ''}
-                onChange={(e) => updateFormData('nome_palestrante_externo', e.target.value)}
-                className={errors.nome_palestrante_externo ? 'border-red-500' : ''}
-                maxLength={100}
-                placeholder="Ex: Dr. Maria Silva Santos"
-              />
-              <div className="flex justify-between items-center">
-                {errors.nome_palestrante_externo ? (
-                  <p className="text-sm text-red-500">{errors.nome_palestrante_externo}</p>
-                ) : (
-                  <p className="text-xs text-gray-500">Mínimo: 5 caracteres, Máximo: 100</p>
-                )}
-                <span className="text-xs text-gray-400">
-                  {formData.nome_palestrante_externo?.length || 0}/100
-                </span>
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="apresentacao_palestrante_externo">Breve Apresentação do Convidado *</Label>
-              <Textarea
-                id="apresentacao_palestrante_externo"
-                rows={3}
-                value={formData.apresentacao_palestrante_externo || ''}
-                onChange={(e) => updateFormData('apresentacao_palestrante_externo', e.target.value)}
-                className={errors.apresentacao_palestrante_externo ? 'border-red-500' : ''}
-                maxLength={500}
-                placeholder="Ex: Professor de Ciência da Computação na USP, especialista em Machine Learning..."
-              />
-              <div className="flex justify-between items-center">
-                {errors.apresentacao_palestrante_externo ? (
-                  <p className="text-sm text-red-500">{errors.apresentacao_palestrante_externo}</p>
-                ) : (
-                  <p className="text-xs text-gray-500">Mínimo: 10 caracteres, Máximo: 500</p>
-                )}
-                <span className="text-xs text-gray-400">
-                  {formData.apresentacao_palestrante_externo?.length || 0}/500
-                </span>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="eh_pessoa_publica"
-                checked={formData.eh_pessoa_publica || false}
-                onCheckedChange={(checked) => updateFormData('eh_pessoa_publica', checked)}
-              />
-              <Label htmlFor="eh_pessoa_publica">
-                O convidado é uma pessoa pública?
-              </Label>
-            </div>
-            
-            {formData.eh_pessoa_publica && (
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="ha_apoio_externo"
-                    checked={formData.ha_apoio_externo || false}
-                    onCheckedChange={(checked) => updateFormData('ha_apoio_externo', checked)}
-                  />
-                  <Label htmlFor="ha_apoio_externo">
-                    Haverá apoio externo?
-                  </Label>
-                </div>
-                
-                {formData.ha_apoio_externo && (
-                  <div className="space-y-4">
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="como_ajudara_organizacao">Como ajudará a organização estudantil? *</Label>
-                      <Textarea
-                        id="como_ajudara_organizacao"
-                        rows={3}
-                        value={formData.como_ajudara_organizacao || ''}
-                        onChange={(e) => updateFormData('como_ajudara_organizacao', e.target.value)}
-                        className={errors.como_ajudara_organizacao ? 'border-red-500' : ''}
-                        placeholder="Descreva como a empresa ajudará a organização"
-                        maxLength={500}
-                      />
-                      <div className="flex justify-between items-center">
-                        {errors.como_ajudara_organizacao ? (
-                          <p className="text-sm text-red-500">{errors.como_ajudara_organizacao}</p>
-                        ) : (
-                          <p className="text-xs text-gray-500">Mínimo: 10 caracteres, Máximo: 500</p>
-                        )}
-                        <span className="text-xs text-gray-400">
-                          {formData.como_ajudara_organizacao?.length || 0}/500
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
       
       {/* Necessidade de Sala Plana - só aparece se NÃO há palestrante externo */}
       {!formData.tem_palestrante_externo && (
@@ -739,9 +623,48 @@ const ReviewStep: React.FC<{
         </div>
       )}
       
+      {/* Professores Convidados */}
+      {formData.professores_convidados && formData.professores_convidados.length > 0 && (
+        <div className="space-y-2">
+          <strong>Professores/Palestrantes Convidados ({formData.professores_convidados.length}):</strong>
+          <div className="space-y-3">
+            {formData.professores_convidados.map((professor, index) => (
+              <div key={professor.id || index} className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-start justify-between mb-2">
+                  <h4 className="font-semibold text-gray-900">
+                    {professor.nomeCompleto}
+                  </h4>
+                  <div className="flex gap-1">
+                    {professor.ehPessoaPublica && (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        Pessoa Pública
+                      </span>
+                    )}
+                    {professor.haApoioExterno && (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        Apoio Externo
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600 mb-2">
+                  <strong>Apresentação:</strong> {professor.apresentacao}
+                </p>
+                {professor.haApoioExterno && professor.comoAjudaraOrganizacao && (
+                  <p className="text-sm text-gray-600">
+                    <strong>Apoio da Empresa:</strong> {professor.comoAjudaraOrganizacao}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Manter compatibilidade com método antigo */}
       {formData.tem_palestrante_externo && formData.nome_palestrante_externo && (
         <div className="space-y-2">
-          <strong>Palestrante Externo:</strong>
+          <strong>Palestrante Externo (Método Antigo):</strong>
           <div className="text-sm space-y-1">
             <p><strong>Nome:</strong> {formData.nome_palestrante_externo}</p>
             <p><strong>Apresentação:</strong> {formData.apresentacao_palestrante_externo}</p>

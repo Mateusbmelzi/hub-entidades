@@ -9,6 +9,11 @@ export type Evento = Tables<'eventos'> & {
     nome: string;
     foto_perfil_url?: string | null;
   };
+  reservas?: {
+    id: string;
+    motivo_reserva: string;
+    professores_convidados_json?: any;
+  }[];
 };
 
 interface UseEventosOptions {
@@ -122,7 +127,12 @@ export const useEventos = (options: UseEventosOptions = {}) => {
         .from('eventos')
         .select(`
           *,
-          entidades(id, nome, foto_perfil_url)
+          entidades(id, nome, foto_perfil_url),
+          reservas!inner(
+            id,
+            motivo_reserva,
+            professores_convidados_json
+          )
         `)
         .eq('status_aprovacao', statusAprovacao)
         .neq('status', 'cancelado') // Excluir eventos marcados como cancelados

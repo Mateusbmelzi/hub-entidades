@@ -50,6 +50,7 @@ const EventoDetalhes = () => {
           .from('reservas')
           .select(`
             id,
+            motivo_reserva,
             tem_palestrante_externo,
             nome_palestrante_externo,
             apresentacao_palestrante_externo,
@@ -238,6 +239,30 @@ const EventoDetalhes = () => {
     }
   };
 
+  const getTipoEventoLabel = (motivoReserva: string) => {
+    switch (motivoReserva) {
+      case 'palestra_alunos_insper': return 'Palestra - Alunos Insper';
+      case 'palestra_publico_externo': return 'Palestra - Público Externo';
+      case 'capacitacao': return 'Capacitação';
+      case 'reuniao': return 'Reunião';
+      case 'processo_seletivo': return 'Processo Seletivo';
+      case 'auditorio_palestra_alunos_insper': return 'Palestra - Alunos Insper';
+      case 'auditorio_palestra_publico_externo': return 'Palestra - Público Externo';
+      case 'auditorio_capacitacao': return 'Capacitação';
+      case 'auditorio_reuniao': return 'Reunião';
+      case 'auditorio_processo_seletivo': return 'Processo Seletivo';
+      case 'auditorio_cerimonia_formatura': return 'Cerimônia de Formatura';
+      case 'auditorio_defesa_tcc': return 'Defesa de TCC';
+      case 'auditorio_apresentacao_trabalho': return 'Apresentação de Trabalho';
+      case 'auditorio_simposio': return 'Simpósio';
+      case 'auditorio_conferencia': return 'Conferência';
+      case 'auditorio_workshop': return 'Workshop';
+      case 'auditorio_seminario': return 'Seminário';
+      case 'auditorio_outros': return 'Outros';
+      default: return motivoReserva || 'Não especificado';
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-insper-light-gray to-white">
       {/* Hero Header */}
@@ -269,6 +294,15 @@ const EventoDetalhes = () => {
                 <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
                   {evento.nome}
                 </h1>
+                
+                {/* Tipo do Evento */}
+                {evento.reservas && evento.reservas.motivo_reserva && (
+                  <div className="mb-6">
+                    <Badge className="bg-white/20 text-white border-white/30 text-sm px-4 py-2 font-medium">
+                      {getTipoEventoLabel(evento.reservas.motivo_reserva)}
+                    </Badge>
+                  </div>
+                )}
                 
                 <div className="flex flex-wrap items-center gap-6 text-red-100 mb-6">
                   <div className="flex items-center">

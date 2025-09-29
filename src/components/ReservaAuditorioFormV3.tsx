@@ -17,7 +17,7 @@ import { ReservaFormData, MOTIVO_AUDITORIO_LABELS, ProfessorConvidado } from '@/
 import { ProfessoresConvidadosManager } from '@/components/ProfessoresConvidadosManager';
 import { toast } from 'sonner';
 
-const TOTAL_STEPS = 3;
+const TOTAL_STEPS = 4;
 
 export const ReservaAuditorioFormV3: React.FC = () => {
   const navigate = useNavigate();
@@ -281,6 +281,8 @@ export const ReservaAuditorioFormV3: React.FC = () => {
         return <ReasonStep formData={formData} updateFormData={updateFormData} errors={errors} />;
       case 3:
         return <ConditionalFieldsStep formData={formData} updateFormData={updateFormData} errors={errors} />;
+      case 4:
+        return <ReviewStep formData={formData} />;
       default:
         return null;
     }
@@ -340,7 +342,7 @@ export const ReservaAuditorioFormV3: React.FC = () => {
             
             {currentStep < TOTAL_STEPS ? (
               <Button onClick={nextStep}>
-                Próximo
+                {currentStep === TOTAL_STEPS - 1 ? 'Revisar' : 'Próximo'}
               </Button>
             ) : (
               <Button 
@@ -589,121 +591,143 @@ const ConditionalFieldsStep: React.FC<{
         errors={errors}
       />
       
-      {/* Manter campos antigos para compatibilidade */}
-      <div className="space-y-4">
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="tem_palestrante_externo"
-            checked={formData.tem_palestrante_externo || false}
-            onCheckedChange={(checked) => updateFormData('tem_palestrante_externo', checked)}
-          />
-          <Label htmlFor="tem_palestrante_externo">
-            Professor ou palestrante externo? (Método antigo - use o gerenciador acima)
-          </Label>
-        </div>
-        
-        {formData.tem_palestrante_externo && (
-          <div className="ml-6 space-y-4 p-4 border rounded-lg bg-muted/50">
-            <div className="space-y-2">
-              <Label htmlFor="nome_palestrante_externo">Nome completo do professor ou palestrante e uma breve apresentação do convidado: *</Label>
-              <Input
-                id="nome_palestrante_externo"
-                value={formData.nome_palestrante_externo || ''}
-                onChange={(e) => updateFormData('nome_palestrante_externo', e.target.value)}
-                className={errors.nome_palestrante_externo ? 'border-red-500' : ''}
-                maxLength={100}
-                placeholder="Ex: Dr. Maria Silva Santos"
-              />
-              <div className="flex justify-between items-center">
-                {errors.nome_palestrante_externo ? (
-                  <p className="text-sm text-red-500">{errors.nome_palestrante_externo}</p>
-                ) : (
-                  <p className="text-xs text-gray-500">Mínimo: 5 caracteres, Máximo: 100</p>
-                )}
-                <span className="text-xs text-gray-400">
-                  {formData.nome_palestrante_externo?.length || 0}/100
-                </span>
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="apresentacao_palestrante_externo">Breve apresentação do convidado *</Label>
-              <Textarea
-                id="apresentacao_palestrante_externo"
-                rows={3}
-                value={formData.apresentacao_palestrante_externo || ''}
-                onChange={(e) => updateFormData('apresentacao_palestrante_externo', e.target.value)}
-                className={errors.apresentacao_palestrante_externo ? 'border-red-500' : ''}
-                maxLength={500}
-                placeholder="Ex: Professor de Ciência da Computação na USP, especialista em Machine Learning..."
-              />
-              <div className="flex justify-between items-center">
-                {errors.apresentacao_palestrante_externo ? (
-                  <p className="text-sm text-red-500">{errors.apresentacao_palestrante_externo}</p>
-                ) : (
-                  <p className="text-xs text-gray-500">Mínimo: 10 caracteres, Máximo: 500</p>
-                )}
-                <span className="text-xs text-gray-400">
-                  {formData.apresentacao_palestrante_externo?.length || 0}/500
-                </span>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="eh_pessoa_publica"
-                checked={formData.eh_pessoa_publica || false}
-                onCheckedChange={(checked) => updateFormData('eh_pessoa_publica', checked)}
-              />
-              <Label htmlFor="eh_pessoa_publica">
-                O Convidado é uma pessoa pública?
-              </Label>
-            </div>
+    </div>
+  );
+};
 
-            {/* Apoio Externo - só aparece se for pessoa pública */}
-            {formData.eh_pessoa_publica && (
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="ha_apoio_externo"
-                    checked={formData.ha_apoio_externo || false}
-                    onCheckedChange={(checked) => updateFormData('ha_apoio_externo', checked)}
-                  />
-                  <Label htmlFor="ha_apoio_externo">
-                    Haverá apoio externo?
-                  </Label>
-                </div>
-                
-                {formData.ha_apoio_externo && (
-                  <div className="ml-6 space-y-4">
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="como_ajudara_organizacao">Como a empresa ajudará a organização estudantil? *</Label>
-                      <Textarea
-                        id="como_ajudara_organizacao"
-                        rows={3}
-                        value={formData.como_ajudara_organizacao || ''}
-                        onChange={(e) => updateFormData('como_ajudara_organizacao', e.target.value)}
-                        className={errors.como_ajudara_organizacao ? 'border-red-500' : ''}
-                        maxLength={500}
-                        placeholder="Descreva como a empresa ajudará a organização"
-                      />
-                      <div className="flex justify-between items-center">
-                        {errors.como_ajudara_organizacao ? (
-                          <p className="text-sm text-red-500">{errors.como_ajudara_organizacao}</p>
-                        ) : (
-                          <p className="text-xs text-gray-500">Mínimo: 10 caracteres, Máximo: 500</p>
+// Componente para revisão (Passo 4)
+const ReviewStep: React.FC<{
+  formData: Partial<ReservaFormData>;
+}> = ({ formData }) => {
+  const formatDate = (date: string) => {
+    if (!date) return 'Não informado';
+    return new Date(date).toLocaleDateString('pt-BR');
+  };
+
+  const formatTime = (time: string) => {
+    if (!time) return 'Não informado';
+    return time;
+  };
+
+  const getMotivoLabel = (motivo: string) => {
+    return MOTIVO_AUDITORIO_LABELS[motivo as keyof typeof MOTIVO_AUDITORIO_LABELS] || motivo;
+  };
+
+  return (
+    <div className="space-y-6">
+      <h3 className="text-lg font-semibold flex items-center gap-2">
+        <CheckCircle className="h-5 w-5" />
+        Revisão da Reserva
+      </h3>
+      
+      <div className="space-y-4">
+        {/* Dados Básicos */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Dados da Reserva
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <span className="font-medium">Data:</span>
+                <p className="text-sm text-gray-600">{formatDate(formData.data_reserva || '')}</p>
+              </div>
+              <div>
+                <span className="font-medium">Quantidade de pessoas:</span>
+                <p className="text-sm text-gray-600">{formData.quantidade_pessoas || 'Não informado'}</p>
+              </div>
+              <div>
+                <span className="font-medium">Horário de início:</span>
+                <p className="text-sm text-gray-600">{formatTime(formData.horario_inicio || '')}</p>
+              </div>
+              <div>
+                <span className="font-medium">Horário de término:</span>
+                <p className="text-sm text-gray-600">{formatTime(formData.horario_termino || '')}</p>
+              </div>
+              <div>
+                <span className="font-medium">Solicitante:</span>
+                <p className="text-sm text-gray-600">{formData.nome_solicitante || 'Não informado'}</p>
+              </div>
+              <div>
+                <span className="font-medium">Telefone:</span>
+                <p className="text-sm text-gray-600">{formData.telefone_solicitante || 'Não informado'}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Motivo e Detalhes */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Motivo e Detalhes
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div>
+              <span className="font-medium">Motivo da reserva:</span>
+              <p className="text-sm text-gray-600">{getMotivoLabel(formData.motivo_reserva || '')}</p>
+            </div>
+            <div>
+              <span className="font-medium">Título do evento:</span>
+              <p className="text-sm text-gray-600">{formData.titulo_evento_capacitacao || 'Não informado'}</p>
+            </div>
+            <div>
+              <span className="font-medium">Descrição das pautas:</span>
+              <p className="text-sm text-gray-600 whitespace-pre-wrap">{formData.descricao_pautas_evento_capacitacao || 'Não informado'}</p>
+            </div>
+            <div>
+              <span className="font-medium">Programação do evento:</span>
+              <p className="text-sm text-gray-600 whitespace-pre-wrap">{formData.descricao_programacao_evento || 'Não informado'}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Professores Convidados */}
+        {formData.professores_convidados && formData.professores_convidados.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Professores Convidados
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {formData.professores_convidados.map((professor, index) => (
+                  <div key={professor.id} className="border rounded-lg p-3 bg-gray-50">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-sm">{professor.nomeCompleto}</h4>
+                        <p className="text-xs text-gray-600 mt-1">{professor.apresentacao}</p>
+                        <div className="flex gap-2 mt-2">
+                          {professor.ehPessoaPublica && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                              Pessoa Pública
+                            </span>
+                          )}
+                          {professor.haApoioExterno && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
+                              Apoio Externo
+                            </span>
+                          )}
+                        </div>
+                        {professor.haApoioExterno && professor.comoAjudaraOrganizacao && (
+                          <p className="text-xs text-gray-600 mt-2">
+                            <span className="font-medium">Como ajudará:</span> {professor.comoAjudaraOrganizacao}
+                          </p>
                         )}
-                        <span className="text-xs text-gray-400">
-                          {formData.como_ajudara_organizacao?.length || 0}/500
-                        </span>
                       </div>
                     </div>
                   </div>
-                )}
+                ))}
               </div>
-            )}
-          </div>
+            </CardContent>
+          </Card>
         )}
       </div>
     </div>
