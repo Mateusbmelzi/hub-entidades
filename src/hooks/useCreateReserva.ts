@@ -74,12 +74,35 @@ export const useCreateReserva = () => {
           precisa_manutencao: formData.precisa_manutencao,
           detalhes_manutencao: formData.detalhes_manutencao,
           observacoes: formData.observacoes,
-          status: 'pendente'
+          status: 'pendente',
+          // Armazenar professores como JSON para compatibilidade
+          professores_convidados_json: formData.professores_convidados ? JSON.stringify(formData.professores_convidados) : null
         })
         .select()
         .single();
 
       if (error) throw error;
+
+      // Inserir professores convidados na nova tabela se existirem
+      if (formData.professores_convidados && formData.professores_convidados.length > 0) {
+        const professoresData = formData.professores_convidados.map(professor => ({
+          reserva_id: data.id,
+          nome_completo: professor.nomeCompleto,
+          apresentacao: professor.apresentacao,
+          eh_pessoa_publica: professor.ehPessoaPublica,
+          ha_apoio_externo: professor.haApoioExterno || false,
+          como_ajudara_organizacao: professor.comoAjudaraOrganizacao || null
+        }));
+
+        const { error: professoresError } = await supabase
+          .from('professores_convidados')
+          .insert(professoresData);
+
+        if (professoresError) {
+          console.error('Erro ao inserir professores convidados:', professoresError);
+          // Não falhar a reserva por causa dos professores, apenas logar o erro
+        }
+      }
 
       toast.success('Reserva enviada com sucesso! Aguarde a aprovação.');
       return data;

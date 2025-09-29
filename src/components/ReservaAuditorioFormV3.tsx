@@ -13,7 +13,8 @@ import { Calendar, Clock, Users, User, Phone, FileText, CheckCircle, Building, M
 import { useCreateReserva } from '@/hooks/useCreateReserva';
 import { useEntityAuth } from '@/hooks/useEntityAuth';
 import { useAuth } from '@/hooks/useAuth';
-import { ReservaFormData, MOTIVO_AUDITORIO_LABELS } from '@/types/reserva';
+import { ReservaFormData, MOTIVO_AUDITORIO_LABELS, ProfessorConvidado } from '@/types/reserva';
+import { ProfessoresConvidadosManager } from '@/components/ProfessoresConvidadosManager';
 import { toast } from 'sonner';
 
 const TOTAL_STEPS = 3;
@@ -24,7 +25,8 @@ export const ReservaAuditorioFormV3: React.FC = () => {
   
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<Partial<ReservaFormData>>({
-    tipo_reserva: 'auditorio'
+    tipo_reserva: 'auditorio',
+    professores_convidados: []
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -142,6 +144,41 @@ export const ReservaAuditorioFormV3: React.FC = () => {
         break;
 
       case 3: // Campos condicionais
+        // Validação dos professores convidados
+        if (formData.professores_convidados && formData.professores_convidados.length > 0) {
+          formData.professores_convidados.forEach((professor, index) => {
+            // Validação do nome do professor
+            if (!professor.nomeCompleto) {
+              newErrors[`professor_${professor.id}_nome`] = 'Nome do professor é obrigatório';
+            } else if (professor.nomeCompleto.length < 5) {
+              newErrors[`professor_${professor.id}_nome`] = 'Nome deve ter pelo menos 5 caracteres';
+            } else if (professor.nomeCompleto.length > 100) {
+              newErrors[`professor_${professor.id}_nome`] = 'Nome não pode ter mais que 100 caracteres';
+            }
+            
+            // Validação da apresentação do professor
+            if (!professor.apresentacao) {
+              newErrors[`professor_${professor.id}_apresentacao`] = 'Apresentação do professor é obrigatória';
+            } else if (professor.apresentacao.length < 10) {
+              newErrors[`professor_${professor.id}_apresentacao`] = 'Apresentação deve ter pelo menos 10 caracteres';
+            } else if (professor.apresentacao.length > 500) {
+              newErrors[`professor_${professor.id}_apresentacao`] = 'Apresentação não pode ter mais que 500 caracteres';
+            }
+            
+            // Validação do apoio externo se for pessoa pública
+            if (professor.ehPessoaPublica && professor.haApoioExterno) {
+              if (!professor.comoAjudaraOrganizacao) {
+                newErrors[`professor_${professor.id}_apoio`] = 'Descrição do apoio é obrigatória';
+              } else if (professor.comoAjudaraOrganizacao.length < 10) {
+                newErrors[`professor_${professor.id}_apoio`] = 'Descrição deve ter pelo menos 10 caracteres';
+              } else if (professor.comoAjudaraOrganizacao.length > 500) {
+                newErrors[`professor_${professor.id}_apoio`] = 'Descrição não pode ter mais que 500 caracteres';
+              }
+            }
+          });
+        }
+        
+        // Manter validação antiga para compatibilidade
         if (formData.tem_palestrante_externo) {
           // Validação do nome do palestrante
           if (!formData.nome_palestrante_externo) {
@@ -537,11 +574,22 @@ const ConditionalFieldsStep: React.FC<{
   updateFormData: (field: keyof ReservaFormData, value: any) => void;
   errors: Record<string, string>;
 }> = ({ formData, updateFormData, errors }) => {
+  const handleProfessoresChange = (professores: ProfessorConvidado[]) => {
+    updateFormData('professores_convidados', professores);
+  };
+
   return (
     <div className="space-y-6">
       <h3 className="text-lg font-semibold">Informações Adicionais</h3>
       
-      {/* Palestrante Externo */}
+      {/* Professores Convidados */}
+      <ProfessoresConvidadosManager
+        professores={formData.professores_convidados || []}
+        onProfessoresChange={handleProfessoresChange}
+        errors={errors}
+      />
+      
+      {/* Manter campos antigos para compatibilidade */}
       <div className="space-y-4">
         <div className="flex items-center space-x-2">
           <Checkbox
@@ -550,7 +598,7 @@ const ConditionalFieldsStep: React.FC<{
             onCheckedChange={(checked) => updateFormData('tem_palestrante_externo', checked)}
           />
           <Label htmlFor="tem_palestrante_externo">
-            Professor ou palestrante externo?
+            Professor ou palestrante externo? (Método antigo - use o gerenciador acima)
           </Label>
         </div>
         

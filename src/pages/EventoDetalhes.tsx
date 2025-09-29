@@ -43,10 +43,13 @@ const EventoDetalhes = () => {
       
       // Buscar a reserva associada pelo nome do evento ou outros critérios
       let reservaData = null;
+      let professoresConvidados = [];
+      
       if (eventoData) {
         const { data: reserva, error: reservaError } = await supabase
           .from('reservas')
           .select(`
+            id,
             tem_palestrante_externo,
             nome_palestrante_externo,
             apresentacao_palestrante_externo,
@@ -58,12 +61,28 @@ const EventoDetalhes = () => {
         
         if (!reservaError && reserva) {
           reservaData = reserva;
+          
+          // Buscar professores convidados da nova tabela
+          try {
+            const { data: professores, error: professoresError } = await (supabase as any)
+              .from('professores_convidados')
+              .select('*')
+              .eq('reserva_id', (reserva as any).id)
+              .order('created_at', { ascending: true });
+            
+            if (!professoresError && professores) {
+              professoresConvidados = professores;
+            }
+          } catch (e) {
+            console.log('Erro ao buscar professores convidados:', e);
+          }
         }
       }
       
       return {
         ...eventoData,
-        reservas: reservaData
+        reservas: reservaData,
+        professores_convidados: professoresConvidados
       };
     },
     enabled: !!id
@@ -522,7 +541,7 @@ const EventoDetalhes = () => {
                </Card>
              )}
 
-             {/* Palestrante Externo - Mostrar se houver palestrante externo */}
+             {/* Palestrante Externo - Mostrar se houver palestrante externo (método antigo) */}
              {evento.reservas && evento.reservas.tem_palestrante_externo && evento.reservas.nome_palestrante_externo && (
                <Card className="border-0 shadow-lg bg-white">
                  <CardHeader className="pb-4">
@@ -549,6 +568,54 @@ const EventoDetalhes = () => {
                        </p>
                      )}
                    </div>
+                 </CardContent>
+               </Card>
+             )}
+
+             {/* Professores Convidados - Nova seção para múltiplos professores */}
+             {evento.professores_convidados && evento.professores_convidados.length > 0 && (
+               <Card className="border-0 shadow-lg bg-white">
+                 <CardHeader className="pb-4">
+                   <div className="flex items-center space-x-2">
+                     <User className="w-5 h-5 text-red-600" />
+                     <CardTitle className="text-xl">
+                       Professores/Palestrantes Convidados ({evento.professores_convidados.length})
+                     </CardTitle>
+                   </div>
+                 </CardHeader>
+                 <CardContent className="space-y-4">
+                   {evento.professores_convidados.map((professor, index) => (
+                     <div key={professor.id || index} className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                       <div className="flex items-start justify-between mb-3">
+                         <h3 className="font-bold text-lg text-gray-900">
+                           {professor.nome_completo || professor.nomeCompleto}
+                         </h3>
+                         <div className="flex gap-2">
+                           {(professor.eh_pessoa_publica || professor.ehPessoaPublica) && (
+                             <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 text-xs">
+                               Pessoa Pública
+                             </Badge>
+                           )}
+                           {(professor.ha_apoio_externo || professor.haApoioExterno) && (
+                             <Badge className="bg-green-100 text-green-800 border-green-200 text-xs">
+                               Apoio Externo
+                             </Badge>
+                           )}
+                         </div>
+                       </div>
+                       <p className="text-sm text-gray-600 leading-relaxed mb-3">
+                         {professor.apresentacao || professor.apresentacao}
+                       </p>
+                       {(professor.ha_apoio_externo || professor.haApoioExterno) && (professor.como_ajudara_organizacao || professor.comoAjudaraOrganizacao) && (
+                         <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                           <h4 className="font-semibold text-sm text-green-800 mb-1">Apoio da Empresa:</h4>
+                           <p className="text-xs text-green-700">
+                             {professor.como_ajudara_organizacao || professor.comoAjudaraOrganizacao}
+                           </p>
+                         </div>
+                       )}
+                     </div>
+                   ))}
                  </CardContent>
                </Card>
              )}

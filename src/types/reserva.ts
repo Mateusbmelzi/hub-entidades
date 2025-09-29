@@ -10,6 +10,16 @@ export type MotivoReservaAuditorio = 'palestra_alunos_insper' | 'palestra_public
 // Motivos gerais para reserva de sala
 export type MotivoReservaSala = 'capacitacao' | 'reuniao' | 'processo_seletivo';
 
+// Interface para professor/palestrante convidado
+export interface ProfessorConvidado {
+  id: string; // ID único para o professor
+  nomeCompleto: string;
+  apresentacao: string;
+  ehPessoaPublica: boolean;
+  haApoioExterno?: boolean;
+  comoAjudaraOrganizacao?: string;
+}
+
 export interface Reserva {
   // Identificação
   id: string;
@@ -51,6 +61,9 @@ export interface Reserva {
   // Campos para apoio externo
   ha_apoio_externo?: boolean;
   como_ajudara_organizacao?: string;
+  
+  // Nova estrutura para múltiplos professores convidados
+  professores_convidados?: ProfessorConvidado[];
   
   // Campos específicos para sala
   necessidade_sala_plana?: boolean;
@@ -145,6 +158,9 @@ export interface ReservaFormData {
   // Campos para apoio externo
   ha_apoio_externo?: boolean;
   como_ajudara_organizacao?: string;
+  
+  // Nova estrutura para múltiplos professores convidados
+  professores_convidados?: ProfessorConvidado[];
   
   // Campos específicos para sala
   necessidade_sala_plana?: boolean;
