@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { X } from 'lucide-react';
 import { useUpdateEntidade } from '@/hooks/useUpdateEntidade';
 import { useToast } from '@/hooks/use-toast';
+import { useEntidadeEmpresasParceiras } from '@/hooks/useEntidadeEmpresasParceiras';
 import { AREAS_ATUACAO } from '@/lib/constants';
 
 const formSchema = z.object({
@@ -60,6 +61,7 @@ interface EditarEntidadeFormProps {
 export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade, onSuccess }) => {
   const { updateEntidade, loading } = useUpdateEntidade();
   const { toast } = useToast();
+  const { empresasAssociadas } = useEntidadeEmpresasParceiras(entidade.id);
   
 
   // Converter area_atuacao para array se for string
@@ -101,7 +103,7 @@ export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade
       data_terceira_fase: entidade.data_terceira_fase || '',
       encerramento_terceira_fase: entidade.encerramento_terceira_fase || '',
       fechamento_processo_seletivo: entidade.fechamento_processo_seletivo || '',
-      empresas_parceiras: empresasParceiras,
+      empresas_parceiras: empresasAssociadas || [],
     },
   });
 
@@ -140,7 +142,7 @@ export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade
         encerramento_segunda_fase: data.encerramento_segunda_fase || null,
         data_terceira_fase: data.data_terceira_fase || null,
         encerramento_terceira_fase: data.encerramento_terceira_fase || null,
-        empresas_parceiras: empresasParceiras
+        empresas_parceiras: data.empresas_parceiras
       });
 
       if (success) {
