@@ -6,39 +6,60 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Calendar, MapPin, Users, Plus, Target } from 'lucide-react';
+import { Calendar, MapPin, Users, Plus, Target, Info } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCreateEventoAsEntity } from '@/hooks/useCreateEventoAsEntity';
 import { useEntityAuth } from '@/hooks/useEntityAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { AREAS_ATUACAO } from '@/lib/constants';
-import { DateTimeInput } from '@/components/ui/datetime-input';
-import { parseDateTime, validateDateTime } from '@/lib/datetime-input-utils';
+import { PalestranteEvento, TipoEvento, TIPO_EVENTO_LABELS } from '@/types/evento';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/hooks/use-toast';
+import { TemplateFormulario } from '@/types/template-formulario';
+import { TemplatePreview } from '@/components/TemplatePreview';
+import { CriarEditarTemplate } from '@/components/CriarEditarTemplate';
 
 interface CriarEventoEntidadeProps {
   onSuccess?: () => void;
 }
 
 export default function CriarEventoEntidade({ onSuccess }: CriarEventoEntidadeProps) {
+  console.log('🚀 CriarEventoEntidade component rendering...');
+  
   const [nome, setNome] = useState('');
   const [descricao, setDescricao] = useState('');
   const [local, setLocal] = useState('');
-  const [dataEvento, setDataEvento] = useState(''); // Agora formato DD/MM/AAAA HH:MM
   const [capacidade, setCapacidade] = useState('');
   const [link_evento, setLinkevento] = useState('');
   const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
-  const [dateTimeError, setDateTimeError] = useState('');
+  const [tipoEvento, setTipoEvento] = useState<TipoEvento | ''>('');
+  const [palestrantes, setPalestrantes] = useState<PalestranteEvento[]>([]);
+  const [observacoes, setObservacoes] = useState('');
   const [open, setOpen] = useState(false);
   const [showNameWarning, setShowNameWarning] = useState(false);
   const [pendingEventData, setPendingEventData] = useState<any>(null);
+  const [precisaReserva, setPrecisaReserva] = useState(true);
+  const [configurarFormularioAgora, setConfigurarFormularioAgora] = useState(false);
+  const [eventoIdCriado, setEventoIdCriado] = useState<string | null>(null);
+  const [mostrarConfigFormulario, setMostrarConfigFormulario] = useState(false);
+  const [templateSelecionado, setTemplateSelecionado] = useState<string>('padrao');
+  const [mostrarDialogNovoTemplate, setMostrarDialogNovoTemplate] = useState(false);
+  const [templatesCriados, setTemplatesCriados] = useState<TemplateFormulario[]>([]);
   const { createEvento, loading } = useCreateEventoAsEntity();
   const { entidadeId, isAuthenticated } = useEntityAuth();
+  const { toast } = useToast();
 
-  // Debug logs
+  // Debug logs (comentados para reduzir spam)
   // console.log('🔍 CriarEventoEntidade Debug:', {
   //   entidadeId,
   //   isAuthenticated,
   //   open,
-  //   loading
+  //   loading,
+  //   tipoEvento,
+  //   palestrantes,
+  //   observacoes,
+  //   configurarFormularioAgora
   // });
 
   // Carregar áreas de atuação da entidade quando o componente montar
@@ -66,6 +87,50 @@ export default function CriarEventoEntidade({ onSuccess }: CriarEventoEntidadePr
 
     loadEntidadeAreas();
   }, [entidadeId]);
+
+  // Buscar templates da entidade
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      if (!entidadeId) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('templates_formularios')
+          .select('*')
+          .eq('entidade_id', entidadeId)
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        
+        if (data) {
+          setTemplatesCriados(data);
+        }
+      } catch (err) {
+        console.error('Erro ao carregar templates da entidade:', err);
+      }
+    };
+
+    fetchTemplates();
+  }, [entidadeId]);
+
+  // Handler para seleção "Criar Novo Template"
+  useEffect(() => {
+    if (templateSelecionado === 'criar-novo') {
+      setMostrarDialogNovoTemplate(true);
+    }
+  }, [templateSelecionado]);
+
+  // Callback ao criar novo template
+  const handleNovoTemplateCriado = (novoTemplate: TemplateFormulario) => {
+    setTemplatesCriados([novoTemplate, ...templatesCriados]);
+    setTemplateSelecionado(novoTemplate.id);
+    setMostrarDialogNovoTemplate(false);
+    
+    toast({
+      title: 'Template criado!',
+      description: `Template "${novoTemplate.nome_template}" foi criado e selecionado.`
+    });
+  };
 
   // Função para testar a conexão com o banco
   const testDatabaseConnection = async () => {
@@ -163,7 +228,6 @@ export default function CriarEventoEntidade({ onSuccess }: CriarEventoEntidadePr
       nome,
       descricao,
       local,
-      dataEvento,
       capacidade,
       link_evento,
       selectedAreas
@@ -187,45 +251,33 @@ export default function CriarEventoEntidade({ onSuccess }: CriarEventoEntidadePr
       return;
     }
 
-    if (!local.trim()) {
-      console.error('❌ Local é obrigatório');
+    // Local só é obrigatório para eventos online/externos
+    if (!precisaReserva && !local.trim()) {
+      console.error('❌ Local é obrigatório para eventos online/externos');
       return;
     }
 
-    // Validar data e hora
-    if (!dataEvento.trim()) {
-      console.error('❌ Data e hora são obrigatórias');
-      setDateTimeError('Data e hora são obrigatórias');
-      return;
-    }
-
-    const dateValidation = validateDateTime(dataEvento);
-    if (!dateValidation.isValid) {
-      console.error('❌ Validação de data falhou:', dateValidation.message);
-      setDateTimeError(dateValidation.message || 'Data inválida');
-      return;
-    }
-    
-    // Converter para Date e depois para ISO string
-    const dateTime = parseDateTime(dataEvento);
-    if (!dateTime) {
-      console.error('❌ Erro ao processar data e hora');
-      setDateTimeError('Erro ao processar data e hora');
-      return;
-    }
-
-    console.log('✅ Validações passaram, data convertida:', dateTime);
+    console.log('✅ Validações passaram');
 
     const eventData = {
       nome,
       descricao,
-      local,
-      data_evento: dateTime.toISOString(), // Converter para formato ISO
+      local: precisaReserva ? 'A definir (será definido pela reserva)' : local, // Local vazio para eventos presenciais
+      data_evento: null, // Data será definida pela reserva quando necessário
       capacidade: capacidade ? parseInt(capacidade) : undefined,
-      area_atuacao: selectedAreas
+      area_atuacao: selectedAreas,
+      tipo_evento: tipoEvento || null,
+      palestrantes_convidados: palestrantes,
+      observacoes: observacoes || null
     };
 
-    console.log('🚀 Chamando createEvento com:', eventData);
+    // console.log('🚀 Chamando createEvento com:', eventData);
+    // console.log('🔍 Debug tipoEvento:', {
+    //   tipoEvento,
+    //   tipoEventoValue: tipoEvento || 'undefined',
+    //   isEmpty: !tipoEvento,
+    //   eventDataTipoEvento: eventData.tipo_evento
+    // });
 
     try {
       const result = await createEvento(entidadeId, eventData);
@@ -233,6 +285,82 @@ export default function CriarEventoEntidade({ onSuccess }: CriarEventoEntidadePr
 
       if (result.success) {
         console.log('✅ Evento criado com sucesso!');
+        
+        // Se optou por configurar formulário, criar automaticamente
+        if (configurarFormularioAgora && entidadeId && result.data?.id) {
+          try {
+            let templateParaAplicar = null;
+            
+            if (templateSelecionado === 'padrao') {
+              // Buscar template padrão
+              const { data } = await supabase
+                .from('templates_formularios')
+                .select('*')
+                .is('entidade_id', null)
+                .eq('nome_template', 'Template Padrão')
+                .single();
+              templateParaAplicar = data;
+            } else {
+              // Buscar template selecionado
+              const { data } = await supabase
+                .from('templates_formularios')
+                .select('*')
+                .eq('id', templateSelecionado)
+                .single();
+              templateParaAplicar = data;
+            }
+            
+            const formularioData = {
+              evento_id: result.data.id,
+              entidade_id: entidadeId,
+              ativo: false,
+              limite_vagas: templateParaAplicar?.usa_limite_sala 
+                ? (capacidade ? parseInt(capacidade) : null)
+                : templateParaAplicar?.limite_vagas_customizado,
+              aceita_lista_espera: templateParaAplicar?.aceita_lista_espera || false,
+              campos_basicos_visiveis: templateParaAplicar?.campos_basicos_visiveis || 
+                ['nome_completo', 'email', 'curso', 'semestre'],
+              campos_personalizados: templateParaAplicar?.campos_personalizados || [],
+              template_id: templateParaAplicar?.id || null
+            };
+
+            const { error: formError } = await supabase
+              .from('formularios_inscricao')
+              .insert(formularioData);
+
+            if (formError) {
+              console.error('❌ Erro ao criar formulário:', formError);
+            } else {
+              console.log('✅ Formulário criado com template selecionado');
+              
+              // Atualizar coluna formulario_ativo na tabela eventos
+              const { error: eventoError } = await supabase
+                .from('eventos')
+                .update({
+                  formulario_ativo: formularioData.ativo,
+                  limite_vagas: formularioData.limite_vagas
+                })
+                .eq('id', result.data.id);
+
+              if (eventoError) {
+                console.error('❌ Erro ao atualizar formulario_ativo no evento:', eventoError);
+              } else {
+                console.log('✅ Campo formulario_ativo atualizado no evento');
+              }
+            }
+          } catch (error) {
+            console.error('❌ Erro ao criar formulário:', error);
+            // Não falhar a criação do evento se o formulário falhar
+          }
+        }
+        
+        toast({
+          title: 'Evento criado com sucesso!',
+          description: configurarFormularioAgora 
+            ? 'Evento criado e formulário de inscrição configurado com template padrão.'
+            : 'Evento criado. Você pode configurar o formulário de inscrição depois.',
+        });
+        
         resetForm();
         onSuccess?.();
       } else if (result.nameExists) {
@@ -264,10 +392,13 @@ export default function CriarEventoEntidade({ onSuccess }: CriarEventoEntidadePr
     setNome('');
     setDescricao('');
     setLocal('');
-    setDataEvento('');
     setCapacidade('');
     setSelectedAreas([]);
-    setDateTimeError('');
+    setTipoEvento('');
+    setPalestrantes([]);
+    setObservacoes('');
+    setConfigurarFormularioAgora(false);
+    setTemplateSelecionado('padrao');
     setOpen(false);
   };
 
@@ -290,13 +421,6 @@ export default function CriarEventoEntidade({ onSuccess }: CriarEventoEntidadePr
     setSelectedAreas(selectedAreas.filter(area => area !== areaToRemove));
   };
 
-  const handleDateTimeChange = (value: string) => {
-    setDataEvento(value);
-    // Limpar erro quando usuário começar a digitar
-    if (dateTimeError) {
-      setDateTimeError('');
-    }
-  };
 
   return (
     <>
@@ -369,47 +493,197 @@ export default function CriarEventoEntidade({ onSuccess }: CriarEventoEntidadePr
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Tipo de Evento */}
+            <div className="space-y-2">
+              <Label htmlFor="tipo-evento">Tipo de Evento</Label>
+              <Select value={tipoEvento} onValueChange={(value) => setTipoEvento(value as TipoEvento)}>
+                <SelectTrigger id="tipo-evento">
+                  <SelectValue placeholder="Selecione o tipo de evento" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(TIPO_EVENTO_LABELS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500">
+                Categorize seu evento para melhor organização
+              </p>
+            </div>
+
+            {/* Palestrantes/Convidados - reutilizar componente existente */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="text-lg font-semibold flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Professores/Palestrantes Convidados
+                </h4>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const novoPalestrante: PalestranteEvento = {
+                      id: `prof_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                      nomeCompleto: '',
+                      apresentacao: '',
+                      ehPessoaPublica: false,
+                      haApoioExterno: false,
+                      comoAjudaraOrganizacao: ''
+                    };
+                    setPalestrantes([...palestrantes, novoPalestrante]);
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Adicionar Professor
+                </Button>
+              </div>
+
+              {palestrantes.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Nenhum professor convidado adicionado</p>
+                  <p className="text-sm">Clique em "Adicionar Professor" para começar</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {palestrantes.map((palestrante, index) => (
+                    <Card key={palestrante.id} className="relative">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-base">
+                            Professor {index + 1}
+                          </CardTitle>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setPalestrantes(palestrantes.filter(p => p.id !== palestrante.id))}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                          >
+                            ×
+                          </Button>
+                        </div>
+                      </CardHeader>
+                      
+                      <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor={`nome_${palestrante.id}`}>
+                            Nome Completo do Professor/Palestrante *
+                          </Label>
+                          <Input
+                            id={`nome_${palestrante.id}`}
+                            value={palestrante.nomeCompleto}
+                            onChange={(e) => {
+                              setPalestrantes(palestrantes.map(p => 
+                                p.id === palestrante.id ? { ...p, nomeCompleto: e.target.value } : p
+                              ));
+                            }}
+                            placeholder="Ex: Dr. Maria Silva Santos"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor={`apresentacao_${palestrante.id}`}>
+                            Breve Apresentação do Convidado *
+                          </Label>
+                          <Textarea
+                            id={`apresentacao_${palestrante.id}`}
+                            rows={3}
+                            value={palestrante.apresentacao}
+                            onChange={(e) => {
+                              setPalestrantes(palestrantes.map(p => 
+                                p.id === palestrante.id ? { ...p, apresentacao: e.target.value } : p
+                              ));
+                            }}
+                            placeholder="Ex: Professor de Ciência da Computação na USP, especialista em Machine Learning..."
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Observações (opcional) */}
+            <div className="space-y-2">
+              <Label htmlFor="observacoes">Observações (opcional)</Label>
+              <Textarea
+                id="observacoes"
+                value={observacoes}
+                onChange={(e) => setObservacoes(e.target.value)}
+                placeholder="Informações adicionais sobre o evento..."
+                rows={3}
+              />
+            </div>
+
+            {/* Opção de evento sem reserva */}
+            <div className="p-4 border rounded-lg bg-blue-50 border-blue-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-start gap-3">
+                  <Info className="h-5 w-5 text-blue-600 mt-0.5" />
+                  <div className="flex-1">
+                    <Label htmlFor="precisa-reserva" className="text-blue-900 font-medium">
+                      Este evento precisa de espaço físico no Insper?
+                    </Label>
+                    <p className="text-sm text-blue-700 mt-1">
+                      {precisaReserva 
+                        ? 'Local, data e horário serão definidos pela reserva. Você poderá vincular após aprovação.'
+                        : 'Evento será criado como online/externo. Preencha o local (ex: Zoom, Google Meet).'
+                      }
+                    </p>
+                  </div>
+                  <Switch
+                    id="precisa-reserva"
+                    checked={precisaReserva}
+                    onCheckedChange={setPrecisaReserva}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Local - apenas para eventos online/externos */}
+            {!precisaReserva && (
               <div className="space-y-2">
                 <Label htmlFor="local" className="flex items-center">
                   <MapPin className="mr-1 h-4 w-4" />
-                  Local
+                  Local (Link ou Plataforma)
                 </Label>
                 <Input
                   id="local"
                   type="text"
                   value={local}
                   onChange={(e) => setLocal(e.target.value)}
-                  placeholder="Ex: Auditório A, Online"
-                  required
+                  placeholder="Ex: Zoom, Google Meet, YouTube Live"
+                  required={!precisaReserva}
                 />
+                <p className="text-xs text-gray-500">
+                  Para eventos online, informe a plataforma ou link
+                </p>
               </div>
+            )}
 
-              <div className="space-y-2">
-                <Label htmlFor="capacidade" className="flex items-center">
-                  <Users className="mr-1 h-4 w-4" />
-                  Capacidade (opcional)
-                </Label>
-                <Input
-                  id="capacidade"
-                  type="number"
-                  value={capacidade}
-                  onChange={(e) => setCapacidade(e.target.value)}
-                  placeholder="Ex: 50"
-                  min="1"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="capacidade" className="flex items-center">
+                <Users className="mr-1 h-4 w-4" />
+                Capacidade (opcional)
+              </Label>
+              <Input
+                id="capacidade"
+                type="number"
+                value={capacidade}
+                onChange={(e) => setCapacidade(e.target.value)}
+                placeholder="Ex: 50"
+                min="1"
+              />
+              <p className="text-xs text-gray-500">
+                Para eventos presenciais, a capacidade será definida pela sala reservada
+              </p>
             </div>
-
-            <DateTimeInput
-              id="data-evento"
-              label="Data e Hora do Evento"
-              value={dataEvento}
-              onChange={handleDateTimeChange}
-              required
-              error={dateTimeError}
-              placeholder="Ex: 25/12/2024 14:30"
-            />
 
             <div className="space-y-2">
               <Label htmlFor="area-atuacao" className="flex items-center">
@@ -469,6 +743,55 @@ export default function CriarEventoEntidade({ onSuccess }: CriarEventoEntidadePr
               )}
             </div>
 
+            {/* Seção de Configuração de Formulário de Inscrição */}
+            <Card className="border-2 border-dashed border-gray-300">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Users className="h-5 w-5 text-blue-600" />
+                      Formulário de Inscrição (Opcional)
+                    </CardTitle>
+                    <CardDescription className="mt-1">
+                      Configure como os participantes vão se inscrever no evento
+                    </CardDescription>
+                  </div>
+                  <Switch
+                    checked={configurarFormularioAgora}
+                    onCheckedChange={setConfigurarFormularioAgora}
+                  />
+                </div>
+              </CardHeader>
+              
+              {configurarFormularioAgora && (
+                <CardContent>
+                  {/* Seleção de Template */}
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="template-select">Escolher Template</Label>
+                      <Select value={templateSelecionado} onValueChange={setTemplateSelecionado}>
+                        <SelectTrigger id="template-select">
+                          <SelectValue placeholder="Selecione um template" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="padrao">Template Padrão (Sistema)</SelectItem>
+                          <SelectItem value="criar-novo">➕ Criar Novo Template</SelectItem>
+                          {templatesCriados.map((template) => (
+                            <SelectItem key={template.id} value={template.id}>
+                              {template.nome_template}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Preview do Template Selecionado */}
+                    <TemplatePreview templateId={templateSelecionado} entidadeId={entidadeId || 0} />
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+
             <div className="flex gap-3 pt-4">
               <Button type="submit" disabled={loading} className="flex-1">
                 {loading ? 'Criando...' : 'Criar Evento'}
@@ -508,6 +831,32 @@ export default function CriarEventoEntidade({ onSuccess }: CriarEventoEntidadePr
               </div>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para criar novo template */}
+      <Dialog open={mostrarDialogNovoTemplate} onOpenChange={(open) => {
+        setMostrarDialogNovoTemplate(open);
+        if (!open && templateSelecionado === 'criar-novo') {
+          setTemplateSelecionado('padrao');
+        }
+      }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Criar Novo Template de Formulário</DialogTitle>
+            <DialogDescription>
+              Crie um template reutilizável para formulários de inscrição
+            </DialogDescription>
+          </DialogHeader>
+          
+          <CriarEditarTemplate
+            entidadeId={entidadeId!}
+            onSuccess={handleNovoTemplateCriado}
+            onCancel={() => {
+              setMostrarDialogNovoTemplate(false);
+              setTemplateSelecionado('padrao');
+            }}
+          />
         </DialogContent>
       </Dialog>
     </>

@@ -1,13 +1,14 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Users, Calendar, Mail, MapPin, Clock, Star, ExternalLink, Edit, Plus, LogIn, LogOut, Trash2, MoreVertical, FolderOpen, Building2, Target, Sparkles, Award, TrendingUp, Camera, Phone, ClipboardList, User } from 'lucide-react';
+import { ArrowLeft, Users, Calendar, Mail, MapPin, Clock, Star, ExternalLink, Edit, Plus, LogIn, LogOut, Trash2, MoreVertical, FolderOpen, Building2, Target, Sparkles, Award, TrendingUp, Camera, Phone, ClipboardList, User, Settings, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
@@ -31,7 +32,12 @@ import GerenciarAreasInternas from '@/components/GerenciarAreasInternas';
 import { GerenciarEmpresasParceiras } from '@/components/GerenciarEmpresasParceiras';
 import { EmpresasParceirasDisplay } from '@/components/EmpresasParceirasDisplay';
 import { ToastAction } from '@/components/ui/toast';
+import { CriarEventoDeReserva } from '@/components/CriarEventoDeReserva';
+import { GerenciarTemplatesFormularios } from '@/components/GerenciarTemplatesFormularios';
+import { VincularEventoReserva } from '@/components/VincularEventoReserva';
+import { EventosReservasTabsEntidade } from '@/components/EventosReservasTabsEntidade';
 import { AreaAtuacaoDisplay } from '@/components/ui/area-atuacao-display';
+import { ConfigurarFormularioInscricao } from '@/components/ConfigurarFormularioInscricao';
 import { getFirstAreaColor } from '@/lib/constants';
 import { FotoPerfilEntidade } from '@/components/FotoPerfilEntidade';
 import { UploadFotoPerfil } from '@/components/UploadFotoPerfil';
@@ -48,8 +54,6 @@ const EntidadeDetalhes = () => {
   const [isUpdating, setIsUpdating] = useState(false);
   
   const handleEntidadeUpdate = useCallback(() => {
-    console.log('🔄 Entidade atualizada - resetando estado de loading');
-    
     setIsUpdating(false);
   }, []);
   
@@ -57,12 +61,7 @@ const EntidadeDetalhes = () => {
   // console.log(entidade.encerramento_primeira_fase) 
   const { projetos, loading: projetosLoading, refetch: refetchProjetos } = useProjetos(entidade?.id);
   
-  // Debug log para verificar o entidade.id
-  console.log('=== DEBUG EntidadeDetalhes - entidade ===');
-  console.log('entidade:', entidade);
-  console.log('entidade?.id:', entidade?.id);
-  console.log('Tipo do entidade?.id:', typeof entidade?.id);
-  console.log('=== FIM DEBUG ===');
+  // Debug log removido para melhor visualização
   // const { eventos, loading: eventosLoading, refetch: refetchEventos } = useEventosEntidade(entidade?.id);
   
   const { entidadeId, isAuthenticated, logout } = useEntityAuth();
@@ -78,12 +77,20 @@ const EntidadeDetalhes = () => {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showCreateProjectDialog, setShowCreateProjectDialog] = useState(false);
   const [showEditProjectDialog, setShowEditProjectDialog] = useState(false);
+  const [mostrarDialogFormulario, setMostrarDialogFormulario] = useState(false);
+  const [eventoSelecionadoFormulario, setEventoSelecionadoFormulario] = useState<any>(null);
   const [showEditEventDialog, setShowEditEventDialog] = useState(false);
   const [showFotoDialog, setShowFotoDialog] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Projeto | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Evento | null>(null);
   const [participationLoading, setParticipationLoading] = useState(false);
   const [currentFotoUrl, setCurrentFotoUrl] = useState<string | null>(null);
+  const [showCreateEventFromReservaDialog, setShowCreateEventFromReservaDialog] = useState(false);
+  const [selectedReserva, setSelectedReserva] = useState<any | null>(null);
+  const [showGerenciarTemplates, setShowGerenciarTemplates] = useState(false);
+  const [showVincularDialog, setShowVincularDialog] = useState(false);
+  const [selectedEventoVincular, setSelectedEventoVincular] = useState<any>(null);
+  const [selectedReservaVincular, setSelectedReservaVincular] = useState<any>(null);
   
   const { eventos: allEventos, loading: eventosLoading, refetch: refetchEventos } = useEventosEntidade(entidade?.id, isOwner);
   const eventos = allEventos?.filter(ev => {
@@ -143,17 +150,8 @@ const EntidadeDetalhes = () => {
   };
 
   const handleEditEvent = (evento: Evento) => {
-    console.log('🔄 Abrindo modal de edição para evento:', evento);
-    console.log('🆔 IDs:', { eventoId: evento.id, entidadeId: entidade?.id });
-    console.log('🔍 Estado atual:', { 
-      showEditEventDialog, 
-      selectedEvent, 
-      entidadeId: entidade?.id,
-      eventosCount: eventos?.length 
-    });
     setSelectedEvent(evento);
     setShowEditEventDialog(true);
-    console.log('✅ Modal de edição aberto');
   };
 
   const handleFotoUpdated = (url: string) => {
@@ -169,6 +167,11 @@ const EntidadeDetalhes = () => {
         duration: 3000,
       });
     }, 1000);
+  };
+
+  const handleCriarEventoDeReserva = (reserva: any) => {
+    setSelectedReserva(reserva);
+    setShowCreateEventFromReservaDialog(true);
   };
 
   const handleDemonstrarInteresse = async () => {
@@ -403,23 +406,20 @@ const EntidadeDetalhes = () => {
                       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                         <EditarEntidadeForm 
                           entidade={entidade} 
-                          onSuccess={() => {
-                            // console.log('🔄 onSuccess chamado - fechando dialog e refetching');
-                            setShowEditDialog(false);
-                            setIsUpdating(true);
-                            
-                            // Mostrar feedback visual de atualização
-                            toast({
-                              title: "🔄 Atualizando...",
-                              description: "Carregando as informações atualizadas da entidade.",
-                              duration: 2000,
-                            });
-                            
-                            // Refetch com pequeno delay para garantir que o toast seja exibido
-                            setTimeout(async () => {
-                              await refetchEntidade();
-                            }, 100);
-                          }} 
+                onSuccess={() => {
+                  setShowEditDialog(false);
+                  setIsUpdating(true);
+                  
+                  toast({
+                    title: "🔄 Atualizando...",
+                    description: "Carregando as informações atualizadas da entidade.",
+                    duration: 2000,
+                  });
+                  
+                  setTimeout(async () => {
+                    await refetchEntidade();
+                  }, 100);
+                }}
                         />
                       </DialogContent>
                     </Dialog>
@@ -465,11 +465,6 @@ const EntidadeDetalhes = () => {
                     entidadeId={entidade.id}
                     entidadeNome={entidade.nome || 'Entidade'}
                     onSuccess={() => {
-                      console.log('=== DEBUG EntidadeDetalhes ===');
-                      console.log('entidade.id:', entidade.id);
-                      console.log('entidade.nome:', entidade.nome);
-                      console.log('Tipo do entidade.id:', typeof entidade.id);
-                      console.log('=== FIM DEBUG ===');
                       refetchEntidade();
                     }}
                   />
@@ -621,10 +616,9 @@ const EntidadeDetalhes = () => {
                         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                           <EditarEntidadeForm 
                             entidade={entidade} 
-                            onSuccess={() => {
-                              // console.log('🔄 onSuccess chamado - refetching dados da entidade');
-                              refetchEntidade();
-                            }} 
+                onSuccess={() => {
+                  refetchEntidade();
+                }}
                           />
                         </DialogContent>
                       </Dialog>
@@ -706,7 +700,6 @@ const EntidadeDetalhes = () => {
               <EditarEntidadeForm
                 entidade={entidade}
                 onSuccess={() => {
-                  // console.log("🔄 onSuccess chamado - refetching dados da entidade");
                   refetchEntidade();
                 }}
               />
@@ -861,15 +854,51 @@ const EntidadeDetalhes = () => {
 
 
 
-            {/* Eventos - Sempre visível para mostrar calendário */}
+            {/* Eventos e Reservas com Tabs - Sempre visível */}
             <Card className="border-0 shadow-lg bg-white hover:shadow-xl transition-shadow duration-300">
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <Calendar className="w-5 h-5 text-red-600" />
-                    <CardTitle className="text-2xl text-gray-900">Eventos</CardTitle>
+                    <CardTitle className="text-2xl text-gray-900">Eventos e Reservas</CardTitle>
+                    {isOwner && allEventos && (
+                      <div className="flex items-center gap-2 ml-4">
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
+                          {allEventos.filter(e => e.status_aprovacao === 'aprovado').length} eventos aprovados
+                        </Badge>
+                        {allEventos.filter(e => e.status_aprovacao === 'pendente').length > 0 && (
+                          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
+                            {allEventos.filter(e => e.status_aprovacao === 'pendente').length} pendentes
+                          </Badge>
+                        )}
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
+                          {reservasEntidade?.filter((r: any) => r.status_reserva === 'aprovada').length || 0} reservas aprovadas
+                        </Badge>
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
+                    {isOwner && (
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button size="sm" className="bg-red-600 hover:bg-red-700">
+                            <Plus className="mr-2 h-4 w-4" />
+                            Criar Evento
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                          <CriarEventoEntidade
+                            onSuccess={() => {
+                              refetchEventos();
+                              toast({
+                                title: 'Evento criado!',
+                                description: 'Seu evento foi enviado para aprovação do admin.',
+                              });
+                            }}
+                          />
+                        </DialogContent>
+                      </Dialog>
+                    )}
                     <Button size="sm" variant="outline" onClick={() => navigate(`/entidades/${id}/calendario`)}>
                       <Calendar className="mr-2 h-4 w-4" />
                       Ver calendário
@@ -878,118 +907,28 @@ const EntidadeDetalhes = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                {eventosLoading ? (
+                {eventosLoading || reservasLoading ? (
                   <div className="space-y-4">
                     <Skeleton className="h-24 w-full rounded-xl" />
                     <Skeleton className="h-24 w-full rounded-xl" />
-                  </div>
-                ) : eventos && eventos.length > 0 ? (
-                  <div className="space-y-4">
-                    {eventos.map((evento) => (
-                      <div key={evento.id} className="group border border-gray-200 rounded-xl p-4 hover:border-red-300 hover:shadow-md transition-all duration-200 bg-gradient-to-r from-white to-gray-50">
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex-1">
-                            <h4 className="font-bold text-gray-900 text-lg mb-2">
-                              {evento.nome}
-                            </h4>
-                            <p className="text-gray-600 text-sm mb-3 line-clamp-2">
-                              {evento.descricao}
-                            </p>
-                          </div>
-                          {isOwner && (
-                            <div className="flex items-center gap-2 ml-4">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleEditEvent(evento)}
-                                className="h-8 w-8 p-0"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Tem certeza que deseja excluir o evento "{evento.nome}"? 
-                                      Esta ação não pode ser desfeita.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction 
-                                      onClick={() => handleDeleteEvent(evento)}
-                                      disabled={deleteEventoLoading}
-                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                    >
-                                      {deleteEventoLoading ? 'Excluindo...' : 'Excluir'}
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </div>
-                          )}
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                          <div className="flex items-center text-gray-600">
-                            <Calendar className="mr-2 h-4 w-4 text-red-500 flex-shrink-0" />
-                            <span className="font-medium">{format(new Date(evento.data), "dd 'de' MMMM, yyyy", { locale: ptBR })}</span>
-                          </div>
-                          <div className="flex items-center text-gray-600">
-                            <Clock className="mr-2 h-4 w-4 text-red-500 flex-shrink-0" />
-                            <span className="font-medium">
-                              {evento.horario_inicio || '--:--'}
-                              {evento.horario_termino ? ` - ${evento.horario_termino}` : ''}
-                            </span>
-                          </div>
-                          {evento.local && (
-                            <div className="flex items-center text-gray-600 sm:col-span-2">
-                              <MapPin className="mr-2 h-4 w-4 text-red-500 flex-shrink-0" />
-                              <span className="font-medium">{evento.local}</span>
-                            </div>
-                          )}
-                        </div>
-                        {evento.link_evento && (
-                          <div className="mt-4 pt-3 border-t border-gray-200">
-                            <a
-                              href={evento.link_evento}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center text-red-600 hover:text-red-700 font-medium text-sm hover:underline"
-                            >
-                              <ExternalLink className="mr-2 h-4 w-4" />
-                              Inscrever-se no evento
-                            </a>
-                          </div>
-                        )}
-                      </div>
-                    ))}
                   </div>
                 ) : (
-                  <div className="text-center py-12">
-                    <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                      <Calendar className="h-10 w-10 text-red-600" />
-                    </div>
-                    <h4 className="font-bold text-gray-900 mb-3 text-lg">
-                      Nenhum evento cadastrado
-                    </h4>
-                    <p className="text-gray-600 mb-6 max-w-sm mx-auto">
-                      {isOwner 
-                        ? 'Que tal criar o primeiro evento da sua organização? Conecte-se com os estudantes!'
-                        : 'Esta organização ainda não possui eventos cadastrados. Fique atento às atualizações!'
-                      }
-                    </p>
-                    {/* Botão de criar evento removido conforme solicitado */}
-                  </div>
+                  <EventosReservasTabsEntidade
+                    eventos={allEventos || []}
+                    reservas={reservasEntidade || []}
+                    entidadeId={entidade.id}
+                    isOwner={isOwner}
+                    onConfigurarFormulario={(evento) => {
+                      setEventoSelecionadoFormulario(evento);
+                      setMostrarDialogFormulario(true);
+                    }}
+                    onRefetch={() => {
+                      refetchEventos();
+                      refetchReservas();
+                    }}
+                    onEditEvent={handleEditEvent}
+                    onDeleteEvent={handleDeleteEvent}
+                  />
                 )}
               </CardContent>
             </Card>
@@ -1146,6 +1085,49 @@ const EntidadeDetalhes = () => {
                       )}
                     </div>
                   )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Templates de Formulários */}
+            {isOwner && (
+              <Card className="border-0 shadow-lg bg-white hover:shadow-xl transition-shadow duration-300">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <ClipboardList className="w-5 h-5 text-red-600" />
+                      <CardTitle className="text-2xl text-gray-900">Templates de Formulários</CardTitle>
+                    </div>
+                    <Button 
+                      size="sm" 
+                      onClick={() => setShowGerenciarTemplates(true)}
+                      className="bg-red-600 hover:bg-red-700 shadow-sm hover:shadow-md transition-all duration-200"
+                    >
+                      <Settings className="h-4 w-4 mr-2" />
+                      Gerenciar Templates
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8">
+                    <div className="w-20 h-20 bg-gradient-to-br from-red-100 to-red-200 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                      <ClipboardList className="h-10 w-10 text-red-600" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                      Templates de Inscrição
+                    </h3>
+                    <p className="text-gray-600 mb-6 max-w-md mx-auto leading-relaxed">
+                      Crie e gerencie templates de formulários para reutilizar em seus eventos. 
+                      Economize tempo configurando inscrições padronizadas.
+                    </p>
+                    <Button 
+                      onClick={() => setShowGerenciarTemplates(true)}
+                      className="bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 px-6 py-2"
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Criar Template
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             )}
@@ -1318,6 +1300,30 @@ const EntidadeDetalhes = () => {
                               <span className="font-medium">{reserva.nome_solicitante}</span>
                             </div>
                           </div>
+                          
+                          {/* Botão para criar evento a partir da reserva aprovada */}
+                          {reserva.status === 'aprovada' && !reserva.evento_id && (
+                            <div className="mt-4 pt-3 border-t border-gray-200">
+                              <Button
+                                size="sm"
+                                onClick={() => handleCriarEventoDeReserva(reserva)}
+                                className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
+                              >
+                                <Plus className="mr-2 h-4 w-4" />
+                                Criar Evento desta Reserva
+                              </Button>
+                            </div>
+                          )}
+                          
+                          {/* Indicador de evento já criado */}
+                          {reserva.status === 'aprovada' && reserva.evento_id && (
+                            <div className="mt-4 pt-3 border-t border-gray-200">
+                              <div className="flex items-center text-green-700 bg-green-50 px-3 py-2 rounded-lg text-sm">
+                                <Calendar className="mr-2 h-4 w-4" />
+                                <span className="font-medium">Evento já criado para esta reserva</span>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -1381,41 +1387,75 @@ const EntidadeDetalhes = () => {
                 evento={selectedEvent}
                 entidadeId={entidade?.id || 0}
                 onSuccess={() => {
-                  console.log('🎉 onSuccess chamado - fechando modal e recarregando eventos');
-                  console.log('🔍 Estado antes de fechar:', { 
-                    showEditEventDialog, 
-                    selectedEvent, 
-                    entidadeId: entidade?.id,
-                    eventosCount: eventos?.length 
-                  });
-                  
-                  // Fechar o modal primeiro
                   setShowEditEventDialog(false);
                   setSelectedEvent(null);
                   
-                  // Aguardar um pouco antes de recarregar os eventos
                   setTimeout(() => {
-                    console.log('🔄 Recarregando eventos após delay...');
-                    console.log('🔍 Função refetchEventos:', typeof refetchEventos);
-                    
-                    try {
-                      if (typeof refetchEventos === 'function') {
-                        refetchEventos();
-                        console.log('✅ refetchEventos chamado com sucesso');
-                      } else {
-                        console.error('❌ refetchEventos não é uma função:', refetchEventos);
-                      }
-                    } catch (error) {
-                      console.error('❌ Erro ao chamar refetchEventos:', error);
+                    if (typeof refetchEventos === 'function') {
+                      refetchEventos();
                     }
                   }, 100);
-                  
-                  console.log('✅ Modal fechado e agendado recarregamento de eventos');
                 }}
               />
             </DialogContent>
           </Dialog>
         )}
+
+        {/* Dialog for creating event from reservation */}
+        {selectedReserva && entidade && (
+          <Dialog open={showCreateEventFromReservaDialog} onOpenChange={setShowCreateEventFromReservaDialog}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <CriarEventoDeReserva
+                reserva={selectedReserva}
+                entidadeId={entidade.id}
+                onSuccess={() => {
+                  setShowCreateEventFromReservaDialog(false);
+                  setSelectedReserva(null);
+                  refetchEventos();
+                  refetchReservas();
+                }}
+                onCancel={() => {
+                  setShowCreateEventFromReservaDialog(false);
+                  setSelectedReserva(null);
+                }}
+              />
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {/* Dialog for managing templates */}
+        {entidade && (
+          <Dialog open={showGerenciarTemplates} onOpenChange={setShowGerenciarTemplates}>
+            <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Gerenciar Templates de Formulários</DialogTitle>
+              </DialogHeader>
+              <GerenciarTemplatesFormularios entidadeId={entidade.id} />
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {/* Dialog for configuring event registration form */}
+        <Dialog open={mostrarDialogFormulario} onOpenChange={setMostrarDialogFormulario}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Configurar Formulário de Inscrição</DialogTitle>
+            </DialogHeader>
+            
+            {eventoSelecionadoFormulario && (
+              <ConfigurarFormularioInscricao
+                eventoId={eventoSelecionadoFormulario.id}
+                entidadeId={entidade.id}
+                capacidadeSala={eventoSelecionadoFormulario.capacidade}
+                onSave={() => {
+                  setMostrarDialogFormulario(false);
+                  setEventoSelecionadoFormulario(null);
+                  refetchEventos(); // Atualizar lista de eventos
+                }}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

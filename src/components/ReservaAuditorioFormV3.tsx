@@ -17,6 +17,7 @@ import { useSalas } from '@/hooks/useSalas';
 import { ReservaFormData, MOTIVO_AUDITORIO_LABELS, ProfessorConvidado } from '@/types/reserva';
 import { ProfessoresConvidadosManager } from '@/components/ProfessoresConvidadosManager';
 import { SalaSelector } from '@/components/SalaSelector';
+import { PreencherReservaComEvento, DadosEvento } from '@/components/PreencherReservaComEvento';
 import { toast } from 'sonner';
 
 const TOTAL_STEPS = 4;
@@ -67,6 +68,24 @@ export const ReservaAuditorioFormV3: React.FC = () => {
         [field]: ''
       }));
     }
+  };
+
+  const handleAplicarDadosEvento = (dados: DadosEvento) => {
+    setFormData(prev => ({
+      ...prev,
+      titulo_evento_capacitacao: dados.titulo, // Auditório também usa este campo
+      descricao_programacao_evento: dados.descricao,
+      data_reserva: dados.dataReserva,
+      horario_inicio: dados.horarioInicio,
+      horario_termino: dados.horarioTermino,
+      quantidade_pessoas: dados.quantidadePessoas,
+      motivo_reserva: dados.tipoEvento as any, // Mapear tipo evento -> motivo reserva
+      professores_convidados: dados.palestrantes || []
+    }));
+    
+    toast.success('Dados do evento aplicados com sucesso!', {
+      description: 'Os campos do formulário foram preenchidos automaticamente.'
+    });
   };
 
   const validateDate = (date: string): boolean => {
@@ -340,6 +359,14 @@ export const ReservaAuditorioFormV3: React.FC = () => {
         </CardHeader>
         
         <CardContent className="space-y-6">
+          {/* Preencher com dados de evento existente */}
+          {entidadeId && currentStep === 1 && (
+            <PreencherReservaComEvento
+              entidadeId={entidadeId}
+              onAplicar={handleAplicarDadosEvento}
+            />
+          )}
+          
           {renderStep()}
           
           <div className="flex justify-between pt-6">

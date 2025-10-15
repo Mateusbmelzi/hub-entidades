@@ -180,8 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      console.log('🔍 Verificando sessão existente:', session?.user?.email);
-      console.log('🔍 Sessão completa:', session);
+      // Log reduzido - apenas em caso de erro
       
       setSession(session);
       setUser(session?.user ?? null);

@@ -29,10 +29,13 @@ export interface Reserva {
   // Relacionamentos
   profile_id: string;
   entidade_id?: number;
-  evento_id: string; // Obrigatório
+  evento_id?: string | null; // Opcional - preenchido após criação do evento
   
   // Tipo de reserva
   tipo_reserva: TipoReserva;
+  
+  // Status da reserva
+  status_reserva: StatusReserva;
   
   // Dados básicos da reserva
   data_reserva: string;
@@ -132,7 +135,7 @@ export interface ReservaDetalhada extends Reserva {
 
 export interface ReservaFormData {
   // Dados básicos
-  evento_id?: string; // Opcional - será criado após aprovação
+  evento_id?: string | null; // Opcional - será criado após aprovação se necessário
   tipo_reserva: TipoReserva;
   data_reserva: string;
   horario_inicio: string;

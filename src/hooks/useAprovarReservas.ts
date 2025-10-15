@@ -47,87 +47,23 @@ export const useAprovarReservas = () => {
         throw updateReservaError;
       }
 
-      // 2. Buscar dados da reserva para criar evento
+      console.log('✅ Reserva aprovada com sucesso');
+
+      // Buscar dados da reserva para notificação e associação de sala
       const { data: reservaData, error: reservaError } = await supabase
         .from('reservas')
-        .select('*')
+        .select('tipo_reserva, profile_id, nome_solicitante, telefone_solicitante, entidade_id')
         .eq('id', reservaId)
         .single();
 
       if (reservaError) {
         console.error('❌ Erro ao buscar dados da reserva:', reservaError);
-        throw reservaError;
-      }
-
-      // 3. Criar evento baseado na reserva
-      const eventoData = {
-        nome: reservaData.nome_evento || `Evento - ${reservaData.tipo_reserva === 'auditorio' ? 'Auditório' : 'Sala'}`,
-        descricao: reservaData.descricao_evento || `Evento aprovado para ${reservaData.tipo_reserva}`,
-        local: local || (reservaData.tipo_reserva === 'auditorio' ? 'Auditório Steffi e Max Perlaman' : 'A definir'),
-        data: reservaData.data_reserva,
-        horario_inicio: reservaData.horario_inicio,
-        horario_termino: reservaData.horario_termino,
-        capacidade: reservaData.quantidade_pessoas,
-        status: 'aprovado',
-        status_aprovacao: 'aprovado',
-        comentario_aprovacao: comentario || 'Reserva aprovada',
-        data_aprovacao: new Date().toISOString(),
-        aprovador_email: user.email,
-        entidade_id: reservaData.entidade_id,
-        sala_id: salaId || reservaData.sala_id,
-        link_evento: '' // Campo obrigatório, mas vazio
-      };
-
-      console.log('🔍 Dados do evento a serem inseridos:', eventoData);
-      
-      const { data: evento, error: eventoError } = await supabase
-        .from('eventos')
-        .insert(eventoData)
-        .select()
-        .single();
-
-      if (eventoError) {
-        console.error('❌ Erro ao criar evento:', eventoError);
-        console.error('❌ Dados que causaram erro:', eventoData);
-        
-        // Reverter a aprovação da reserva se o evento não foi criado
-        console.log('🔄 Revertendo aprovação da reserva...');
-        const { error: rollbackError } = await supabase
-          .from('reservas')
-          .update({
-            status: 'pendente',
-            comentario_aprovacao: null,
-            data_aprovacao: null,
-            aprovador_email: null
-          })
-          .eq('id', reservaId);
-        
-        if (rollbackError) {
-          console.error('❌ Erro ao reverter reserva:', rollbackError);
-        } else {
-          console.log('✅ Reserva revertida para pendente');
-        }
-        
-        throw eventoError;
-      }
-
-      console.log('✅ Evento criado com sucesso:', evento);
-
-      // 4. Atualizar reserva com ID do evento
-      const { error: updateEventoIdError } = await supabase
-        .from('reservas')
-        .update({ evento_id: evento.id })
-        .eq('id', reservaId);
-
-      if (updateEventoIdError) {
-        console.error('❌ Erro ao atualizar reserva com ID do evento:', updateEventoIdError);
-        throw updateEventoIdError;
+        // Não falhar a aprovação por causa disso, apenas logar
       }
 
       const data = {
         success: true,
-        evento_id: evento.id,
-        message: 'Reserva aprovada e evento criado com sucesso'
+        message: 'Reserva aprovada com sucesso'
       };
       const error = null;
 
@@ -145,13 +81,7 @@ export const useAprovarReservas = () => {
           
           // Buscar email do solicitante para enviar notificação
           try {
-            console.log('🔍 Buscando dados da reserva para notificação:', reservaId);
-            
-            const { data: reservaData, error: reservaError } = await supabase
-              .from('reservas')
-              .select('tipo_reserva, profile_id, nome_solicitante, telefone_solicitante')
-              .eq('id', reservaId)
-              .single();
+            console.log('🔍 Enviando notificação para reserva:', reservaId);
 
             // Usar nome do solicitante da reserva
             let solicitanteEmail = null;
@@ -160,8 +90,6 @@ export const useAprovarReservas = () => {
             if (!reservaError && reservaData) {
               solicitanteNome = reservaData.nome_solicitante;
               console.log('📊 Dados da reserva encontrados:', {
-                reservaData,
-                reservaError,
                 nomeSolicitante: reservaData.nome_solicitante,
                 telefoneSolicitante: reservaData.telefone_solicitante
               });
@@ -186,14 +114,6 @@ export const useAprovarReservas = () => {
             } else {
               console.warn('⚠️ Reserva não encontrada:', { reservaError });
             }
-
-            console.log('📊 Dados da reserva encontrados:', {
-              reservaData,
-              reservaError,
-              profileId: reservaData?.profile_id,
-              solicitanteEmail,
-              solicitanteNome
-            });
 
             if (reservaError) {
               console.error('❌ Erro ao buscar dados da reserva:', reservaError);
@@ -229,7 +149,7 @@ export const useAprovarReservas = () => {
             console.error('❌ Erro ao enviar notificação:', notifError);
           }
           
-          // Se uma sala foi selecionada, associar à reserva e buscar informações da sala
+          // Se uma sala foi selecionada, associar à reserva
           if (salaId) {
             // Buscar informações da sala
             const { data: salaData, error: salaFetchError } = await supabase
@@ -242,42 +162,28 @@ export const useAprovarReservas = () => {
               console.error('❌ Erro ao buscar dados da sala:', salaFetchError);
               toast.warning('Reserva aprovada, mas houve erro ao buscar dados da sala.');
             } else {
-              // Associar sala à reserva
-              const { error: salaError } = await supabase
-                .from('salas')
-                .update({ reserva_id: reservaId })
-                .eq('id', salaId);
+              // Atualizar a reserva com as informações da sala
+              const { error: updateSalaError } = await supabase
+                .from('reservas')
+                .update({
+                  sala_id: salaId,
+                  sala_nome: salaData.sala,
+                  sala_predio: salaData.predio,
+                  sala_andar: salaData.andar,
+                  sala_capacidade: salaData.capacidade
+                })
+                .eq('id', reservaId);
               
-              if (salaError) {
-                console.error('❌ Erro ao associar sala à reserva:', salaError);
+              if (updateSalaError) {
+                console.error('❌ Erro ao atualizar reserva com dados da sala:', updateSalaError);
                 toast.warning('Reserva aprovada, mas houve erro ao associar a sala.');
               } else {
                 console.log('✅ Sala associada à reserva com sucesso');
-                
-                // Atualizar o evento com as informações da sala
-                const { error: eventoError } = await supabase
-                  .from('eventos')
-                  .update({
-                    sala_id: salaId,
-                    sala_nome: salaData.sala,
-                    sala_predio: salaData.predio,
-                    sala_andar: salaData.andar,
-                    sala_capacidade: salaData.capacidade,
-                    local: `${salaData.sala} - ${salaData.predio} (${salaData.andar})`
-                  })
-                  .eq('id', data.evento_id || reservaId); // Assumindo que o evento é criado com o mesmo ID da reserva
-                
-                if (eventoError) {
-                  console.error('❌ Erro ao atualizar evento com dados da sala:', eventoError);
-                  toast.warning('Sala associada, mas houve erro ao atualizar o evento.');
-                } else {
-                  console.log('✅ Evento atualizado com dados da sala');
-                }
               }
             }
           }
           
-          toast.success('Reserva aprovada com sucesso! Evento criado automaticamente.');
+          toast.success('Reserva aprovada com sucesso! A entidade pode agora criar um evento.');
           return true;
         } else {
           console.error('❌ Função retornou erro:', data.error);
@@ -285,56 +191,7 @@ export const useAprovarReservas = () => {
         }
       } else {
         console.log('⚠️ Resposta inesperada da função:', data);
-        
-        // Se uma sala foi selecionada, associar à reserva e buscar informações da sala
-        if (salaId) {
-          // Buscar informações da sala
-          const { data: salaData, error: salaFetchError } = await supabase
-            .from('salas')
-            .select('*')
-            .eq('id', salaId)
-            .single();
-          
-          if (salaFetchError) {
-            console.error('❌ Erro ao buscar dados da sala:', salaFetchError);
-            toast.warning('Reserva aprovada, mas houve erro ao buscar dados da sala.');
-          } else {
-            // Associar sala à reserva
-            const { error: salaError } = await supabase
-              .from('salas')
-              .update({ reserva_id: reservaId })
-              .eq('id', salaId);
-            
-            if (salaError) {
-              console.error('❌ Erro ao associar sala à reserva:', salaError);
-              toast.warning('Reserva aprovada, mas houve erro ao associar a sala.');
-            } else {
-              console.log('✅ Sala associada à reserva com sucesso');
-              
-              // Atualizar o evento com as informações da sala
-              const { error: eventoError } = await supabase
-                .from('eventos')
-                .update({
-                  sala_id: salaId,
-                  sala_nome: salaData.sala,
-                  sala_predio: salaData.predio,
-                  sala_andar: salaData.andar,
-                  sala_capacidade: salaData.capacidade,
-                  local: `${salaData.sala} - ${salaData.predio} (${salaData.andar})`
-                })
-                .eq('id', data.evento_id || reservaId); // Assumindo que o evento é criado com o mesmo ID da reserva
-              
-              if (eventoError) {
-                console.error('❌ Erro ao atualizar evento com dados da sala:', eventoError);
-                toast.warning('Sala associada, mas houve erro ao atualizar o evento.');
-              } else {
-                console.log('✅ Evento atualizado com dados da sala');
-              }
-            }
-          }
-        }
-        
-        toast.success('Reserva aprovada com sucesso! Evento criado automaticamente.');
+        toast.success('Reserva aprovada com sucesso! A entidade pode agora criar um evento.');
         return true;
       }
     } catch (err) {

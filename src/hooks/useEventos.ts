@@ -128,10 +128,11 @@ export const useEventos = (options: UseEventosOptions = {}) => {
         .select(`
           *,
           entidades(id, nome, foto_perfil_url),
-          reservas!inner(
+          reservas!left(
             id,
             motivo_reserva,
-            professores_convidados_json
+            professores_convidados_json,
+            status_reserva
           )
         `)
         .eq('status_aprovacao', statusAprovacao)
@@ -162,19 +163,33 @@ export const useEventos = (options: UseEventosOptions = {}) => {
 
       if (error) throw error;
 
+      // Aplicar regra de visibilidade: 
+      // Evento deve estar aprovado E (sem reserva OU com reserva aprovada)
+      const filteredData = (data || []).filter((evento: Evento) => {
+        // Se não tem reserva_id, mostrar
+        if (!evento.reserva_id) {
+          return true;
+        }
+        
+        // Se tem reserva_id, verificar se a reserva está aprovada
+        // A reserva vem no join como array, pegar o primeiro item
+        const reserva = Array.isArray(evento.reservas) ? evento.reservas[0] : evento.reservas;
+        return reserva?.status_reserva === 'aprovada';
+      });
+
       // Salvar no cache
-      if (enableCache && data) {
+      if (enableCache && filteredData) {
         eventosCache.set(cacheKey, {
-          data: data,
+          data: filteredData,
           timestamp: Date.now(),
           page: page
         });
       }
       
       if (append) {
-        setEventos(prev => [...prev, ...(data || [])]);
+        setEventos(prev => [...prev, ...(filteredData || [])]);
       } else {
-        setEventos(data || []);
+        setEventos(filteredData || []);
       }
       
       // Verificar se há mais dados
@@ -186,6 +201,14 @@ export const useEventos = (options: UseEventosOptions = {}) => {
       if (abortControllerRef.current?.signal.aborted) {
         return;
       }
+      
+      // Log detalhado do erro para debug
+      console.error('❌ Erro detalhado no useEventos:', {
+        error: err,
+        message: err instanceof Error ? err.message : 'Erro desconhecido',
+        stack: err instanceof Error ? err.stack : undefined,
+        queryParams: { pageSize, statusAprovacao, entidadeId, from, to }
+      });
       
       setError(err instanceof Error ? err.message : 'Erro ao carregar eventos');
     } finally {

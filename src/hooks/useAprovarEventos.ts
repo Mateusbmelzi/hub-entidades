@@ -7,7 +7,7 @@ export interface EventoParaAprovacao {
   nome: string;
   descricao?: string;
   local?: string;
-  data: string;
+  data_evento: string;
   horario?: string;
   capacidade?: number;
   status: string;
@@ -19,6 +19,15 @@ export interface EventoParaAprovacao {
   created_at: string;
   updated_at: string;
   entidade_nome?: string;
+  entidades?: {
+    nome: string;
+    email_contato: string;
+  };
+  tipo_evento?: string | null;
+  palestrantes_convidados?: any[] | null;
+  observacoes?: string | null;
+  link_evento?: string | null;
+  area_atuacao?: string[] | null;
 }
 
 export const useAprovarEventos = () => {

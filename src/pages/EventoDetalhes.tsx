@@ -16,6 +16,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useEntityAuth } from '@/hooks/useEntityAuth';
 import InscricaoEventoForm from '@/components/InscricaoEventoForm';
 import EntityLoginForm from '@/components/EntityLoginForm';
+import { FormularioInscricaoEvento } from '@/components/FormularioInscricaoEvento';
+import { GerenciarInscritosEvento } from '@/components/GerenciarInscritosEvento';
 import { exportToCSV, formatDateForCSV } from '@/lib/csv-export';
 import { toast } from 'sonner';
 
@@ -531,6 +533,58 @@ const EventoDetalhes = () => {
                    </CardContent>
                  </Card>
                )}
+             </div>
+           )}
+
+           {/* Botão de Inscrição - Para usuários públicos */}
+           {evento.formulario_ativo && !isAuthenticated && (
+             <div className="lg:col-span-2">
+               <Card className="border-0 shadow-lg bg-white">
+                 <CardContent className="pt-6">
+                   <div className="flex items-center justify-between">
+                     <div>
+                       <h3 className="text-xl font-semibold text-gray-900">Inscrições Abertas</h3>
+                       <p className="text-sm text-gray-600">
+                         {evento.total_inscritos}/{evento.limite_vagas || '∞'} vagas preenchidas
+                       </p>
+                     </div>
+                     <Dialog open={showInscricaoDialog} onOpenChange={setShowInscricaoDialog}>
+                       <DialogTrigger asChild>
+                         <Button 
+                           disabled={evento.limite_vagas && evento.total_inscritos >= evento.limite_vagas}
+                           className="bg-red-600 hover:bg-red-700"
+                         >
+                           {evento.limite_vagas && evento.total_inscritos >= evento.limite_vagas 
+                             ? 'Vagas Esgotadas' 
+                             : 'Inscrever-se'
+                           }
+                         </Button>
+                       </DialogTrigger>
+                       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                         <FormularioInscricaoEvento 
+                           eventoId={evento.id} 
+                           onSuccess={() => setShowInscricaoDialog(false)}
+                           onCancel={() => setShowInscricaoDialog(false)}
+                         />
+                       </DialogContent>
+                     </Dialog>
+                   </div>
+                 </CardContent>
+               </Card>
+             </div>
+           )}
+
+           {/* Gerenciar Inscritos - Para proprietário da entidade */}
+           {isAuthenticated && evento.formulario_ativo && (
+             <div className="lg:col-span-2">
+               <Card className="border-0 shadow-lg bg-white">
+                 <CardHeader>
+                   <CardTitle className="text-xl">Gerenciar Inscritos no Evento</CardTitle>
+                 </CardHeader>
+                 <CardContent>
+                   <GerenciarInscritosEvento eventoId={evento.id} />
+                 </CardContent>
+               </Card>
              </div>
            )}
 

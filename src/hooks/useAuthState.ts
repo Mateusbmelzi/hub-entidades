@@ -18,7 +18,7 @@ export const useAuthState = () => {
   // Verificar estado inicial ao carregar
   useEffect(() => {
     const checkAuthState = () => {
-      console.log('🔍 Verificando estado de autenticação...');
+      // Log reduzido - apenas em caso de erro
       
       // Verificar se há token do Supabase (aluno logado) de forma mais robusta
       const hasSupabaseToken = 
@@ -35,11 +35,7 @@ export const useAuthState = () => {
           localStorage.getItem(key) !== 'null'
         );
       
-      console.log('🔍 Token Supabase encontrado:', !!hasSupabaseToken);
-      console.log('🔍 Chaves do localStorage:', Object.keys(localStorage).filter(key => key.includes('supabase')));
-      
       if (hasSupabaseToken) {
-        console.log('✅ Definindo como aluno (token Supabase encontrado)');
         setAuthState({
           type: 'student',
           user: null, // Será preenchido pelo useAuth
@@ -50,17 +46,14 @@ export const useAuthState = () => {
       
       // Só verificar super admin se não houver token do Supabase
       const isSuperAdmin = localStorage.getItem('superAdminAuthenticated') === 'true';
-      console.log('🔍 Super admin encontrado:', isSuperAdmin);
       
       if (isSuperAdmin) {
-        console.log('✅ Definindo como super admin');
         setAuthState({
           type: 'superAdmin',
           user: { email: localStorage.getItem('superAdminEmail') },
           isAuthenticated: true
         });
       } else {
-        console.log('❌ Nenhuma autenticação encontrada');
         setAuthState({
           type: null,
           user: null,
@@ -92,33 +85,17 @@ export const useAuthState = () => {
   };
 
   const loginAsStudent = (user: any) => {
-    console.log('🔐 Login como aluno:', user?.email || user?.id);
-    console.log('🔍 Estado antes do loginAsStudent:');
-    console.log('  - Tipo atual:', authState.type);
-    console.log('  - Usuário atual:', authState.user);
+    // Log reduzido - apenas em caso de erro
     
     // Limpar qualquer login de super admin primeiro
     localStorage.removeItem('superAdminAuthenticated');
     localStorage.removeItem('superAdminEmail');
-    
-    console.log('🔍 Limpando chaves de super admin...');
     
     setAuthState({
       type: 'student',
       user,
       isAuthenticated: true
     });
-    
-    console.log('✅ Estado atualizado para student');
-    
-    // Verificar localStorage após atualização
-    setTimeout(() => {
-      const supabaseKeys = Object.keys(localStorage).filter(key => key.includes('supabase'));
-      console.log('🔍 Chaves Supabase após loginAsStudent:', supabaseKeys);
-      supabaseKeys.forEach(key => {
-        console.log(`  - ${key}:`, localStorage.getItem(key) ? '✅' : '❌');
-      });
-    }, 100);
   };
 
   const logout = () => {

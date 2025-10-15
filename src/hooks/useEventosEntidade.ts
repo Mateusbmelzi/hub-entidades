@@ -19,6 +19,9 @@ export interface Evento {
   entidade_id: number;
   created_at: string;
   updated_at: string;
+  tipo_evento?: string | null;
+  palestrantes_convidados?: any[] | null;
+  observacoes?: string | null;
 }
 
 export const useEventosEntidade = (entidadeId?: number, isEntityOwner: boolean = false) => {

@@ -178,12 +178,12 @@ export const useReservasUsuario = (userId: string) => {
         // Dados do evento
         nome_evento: reserva.eventos?.nome || null,
         descricao_evento: reserva.eventos?.descricao || null,
-        // Dados da sala (do evento)
-        sala_id: reserva.eventos?.sala_id || null,
-        sala_nome: reserva.eventos?.sala_nome || null,
-        sala_predio: reserva.eventos?.sala_predio || null,
-        sala_andar: reserva.eventos?.sala_andar || null,
-        sala_capacidade: reserva.eventos?.sala_capacidade || null
+        // Dados da sala - priorizar dados da reserva (quando aprovada) ou do evento
+        sala_id: reserva.sala_id || reserva.eventos?.sala_id || null,
+        sala_nome: reserva.sala_nome || reserva.eventos?.sala_nome || null,
+        sala_predio: reserva.sala_predio || reserva.eventos?.sala_predio || null,
+        sala_andar: reserva.sala_andar || reserva.eventos?.sala_andar || null,
+        sala_capacidade: reserva.sala_capacidade || reserva.eventos?.sala_capacidade || null
       }));
       
       setReservasUsuario(reservasComDetalhes);
@@ -305,12 +305,12 @@ export const useTodasReservas = (filters?: {
         // Dados do evento
         nome_evento: reserva.eventos?.nome || null,
         descricao_evento: reserva.eventos?.descricao || null,
-        // Dados da sala (do evento)
-        sala_id: reserva.eventos?.sala_id || null,
-        sala_nome: reserva.eventos?.sala_nome || null,
-        sala_predio: reserva.eventos?.sala_predio || null,
-        sala_andar: reserva.eventos?.sala_andar || null,
-        sala_capacidade: reserva.eventos?.sala_capacidade || null
+        // Dados da sala - priorizar dados da reserva (quando aprovada) ou do evento
+        sala_id: reserva.sala_id || reserva.eventos?.sala_id || null,
+        sala_nome: reserva.sala_nome || reserva.eventos?.sala_nome || null,
+        sala_predio: reserva.sala_predio || reserva.eventos?.sala_predio || null,
+        sala_andar: reserva.sala_andar || reserva.eventos?.sala_andar || null,
+        sala_capacidade: reserva.sala_capacidade || reserva.eventos?.sala_capacidade || null
       }));
       
       console.log('✅ Reservas mapeadas:', reservasDetalhadas.length);

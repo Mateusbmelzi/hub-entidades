@@ -50,6 +50,8 @@ import { useAuthStateContext } from '@/components/AuthStateProvider';
 import { TopEntidadesInteresseChart } from '@/components/TopEntidadesInteresseChart';
 import { AdminEmpresasParceiras } from '@/components/AdminEmpresasParceiras';
 import { useEmpresasParceiras } from '@/hooks/useEmpresasParceiras';
+import DashboardAprovacaoReservas from '@/components/DashboardAprovacaoReservas';
+import { DashboardAprovacaoEventos } from '@/components/DashboardAprovacaoEventos';
 import { DemonstracoesPorAreaChart } from '@/components/DemonstracoesPorAreaChart';
 import { AreasEntidadesChart } from '@/components/AreasEntidadesChart';
 import { AlunosPorCursoChart } from '@/components/AlunosPorCursoChart';
@@ -82,7 +84,7 @@ const Dashboard = () => {
   const { empresas: empresasParceiras, loading: empresasLoading, error: empresasError, refetch: refetchEmpresas } = useEmpresasParceiras();
 
   // Estado para controlar qual seção está ativa
-  const [activeSection, setActiveSection] = useState<'overview' | 'eventos' | 'reservas' | 'calendario' | 'organizacoes' | 'demonstracoes' | 'alunos' | 'empresas'>('overview');
+  const [activeSection, setActiveSection] = useState<'overview' | 'eventos' | 'reservas' | 'calendario' | 'organizacoes' | 'demonstracoes' | 'alunos' | 'empresas' | 'aprovar-eventos'>('overview');
   
   // Estado para modal de rejeição
   const [rejeicaoModal, setRejeicaoModal] = useState({
@@ -119,7 +121,7 @@ const Dashboard = () => {
     }
   };
 
-  const handleCardClick = (section: 'overview' | 'eventos' | 'reservas' | 'calendario' | 'organizacoes' | 'demonstracoes' | 'alunos' | 'empresas') => {
+  const handleCardClick = (section: 'overview' | 'eventos' | 'reservas' | 'calendario' | 'organizacoes' | 'demonstracoes' | 'alunos' | 'empresas' | 'aprovar-eventos') => {
     setActiveSection(section);
   };
 
@@ -818,6 +820,14 @@ const Dashboard = () => {
                     <span className="text-xs opacity-90">Gerenciar todas as reservas pendentes</span>
                   </Button>
                   <Button 
+                    onClick={() => handleCardClick('aprovar-eventos')}
+                    className="h-20 flex flex-col items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white"
+                  >
+                    <Calendar className="h-6 w-6" />
+                    <span className="font-medium">Aprovar Eventos</span>
+                    <span className="text-xs opacity-90">Gerenciar eventos pendentes</span>
+                  </Button>
+                  <Button 
                     onClick={() => navigate('/calendario-reservas')}
                     className="h-20 flex flex-col items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white"
                   >
@@ -908,6 +918,13 @@ const Dashboard = () => {
                 refetchTodasReservas();
               }}
             />
+          </div>
+        )}
+
+        {/* Seção de Aprovação de Eventos */}
+        {activeSection === 'aprovar-eventos' && (
+          <div className="space-y-6">
+            <DashboardAprovacaoEventos />
           </div>
         )}
 

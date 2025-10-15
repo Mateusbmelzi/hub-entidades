@@ -15,6 +15,7 @@ import { ptBR } from 'date-fns/locale';
 import { useAuth } from '@/hooks/useAuth';
 import { useEventos } from '@/hooks/useEventos';
 import InscricaoEventoForm from '@/components/InscricaoEventoForm';
+import { testEventosRLS } from '@/lib/test-eventos-rls';
 import { FotoPerfilEntidade } from '@/components/FotoPerfilEntidade';
 import { AREAS_ATUACAO } from '@/lib/constants';
 
@@ -313,6 +314,20 @@ const Eventos = () => {
 
           {/* Search and Filters */}
           <div className="max-w-4xl mx-auto">
+            
+            {/* Botão de teste para debug */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="mb-4 text-center">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => testEventosRLS()}
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                >
+                  🧪 Testar RLS Eventos
+                </Button>
+              </div>
+            )}
             <div className="relative mb-8">
               <Search className="absolute left-4 top-4 h-6 w-6 text-insper-dark-gray/60" />
               <Input
@@ -709,6 +724,16 @@ const Eventos = () => {
                                 {area}
                               </Badge>
                             ))}
+                          </div>
+                        )}
+
+                        {/* Indicador de vagas */}
+                        {evento.formulario_ativo && (
+                          <div className="flex items-center text-sm text-gray-600">
+                            <Users className="mr-1 h-4 w-4" />
+                            <span>
+                              {evento.total_inscritos}/{evento.limite_vagas || '∞'} inscritos
+                            </span>
                           </div>
                         )}
 

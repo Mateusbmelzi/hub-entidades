@@ -10,6 +10,14 @@ interface CreateEventoData {
   capacidade?: number;
   link_evento?: string;
   area_atuacao?: string[];
+  tipo_evento?: string | null;
+  palestrantes_convidados?: any[];
+  observacoes?: string | null;
+}
+
+interface CreateEventoOptions {
+  criarFormulario?: boolean;
+  templateId?: string | null;
 }
 
 export const useCreateEventoAsEntity = () => {
@@ -36,7 +44,7 @@ export const useCreateEventoAsEntity = () => {
     return exists;
   };
 
-  const createEvento = async (entidadeId: number, data: CreateEventoData, forceCreate: boolean = false) => {
+  const createEvento = async (entidadeId: number, data: CreateEventoData, forceCreate: boolean = false, options?: CreateEventoOptions) => {
     try {
       console.log('🚀 Iniciando criação de evento:', { entidadeId, data, forceCreate });
       setLoading(true);
@@ -58,7 +66,10 @@ export const useCreateEventoAsEntity = () => {
         _local: data.local,
         _capacidade: data.capacidade,
         _link_evento: data.link_evento,
-        _area_atuacao: data.area_atuacao
+        _area_atuacao: data.area_atuacao,
+        _tipo_evento: data.tipo_evento,
+        _palestrantes_convidados: data.palestrantes_convidados,
+        _observacoes: data.observacoes
       });
       
       // Tentar usar a função RPC primeiro
@@ -72,7 +83,10 @@ export const useCreateEventoAsEntity = () => {
           _local: data.local,
           _capacidade: data.capacidade,
           _link_evento: data.link_evento,
-          _area_atuacao: data.area_atuacao
+          _area_atuacao: data.area_atuacao,
+          _tipo_evento: data.tipo_evento,
+          _palestrantes_convidados: data.palestrantes_convidados,
+          _observacoes: data.observacoes
         });
         result = rpcResult.data;
         error = rpcResult.error;
@@ -104,6 +118,9 @@ export const useCreateEventoAsEntity = () => {
             capacidade: data.capacidade,
             link_evento: data.link_evento,
             area_atuacao: data.area_atuacao,
+            tipo_evento: data.tipo_evento,
+            palestrantes_convidados: data.palestrantes_convidados,
+            observacoes: data.observacoes,
             status_aprovacao: 'pendente' // Campo correto para aprovação
           })
           .select('id')
@@ -120,12 +137,37 @@ export const useCreateEventoAsEntity = () => {
         console.log('✅ Evento criado via RPC, ID:', result);
       }
 
+      // Se optou por criar formulário, criar automaticamente
+      if (options?.criarFormulario && result) {
+        try {
+          const formularioData = {
+            evento_id: result,
+            entidade_id: entidadeId,
+            ativo: false,
+            limite_vagas: data.capacidade || null,
+            aceita_lista_espera: false,
+            campos_basicos_visiveis: ['nome_completo', 'email', 'curso', 'semestre'],
+            campos_personalizados: [],
+            template_id: options.templateId || null
+          };
+
+          await supabase
+            .from('formularios_inscricao')
+            .insert(formularioData);
+          
+          console.log('✅ Formulário criado automaticamente');
+        } catch (error) {
+          console.error('❌ Erro ao criar formulário:', error);
+          // Não falhar a criação do evento se o formulário falhar
+        }
+      }
+
       toast({
         title: "Evento criado com sucesso!",
         description: "O evento foi criado e está aguardando aprovação do super admin.",
       });
 
-      return { success: true, eventoId: result };
+      return { success: true, eventoId: result, data: { id: result } };
     } catch (error) {
       console.error('❌ Erro completo ao criar evento:', error);
       const message = error instanceof Error ? error.message : 'Erro ao criar evento';
