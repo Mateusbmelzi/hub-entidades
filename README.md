@@ -387,7 +387,11 @@ src/
 - **Correlação** entre áreas de interesse
 - **Identificação de usuários inativos**
 
-## Contribuição
+## Segurança
+
+### Reportando Vulnerabilidades
+
+Se você descobrir uma vulnerabilidade de segurança, **não** abra uma issue pública. Em vez disso, leia nossa [Política de Segurança](SECURITY.md) para saber como reportar de forma responsável.
 
 ### Código de Conduta
 
