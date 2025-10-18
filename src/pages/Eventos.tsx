@@ -16,6 +16,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useEventos } from '@/hooks/useEventos';
 import InscricaoEventoForm from '@/components/InscricaoEventoForm';
 import { testEventosRLS } from '@/lib/test-eventos-rls';
+import { debugEventosAprovacao, testAprovarEvento } from '@/lib/debug-eventos-aprovacao';
 import { FotoPerfilEntidade } from '@/components/FotoPerfilEntidade';
 import { AREAS_ATUACAO } from '@/lib/constants';
 
@@ -317,7 +318,7 @@ const Eventos = () => {
             
             {/* Botão de teste para debug */}
             {process.env.NODE_ENV === 'development' && (
-              <div className="mb-4 text-center">
+              <div className="mb-4 text-center space-x-2">
                 <Button 
                   variant="outline" 
                   size="sm"
@@ -325,6 +326,14 @@ const Eventos = () => {
                   className="bg-white/10 border-white/20 text-white hover:bg-white/20"
                 >
                   🧪 Testar RLS Eventos
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => debugEventosAprovacao()}
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                >
+                  🔍 Debug Aprovação
                 </Button>
               </div>
             )}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { sessionLog } from '@/lib/debug-config';
 
 export type AuthType = 'student' | 'superAdmin' | null;
 
@@ -66,7 +67,7 @@ export const useAuthState = () => {
   }, []);
 
   const loginAsSuperAdmin = (email: string) => {
-    console.log('🔐 Login como super admin:', email);
+    sessionLog('🔐 Login como super admin:', email);
     
     // Limpar qualquer login de aluno primeiro
     localStorage.removeItem('supabase.auth.token');
@@ -99,7 +100,7 @@ export const useAuthState = () => {
   };
 
   const logout = () => {
-    console.log('🚪 Fazendo logout...');
+    sessionLog('🚪 Fazendo logout...');
     
     // Limpar todos os dados de autenticação
     localStorage.removeItem('superAdminAuthenticated');
@@ -123,7 +124,7 @@ export const useAuthState = () => {
       isAuthenticated: false
     });
     
-    console.log('✅ Logout concluído - estado limpo');
+    sessionLog('✅ Logout concluído - estado limpo');
   };
 
   const updateStudentUser = (user: any) => {

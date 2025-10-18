@@ -107,7 +107,7 @@ export function PreencherReservaComEvento({ entidadeId, onAplicar }: PreencherRe
                   <div className="flex flex-col">
                     <span className="font-medium">{evento.nome}</span>
                     <span className="text-xs text-gray-500">
-                      {format(new Date(evento.data_evento), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                      {evento.data_evento ? format(new Date(evento.data_evento), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : 'Data a definir'}
                       {evento.capacidade && ` • ${evento.capacidade} pessoas`}
                     </span>
                   </div>

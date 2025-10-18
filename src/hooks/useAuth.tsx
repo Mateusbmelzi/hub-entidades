@@ -3,6 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useActivityLogger } from './useActivityLogger';
 import { useAuthStateContext } from '@/components/AuthStateProvider';
+import { authLog, sessionLog } from '@/lib/debug-config';
 
 interface Profile {
   id: string;
@@ -124,7 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     // Se já é super admin, não verificar sessão do Supabase
     if (isSuperAdmin) {
-      console.log('🔍 Usuário já autenticado como super admin, pulando verificação do Supabase');
+      authLog('🔍 Usuário já autenticado como super admin, pulando verificação do Supabase');
       setLoading(false);
       return;
     }
@@ -132,17 +133,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('🔄 Auth state change:', event, session?.user?.email);
-        console.log('🔍 Evento específico:', event);
-        console.log('🔍 Sessão completa:', session);
+        authLog('🔄 Auth state change:', event, session?.user?.email);
+        authLog('🔍 Evento específico:', event);
+        authLog('🔍 Sessão completa:', session);
         
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          console.log('✅ Usuário autenticado via Supabase, chamando loginAsStudent');
-          console.log('🔍 User ID:', session.user.id);
-          console.log('🔍 User Email:', session.user.email);
+          authLog('✅ Usuário autenticado via Supabase, chamando loginAsStudent');
+          authLog('🔍 User ID:', session.user.id);
+          authLog('🔍 User Email:', session.user.email);
           
           // Notificar o sistema de autenticação exclusivo
           loginAsStudent(session.user);
@@ -150,9 +151,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Verificar localStorage após login
           setTimeout(() => {
             const supabaseKeys = Object.keys(localStorage).filter(key => key.includes('supabase'));
-            console.log('🔍 Chaves Supabase após loginAsStudent:', supabaseKeys);
+            authLog('🔍 Chaves Supabase após loginAsStudent:', supabaseKeys);
             supabaseKeys.forEach(key => {
-              console.log(`  - ${key}:`, localStorage.getItem(key) ? '✅' : '❌');
+              authLog(`  - ${key}:`, localStorage.getItem(key) ? '✅' : '❌');
             });
           }, 200);
           
@@ -161,7 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             fetchUserProfile(session.user.id);
           }, 2000);
         } else {
-          console.log('❌ Sessão removida, limpando perfil');
+          authLog('❌ Sessão removida, limpando perfil');
           setProfile(null);
           setLoading(false);
         }
@@ -175,7 +176,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Se já é super admin, não verificar sessão do Supabase
       if (isSuperAdmin) {
-        console.log('🔍 Usuário já autenticado como super admin, pulando verificação de sessão existente');
+        authLog('🔍 Usuário já autenticado como super admin, pulando verificação de sessão existente');
         setLoading(false);
         return;
       }
@@ -186,25 +187,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        console.log('✅ Sessão existente encontrada, chamando loginAsStudent');
-        console.log('🔍 User ID:', session.user.id);
-        console.log('🔍 User Email:', session.user.email);
+        authLog('✅ Sessão existente encontrada, chamando loginAsStudent');
+        authLog('🔍 User ID:', session.user.id);
+        authLog('🔍 User Email:', session.user.email);
         
         loginAsStudent(session.user);
         
         // Verificar localStorage após loginAsStudent
         setTimeout(() => {
           const supabaseKeys = Object.keys(localStorage).filter(key => key.includes('supabase'));
-          console.log('🔍 Chaves Supabase após loginAsStudent (sessão existente):', supabaseKeys);
+          authLog('🔍 Chaves Supabase após loginAsStudent (sessão existente):', supabaseKeys);
           supabaseKeys.forEach(key => {
-            console.log(`  - ${key}:`, localStorage.getItem(key) ? '✅' : '❌');
+            authLog(`  - ${key}:`, localStorage.getItem(key) ? '✅' : '❌');
           });
         }, 200);
         
         // Buscar perfil imediatamente se já há sessão
         fetchUserProfile(session.user.id);
       } else {
-        console.log('❌ Nenhuma sessão existente encontrada');
+        authLog('❌ Nenhuma sessão existente encontrada');
         setLoading(false);
       }
     });

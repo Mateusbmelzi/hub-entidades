@@ -7,6 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { useAuth } from '@/hooks/useAuth';
 import { useNotificationSystem, Notification } from '@/hooks/useNotificationSystem';
 import { toast } from 'sonner';
+import { notificationLog } from '@/lib/debug-config';
 
 const NotificationBell = () => {
   const { user, profile } = useAuth();

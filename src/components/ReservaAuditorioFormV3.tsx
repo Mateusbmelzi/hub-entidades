@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,10 +13,8 @@ import { Calendar, Clock, Users, User, Phone, FileText, CheckCircle, Building, M
 import { useCreateReserva } from '@/hooks/useCreateReserva';
 import { useEntityAuth } from '@/hooks/useEntityAuth';
 import { useAuth } from '@/hooks/useAuth';
-import { useSalas } from '@/hooks/useSalas';
 import { ReservaFormData, MOTIVO_AUDITORIO_LABELS, ProfessorConvidado } from '@/types/reserva';
 import { ProfessoresConvidadosManager } from '@/components/ProfessoresConvidadosManager';
-import { SalaSelector } from '@/components/SalaSelector';
 import { PreencherReservaComEvento, DadosEvento } from '@/components/PreencherReservaComEvento';
 import { toast } from 'sonner';
 
@@ -24,7 +22,8 @@ const TOTAL_STEPS = 4;
 
 export const ReservaAuditorioFormV3: React.FC = () => {
   const navigate = useNavigate();
-  const { id: entidadeIdFromParams } = useParams<{ id: string }>();
+  const { entidadeId: entidadeIdFromParams } = useParams<{ entidadeId: string }>();
+  const location = useLocation();
   
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<Partial<ReservaFormData>>({
@@ -37,7 +36,6 @@ export const ReservaAuditorioFormV3: React.FC = () => {
   const { createReserva, loading: createLoading } = useCreateReserva();
   const { isAuthenticated: isEntityAuthenticated, entidadeId } = useEntityAuth();
   const { profile } = useAuth();
-  const { salas, loading: salasLoading, getSalaAuditorio } = useSalas();
 
 
   // Preencher automaticamente o nome e telefone do solicitante quando o perfil do usuário for carregado
@@ -55,6 +53,16 @@ export const ReservaAuditorioFormV3: React.FC = () => {
       }));
     }
   }, [profile?.nome, profile?.celular, formData.nome_solicitante, formData.telefone_solicitante]);
+
+  // Aplicar dados do evento se vieram via navegação
+  useEffect(() => {
+    const state = location.state as { dadosEvento?: DadosEvento };
+    if (state?.dadosEvento) {
+      handleAplicarDadosEvento(state.dadosEvento);
+      // Limpar o state para não reaplicar se voltar
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
 
   const updateFormData = (field: keyof ReservaFormData, value: any) => {
     setFormData(prev => ({
@@ -131,9 +139,7 @@ export const ReservaAuditorioFormV3: React.FC = () => {
         if (!formData.telefone_solicitante) {
           newErrors.telefone_solicitante = 'Telefone é obrigatório';
         }
-        if (!formData.sala_id) {
-          newErrors.sala_id = 'Seleção do auditório é obrigatória';
-        }
+        // Auditório será definido pelo administrador durante a aprovação
         break;
 
       case 2: // Motivo da reserva e título
@@ -312,7 +318,7 @@ export const ReservaAuditorioFormV3: React.FC = () => {
       case 3:
         return <ConditionalFieldsStep formData={formData} updateFormData={updateFormData} errors={errors} />;
       case 4:
-        return <ReviewStep formData={formData} salas={salas} />;
+        return <ReviewStep formData={formData} />;
       default:
         return null;
     }
@@ -502,13 +508,7 @@ const BasicInfoStep: React.FC<{
       </div>
 
       {/* Seleção de Auditório */}
-      <SalaSelector
-        tipo="auditorio"
-        quantidadePessoas={formData.quantidade_pessoas}
-        salaId={formData.sala_id}
-        onSalaChange={(salaId) => updateFormData('sala_id', salaId)}
-        errors={errors}
-      />
+      {/* Auditório será definido pelo administrador durante a aprovação */}
     </div>
   );
 };
@@ -645,8 +645,7 @@ const ConditionalFieldsStep: React.FC<{
 // Componente para revisão (Passo 4)
 const ReviewStep: React.FC<{
   formData: Partial<ReservaFormData>;
-  salas: any[];
-}> = ({ formData, salas }) => {
+}> = ({ formData }) => {
   const formatDate = (date: string) => {
     if (!date) return 'Não informado';
     return new Date(date).toLocaleDateString('pt-BR');
@@ -706,12 +705,7 @@ const ReviewStep: React.FC<{
               <div>
                 <span className="font-medium">Auditório:</span>
                 <p className="text-sm text-gray-600">
-                  {formData.sala_id ? (() => {
-                    const auditorioSelecionado = salas.find(s => s.id === formData.sala_id);
-                    return auditorioSelecionado 
-                      ? `${auditorioSelecionado.predio} - ${auditorioSelecionado.andar}º andar - ${auditorioSelecionado.sala} (Capacidade: ${auditorioSelecionado.capacidade} pessoas)`
-                      : 'Auditório não encontrado';
-                  })() : 'Não selecionado'}
+                  Será definido pelo administrador durante a aprovação
                 </p>
               </div>
             </div>

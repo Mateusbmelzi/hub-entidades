@@ -15,6 +15,8 @@
 
 - [Sobre o Projeto](#sobre-o-projeto)
 - [Funcionalidades](#funcionalidades)
+- [Sistema de Formulários de Inscrição](#sistema-de-formulários-de-inscrição)
+- [Eventos e Reservas](#eventos-e-reservas)
 - [Arquitetura](#arquitetura)
 - [Tecnologias](#tecnologias)
 - [Deploy](#deploy)
@@ -25,6 +27,7 @@
 - [Estrutura do Projeto](#estrutura-do-projeto)
 - [Autenticação](#autenticação)
 - [Dashboard Analytics](#dashboard-analytics)
+- [Performance e Debugging](#performance-e-debugging)
 - [Contribuição](#contribuição)
 - [Licença](#licença)
 
@@ -78,12 +81,60 @@ O Insper possui mais de **30 organizações estudantis** ativas, divididas em á
 - **Gestão de Demonstrações**: Aprovação/rejeição de interesses
 - **Relatórios**: Insights sobre perfis dos interessados
 - **Autenticação Específica**: Login dedicado para representantes
+- **Sistema de Templates**: Criação e gerenciamento de templates de formulários de inscrição reutilizáveis
+- **Configuração de Formulários**: Configuração de formulários de inscrição para eventos com campos customizados
+- **Gestão de Inscrições**: Gestão de inscritos em eventos com exportação de dados
+- **Eventos Flexíveis**: Criação de eventos independentes (online/externos) ou vinculados a reservas
+- **Vinculação de Reservas**: Vinculação flexível entre eventos e reservas aprovadas
+- **Dashboard de Aprovação**: Dashboard de aprovação de eventos com visualização detalhada
 
 ### Para Administradores
 - **Dashboard Analytics**: Métricas estratégicas e indicadores
-- **Aprovação de Eventos**: Controle de qualidade dos eventos
+- **Aprovação de Eventos**: Aprovação de eventos com visualização completa de informações (tipo, palestrantes, observações)
 - **Gestão de Usuários**: Administração de perfis e permissões
 - **Relatórios Avançados**: Analytics de engajamento e comportamento
+- **Gestão de Reservas**: Gestão de reservas de salas e auditórios
+- **Sistema de Vinculação**: Sistema de vinculação entre eventos aprovados e reservas aprovadas
+
+## Sistema de Formulários de Inscrição
+
+### Templates Reutilizáveis
+- **Criação de Templates**: Criação de templates de formulários personalizados por entidade
+- **Configuração de Campos**: Configuração de campos básicos visíveis (nome, email, curso, semestre, telefone)
+- **Campos Personalizados**: Adição de campos personalizados (text, textarea, select, checkbox, radio)
+- **Associação por Tipo**: Associação de templates a tipos específicos de eventos
+- **Gestão de Limites**: Gestão de limites de vagas e listas de espera
+
+### Configuração de Formulários
+- **Seleção de Template**: Seleção de template durante ou após criação do evento
+- **Preview em Tempo Real**: Preview em tempo real do formulário configurado
+- **Pré-preenchimento**: Campos básicos pré-preenchidos com dados do perfil do usuário
+- **Sincronização**: Sincronização automática entre formulário e evento
+
+### Gestão de Inscrições
+- **Visualização de Inscritos**: Visualização de inscritos por evento
+- **Exportação de Dados**: Exportação de dados em CSV
+- **Controle de Vagas**: Controle de vagas e lista de espera
+- **Status de Inscrição**: Status de inscrição (confirmado, cancelado, lista de espera)
+
+## Eventos e Reservas
+
+### Fluxo de Criação
+1. **Eventos Presenciais**: Criados sem reserva inicial, vinculados após aprovação
+2. **Eventos Online/Externos**: Criados sem necessidade de reserva física
+3. **Reservas**: Criadas independentemente, podem ser vinculadas a eventos
+
+### Vinculação Flexível
+- **Aprovação Independente**: Eventos e reservas aprovados independentemente
+- **Vinculação Pós-aprovação**: Vinculação pós-aprovação entre evento e reserva
+- **Alteração de Vinculação**: Possibilidade de alterar vinculação (mover evento entre reservas)
+- **Visibilidade Pública**: Eventos só aparecem publicamente se aprovados E (sem reserva OU reserva aprovada)
+
+### Informações Expandidas
+- **Tipo de Evento**: Palestra (alunos/público externo), Capacitação, Reunião, Processo Seletivo
+- **Palestrantes/Convidados**: Nome, apresentação, pessoa pública, apoio externo
+- **Observações**: Campo livre para informações adicionais
+- **Necessidade de Espaço Físico**: Indicada por vinculação com reserva
 
 ## Arquitetura
 
@@ -115,6 +166,8 @@ O Insper possui mais de **30 organizações estudantis** ativas, divididas em á
 - **React Query 5.56.2** - Gerenciamento de estado
 - **React Hook Form 7.53.0** - Formulários
 - **Zod 3.23.8** - Validação de schemas
+- **date-fns 3.6.0** - Manipulação de datas
+- **recharts 2.12.7** - Gráficos e visualizações
 
 ### UI/UX
 - **Tailwind CSS 3.4.11** - Framework CSS
@@ -201,8 +254,13 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 Execute os scripts SQL na seguinte ordem:
 
 1. `schema.sql` - Estrutura das tabelas
-2. `rls_policies.sql` - Políticas de segurança
-3. `seed_data.sql` - Dados iniciais (opcional)
+2. `create-templates-formularios.sql` - Sistema de templates
+3. `create-inscricoes-tables.sql` - Tabelas de inscrições
+4. `20250110_add_reserva_id_to_eventos.sql` - Vinculação eventos-reservas
+5. `20250111_add_evento_fields.sql` - Campos expandidos de eventos
+6. `20250111_create_default_template.sql` - Template padrão do sistema
+7. `rls_policies.sql` - Políticas de segurança
+8. `seed_data.sql` - Dados iniciais (opcional)
 
 ## Uso
 
@@ -263,23 +321,43 @@ Execute os scripts SQL na seguinte ordem:
 
 ```
 src/
-├── components/          # Componentes reutilizáveis
-│   ├── ui/             # Componentes base (Shadcn/ui)
-│   ├── Navigation.tsx  # Navegação principal
+├── components/                              # Componentes reutilizáveis
+│   ├── ui/                                  # Componentes base (Shadcn/ui)
+│   ├── ConfigurarFormularioInscricao.tsx    # Configuração de formulários
+│   ├── CriarEditarTemplate.tsx              # Editor de templates
+│   ├── DashboardAprovacaoEventos.tsx        # Dashboard de aprovação
+│   ├── EventosReservasTabsEntidade.tsx      # Tabs de eventos/reservas
+│   ├── FormularioInscricaoEvento.tsx        # Formulário público
+│   ├── GerenciarInscritosEvento.tsx         # Gestão de inscritos
+│   ├── GerenciarTemplatesFormularios.tsx    # Listagem de templates
+│   ├── TemplatePreview.tsx                  # Preview de templates
+│   ├── VincularEventoReserva.tsx            # Vinculação evento-reserva
+│   ├── Navigation.tsx                       # Navegação principal
 │   └── ...
-├── pages/              # Páginas da aplicação
-│   ├── Home.tsx        # Landing page
-│   ├── Entidades.tsx   # Listagem de entidades
-│   ├── Eventos.tsx     # Eventos
+├── pages/                                   # Páginas da aplicação
+│   ├── Home.tsx                             # Landing page
+│   ├── Entidades.tsx                        # Listagem de entidades
+│   ├── Eventos.tsx                          # Eventos
 │   └── ...
-├── hooks/              # Custom hooks
-│   ├── useAuth.tsx     # Autenticação
-│   ├── useEntidades.ts # Dados de entidades
+├── hooks/                                   # Custom hooks
+│   ├── useAuth.tsx                          # Autenticação
+│   ├── useEntidades.ts                      # Dados de entidades
+│   ├── useFormularioInscricao.ts            # Hook para formulários
+│   ├── useTemplatesFormularios.ts           # CRUD de templates
+│   ├── useInscritosEvento.ts                # Gestão de inscritos
+│   ├── useVincularEventoReserva.ts          # Vinculação evento-reserva
 │   └── ...
-├── integrations/       # Integrações externas
-│   └── supabase/       # Configuração Supabase
-├── lib/               # Utilitários
-└── styles/            # Estilos globais
+├── integrations/                            # Integrações externas
+│   └── supabase/                            # Configuração Supabase
+├── lib/                                    # Utilitários
+│   ├── debug-config.ts                      # Configuração de logs
+│   ├── test-eventos-rls.ts                  # Testes de RLS
+│   └── ...
+├── types/                                   # Definições de tipos
+│   ├── template-formulario.ts               # Tipos para templates
+│   ├── evento.ts                            # Tipos expandidos de eventos
+│   └── ...
+└── styles/                                  # Estilos globais
 ```
 
 ## Autenticação
@@ -311,12 +389,18 @@ src/
 
 ## Contribuição
 
+### Código de Conduta
+
+Este projeto adota um Código de Conduta que esperamos que todos os participantes sigam. Por favor, leia o [Código de Conduta completo](CODE_OF_CONDUCT.md) para entender quais ações serão e não serão toleradas.
+
 ### Como Contribuir
 1. **Fork** o projeto
 2. **Crie** uma branch para sua feature
 3. **Commit** suas mudanças
 4. **Push** para a branch
 5. **Abra** um Pull Request
+
+Ao contribuir para este projeto, você concorda em seguir nosso Código de Conduta.
 
 ### Reportar Bugs
 - Use as **Issues** do GitHub
@@ -336,11 +420,11 @@ Este projeto está sob a licença **MIT**. Veja o arquivo [LICENSE](LICENSE) par
 
 ## Agradecimentos
 
+- **Organizações Estudantis do Insper** pela inspiração e feedback durante o desenvolvimento
 - **Insper** pela formação e ambiente acadêmico que possibilitou este projeto
 - **Comunidade Supabase** pelo excelente backend
 - **Shadcn/ui** pelos componentes de qualidade
 - **Vercel** pela infraestrutura de deploy
-- **Organizações Estudantis do Insper** pela inspiração e feedback durante o desenvolvimento
 
 ---
 
@@ -353,4 +437,3 @@ Este projeto está sob a licença **MIT**. Veja o arquivo [LICENSE](LICENSE) par
 - **Gabriel Pradyumna** - [LinkedIn](https://www.linkedin.com/in/gabriel-pradyumna-alencar-costa-8887a6201/) | [GitHub](https://github.com/prady001)
 - **Mateus Melzi** - [LinkedIn](https://www.linkedin.com/in/mateus-bellon-melzi-6381111a9/) | [GitHub](https://github.com/Mateusbmelzi)
 
-[![Insper](https://img.shields.io/badge/Insper-Red?style=for-the-badge&logo=graduation-cap)](https://insper.edu.br)

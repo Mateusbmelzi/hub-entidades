@@ -21,6 +21,7 @@ import {
   Plus,
   FileText
 } from 'lucide-react';
+import { CriarReservaDialog } from '@/components/CriarReservaDialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { combineDataHorario } from '@/lib/date-utils';
@@ -51,6 +52,7 @@ export function EventosReservasTabsEntidade({
   const [selectedReservaVincular, setSelectedReservaVincular] = useState<any>(null);
   const [showCreateEventDialog, setShowCreateEventDialog] = useState(false);
   const [selectedReserva, setSelectedReserva] = useState<any>(null);
+  const [showCriarReservaDialog, setShowCriarReservaDialog] = useState(false);
 
   const handleVincularSuccess = () => {
     setShowVincularDialog(false);
@@ -232,6 +234,16 @@ export function EventosReservasTabsEntidade({
 
         {/* Tab de Reservas */}
         <TabsContent value="reservas" className="space-y-4 mt-4">
+          {/* Botão Criar Reserva */}
+          {isOwner && (
+            <div className="flex justify-end">
+              <Button onClick={() => setShowCriarReservaDialog(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Criar Reserva
+              </Button>
+            </div>
+          )}
+          
           {reservas.length === 0 ? (
             <Card>
               <CardContent className="p-8 text-center">
@@ -362,6 +374,13 @@ export function EventosReservasTabsEntidade({
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Dialog de Criar Reserva */}
+      <CriarReservaDialog
+        entidadeId={entidadeId}
+        isOpen={showCriarReservaDialog}
+        onClose={() => setShowCriarReservaDialog(false)}
+      />
     </>
   );
 }

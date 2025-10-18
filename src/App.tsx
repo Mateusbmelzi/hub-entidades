@@ -42,6 +42,9 @@ import TestEventos from '@/pages/TestEventos';
 import TermosUso from '@/pages/TermosUso';
 import ReservaSala from '@/pages/ReservaSala';
 import ReservaAuditorio from '@/pages/ReservaAuditorio';
+import { TestReservaSala } from '@/components/TestReservaSala';
+import { ReservaSalaFormV2Debug } from '@/components/ReservaSalaFormV2Debug';
+import { ReservaSalaFormV2Simple } from '@/components/ReservaSalaFormV2Simple';
 import AprovarReservas from '@/pages/AprovarReservas';
 import MinhasReservas from '@/pages/MinhasReservas';
 import CalendarioReservas from '@/pages/CalendarioReservas';
@@ -166,6 +169,19 @@ function AppRouter() {
           } />
           
           <Route path="/reserva-auditorio" element={
+            <ProtectedRoute>
+              <ReservaAuditorio />
+            </ProtectedRoute>
+          } />
+          
+          {/* Novas rotas com parâmetro entidadeId */}
+          <Route path="/entidades/:entidadeId/reservar/sala" element={
+            <ProtectedRoute>
+              <ReservaSala />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/entidades/:entidadeId/reservar/auditorio" element={
             <ProtectedRoute>
               <ReservaAuditorio />
             </ProtectedRoute>
