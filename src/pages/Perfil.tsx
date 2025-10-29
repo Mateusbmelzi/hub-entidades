@@ -7,9 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
+import { useInscricoesProcessoUsuario } from '@/hooks/useInscricoesProcessoUsuario';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { User, Mail, Calendar, GraduationCap, BookOpen, Edit, Save, X, LogOut, Settings, Sparkles, Target, Award, Shield, ArrowLeft, Building2, Check, Clock, X as XIcon, Trash2, AlertTriangle, MapPin, Users, ExternalLink, RefreshCw, Phone } from 'lucide-react';
+import { User, Mail, Calendar, GraduationCap, BookOpen, Edit, Save, X, LogOut, Settings, Sparkles, Target, Award, Shield, ArrowLeft, Building2, Check, Clock, X as XIcon, Trash2, AlertTriangle, MapPin, Users, ExternalLink, RefreshCw, Phone, Users2, FileText } from 'lucide-react';
 
 interface DemonstracaoInteresse {
   id: number;
@@ -44,6 +45,7 @@ interface InscricaoEvento {
 
 export default function Perfil() {
   const { user, profile, signOut, refreshProfile } = useAuth();
+  const { inscricoes: inscricoesProcesso, loading: loadingProcesso, error: errorProcesso, refetch: refetchProcesso, cancelarInscricao } = useInscricoesProcessoUsuario();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [demonstracoes, setDemonstracoes] = useState<DemonstracaoInteresse[]>([]);
@@ -657,6 +659,33 @@ export default function Perfil() {
     }
   };
 
+  // Função para cancelar inscrição no processo seletivo
+  const handleCancelarInscricaoProcesso = async (inscricaoId: string) => {
+    const inscricao = inscricoesProcesso.find(i => i.id === inscricaoId);
+    const nomeEntidade = inscricao?.entidade_nome || 'esta organização';
+    
+    if (!confirm(`Você está prestes a cancelar sua inscrição no processo seletivo da ${nomeEntidade}.\n\nEsta ação removerá sua candidatura e você precisará se inscrever novamente se mudar de ideia.\n\nTem certeza que deseja continuar?`)) {
+      return;
+    }
+
+    setLoadingAction(true);
+    try {
+      const result = await cancelarInscricao(inscricaoId);
+      
+      if (result.success) {
+        toast.success('Inscrição cancelada com sucesso!');
+        refetchProcesso(); // Recarregar lista
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error: any) {
+      console.error('Erro ao cancelar inscrição:', error);
+      toast.error(error.message || 'Erro ao cancelar inscrição. Tente novamente.');
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
   const formatDate = (date: string) => {
     if (!date) return '';
     // Usar o mesmo padrão que funcionou no Perfil
@@ -1092,39 +1121,53 @@ export default function Perfil() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="flex items-center">
-                    <Target className="mr-2 h-5 w-5 text-red-600" />
+                    <Users2 className="mr-2 h-5 w-5 text-red-600" />
                     Meus Processos Seletivos
                   </CardTitle>
                   <CardDescription>
-                    Demonstrações de interesse enviadas para organizações
+                    Inscrições em processos seletivos de organizações estudantis
                   </CardDescription>
                 </div>
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={recarregarDemonstracoes}
-                  disabled={loadingDemonstracoes}
+                  onClick={refetchProcesso}
+                  disabled={loadingProcesso}
                   className="ml-4"
                 >
-                  <RefreshCw className={`mr-2 h-4 w-4 ${loadingDemonstracoes ? 'animate-spin' : ''}`} />
+                  <RefreshCw className={`mr-2 h-4 w-4 ${loadingProcesso ? 'animate-spin' : ''}`} />
                   Atualizar
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
-              {loadingDemonstracoes ? (
+              {loadingProcesso ? (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
                   <p className="text-gray-600">Carregando seus processos seletivos...</p>
                 </div>
-              ) : demonstracoes.length === 0 ? (
+              ) : errorProcesso ? (
                 <div className="text-center py-8">
-                  <Target className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <AlertTriangle className="h-12 w-12 text-red-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    Erro ao carregar processos seletivos
+                  </h3>
+                  <p className="text-gray-600 mb-4">
+                    {errorProcesso}
+                  </p>
+                  <Button onClick={refetchProcesso} variant="outline">
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Tentar novamente
+                  </Button>
+                </div>
+              ) : !inscricoesProcesso || inscricoesProcesso.length === 0 ? (
+                <div className="text-center py-8">
+                  <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
                     Nenhum processo seletivo encontrado
                   </h3>
                   <p className="text-gray-600 mb-4">
-                    Você ainda não demonstrou interesse em nenhuma organização.
+                    Você ainda não se inscreveu em nenhum processo seletivo.
                   </p>
                   <Link to="/entidades">
                     <Button className="bg-red-600 hover:bg-red-700">
@@ -1135,114 +1178,102 @@ export default function Perfil() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {demonstracoes.map((demonstracao) => (
-                    <div key={demonstracao.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                  {inscricoesProcesso?.map((inscricao) => (
+                    <div key={inscricao.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
                       <div className="flex items-start justify-between mb-3">
-                        <div>
+                        <div className="flex-1">
                           <h3 className="font-semibold text-gray-900 mb-1">
-                            {demonstracao.entidade_nome}
+                            {inscricao.entidade_nome}
                           </h3>
-                          <div className="flex items-center space-x-2">
+                          <div className="flex items-center space-x-2 mb-2">
                             <p className="text-sm text-gray-600">
                               Área de interesse:
                             </p>
-                            {editingDemonstracao === demonstracao.id ? (
-                              <div className="flex items-center space-x-2">
-                                <Select value={newAreaInteresse} onValueChange={setNewAreaInteresse}>
-                                  <SelectTrigger className="w-48">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {areas.map((area) => (
-                                      <SelectItem key={area} value={area}>
-                                        {area.charAt(0).toUpperCase() + area.slice(1)}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleSaveAreaInteresse(demonstracao.id)}
-                                  disabled={loadingAction}
-                                  className="bg-green-600 hover:bg-green-700"
-                                >
-                                  <Save className="w-3 h-3" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={handleCancelEdit}
-                                  disabled={loadingAction}
-                                >
-                                  <X className="w-3 h-3" />
-                                </Button>
-                              </div>
-                            ) : (
-                              <div className="flex items-center space-x-2">
-                                <Badge className={getAreaColor(demonstracao.area_interesse)}>
-                                  {demonstracao.area_interesse.charAt(0).toUpperCase() + demonstracao.area_interesse.slice(1)}
-                                </Badge>
-                                {demonstracao.status === 'pendente' && (
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => handleEditAreaInteresse(demonstracao.id, demonstracao.area_interesse)}
-                                    disabled={loadingAction}
-                                    className="text-gray-500 hover:text-gray-700"
-                                  >
-                                    <Edit className="w-3 h-3" />
-                                  </Button>
-                                )}
-                              </div>
-                            )}
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                              {inscricao.area_interesse?.charAt(0).toUpperCase() + inscricao.area_interesse?.slice(1) || 'Não especificada'}
+                            </Badge>
                           </div>
+                          
+                          {/* Fase atual */}
+                          {inscricao.fase_atual && (
+                            <div className="flex items-center space-x-2">
+                              <p className="text-sm text-gray-600">
+                                Fase atual:
+                              </p>
+                              <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                                <Users className="w-3 h-3 mr-1" />
+                                {inscricao.fase_atual.nome} (Ordem {inscricao.fase_atual.ordem})
+                              </Badge>
+                              <Badge variant="outline" className={
+                                inscricao.fase_atual.status === 'aprovado' ? 'bg-green-50 text-green-700 border-green-200' :
+                                inscricao.fase_atual.status === 'reprovado' ? 'bg-red-50 text-red-700 border-red-200' :
+                                'bg-yellow-50 text-yellow-700 border-yellow-200'
+                              }>
+                                {inscricao.fase_atual.status === 'aprovado' ? 'Aprovado' :
+                                 inscricao.fase_atual.status === 'reprovado' ? 'Reprovado' : 'Pendente'}
+                              </Badge>
+                            </div>
+                          )}
                         </div>
                         
                         <div className="flex items-center space-x-2">
-                          <Badge className={`${getStatusColor(demonstracao.status)} flex items-center space-x-1`}>
-                            {getStatusIcon(demonstracao.status)}
-                            <span className="capitalize">{demonstracao.status}</span>
+                          <Badge className={`${getStatusColor(inscricao.status)} flex items-center space-x-1`}>
+                            {getStatusIcon(inscricao.status)}
+                            <span className="capitalize">{inscricao.status}</span>
                           </Badge>
-                          
-                          {demonstracao.status === 'pendente' && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleCancelarInscricao(demonstracao.id)}
-                              disabled={loadingAction}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          )}
                         </div>
                       </div>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                        <div>
-                          <p className="text-xs font-medium text-gray-500">Curso</p>
-                          <p className="text-sm text-gray-900">{demonstracao.curso_estudante}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium text-gray-500">Semestre</p>
-                          <p className="text-sm text-gray-900">{demonstracao.semestre_estudante}º</p>
-                        </div>
-                      </div>
-
-                      {demonstracao.mensagem && (
-                        <div className="mb-3">
-                          <p className="text-xs font-medium text-gray-500 mb-1">Mensagem</p>
-                          <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-md">
-                            {demonstracao.mensagem}
+                      {inscricao.mensagem && (
+                        <div className="mt-3 p-3 bg-gray-50 rounded-md">
+                          <p className="text-sm text-gray-700">
+                            <strong>Mensagem:</strong> {inscricao.mensagem}
                           </p>
                         </div>
                       )}
-
-                      <div className="flex items-center justify-between text-xs text-gray-500">
-                        <span>Enviado em {new Date(demonstracao.created_at).toLocaleDateString('pt-BR')}</span>
-                        {demonstracao.status !== 'pendente' && (
-                          <span>Atualizado em {new Date(demonstracao.updated_at).toLocaleDateString('pt-BR')}</span>
+                      
+                      <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
+                        <div className="flex items-center space-x-4">
+                          <span className="flex items-center">
+                            <Calendar className="w-3 h-3 mr-1" />
+                            {new Date(inscricao.created_at).toLocaleDateString('pt-BR')}
+                          </span>
+                          <span className="flex items-center">
+                            <Clock className="w-3 h-3 mr-1" />
+                            {new Date(inscricao.created_at).toLocaleTimeString('pt-BR', { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
+                          </span>
+                        </div>
+                        
+                        {inscricao.status === 'aprovado' && (
+                          <div className="flex items-center text-green-600">
+                            <Check className="w-3 h-3 mr-1" />
+                            <span className="font-medium">Aprovado</span>
+                          </div>
                         )}
+                        
+                        {inscricao.status === 'reprovado' && (
+                          <div className="flex items-center text-red-600">
+                            <XIcon className="w-3 h-3 mr-1" />
+                            <span className="font-medium">Reprovado</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Botão de cancelar - disponível para todos os status */}
+                      <div className="mt-3 pt-3 border-t border-gray-200">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCancelarInscricaoProcesso(inscricao.id)}
+                          disabled={loadingAction}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Cancelar Inscrição
+                        </Button>
                       </div>
                     </div>
                   ))}

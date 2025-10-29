@@ -34,7 +34,7 @@ export const useCheckInterestDemonstration = (entidadeId: number | undefined) =>
         .select('id')
         .eq('entidade_id', entidadeId)
         .eq('email_estudante', user.email)
-        .single();
+        .maybeSingle();
 
       if (queryError && queryError.code !== 'PGRST116') {
         // PGRST116 is "no rows returned" which is expected when user hasn't demonstrated interest
@@ -52,7 +52,7 @@ export const useCheckInterestDemonstration = (entidadeId: number | undefined) =>
     } finally {
       setLoading(false);
     }
-  }, [entidadeId, user?.email, lastChecked, hasDemonstratedInterest]);
+  }, [entidadeId, user?.id, user?.email, lastChecked, hasDemonstratedInterest]);
 
   // Função para forçar refresh do estado
   const refresh = useCallback(() => {

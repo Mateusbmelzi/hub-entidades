@@ -13,12 +13,14 @@ interface GerenciarAreasInternasProps {
   entidadeId: number;
   areasAtuais?: string[];
   onSuccess?: () => void;
+  variant?: 'default' | 'header'; // 'default' para fundos claros, 'header' para fundos escuros
 }
 
 const GerenciarAreasInternas: React.FC<GerenciarAreasInternasProps> = ({ 
   entidadeId, 
   areasAtuais = [],
-  onSuccess 
+  onSuccess,
+  variant = 'default'
 }) => {
   const [areasInternas, setAreasInternas] = useState<string[]>(areasAtuais);
   const [novaArea, setNovaArea] = useState('');
@@ -59,7 +61,7 @@ const GerenciarAreasInternas: React.FC<GerenciarAreasInternasProps> = ({
     try {
       const { error } = await supabase
         .from('entidades')
-        .update({ areas_internas: areasInternas })
+        .update({ areas_estrutura_organizacional: areasInternas })
         .eq('id', entidadeId);
 
       if (error) {
@@ -79,13 +81,17 @@ const GerenciarAreasInternas: React.FC<GerenciarAreasInternasProps> = ({
     }
   };
 
+  const buttonClassName = variant === 'header'
+    ? "bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20"
+    : "";
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button 
           variant="outline" 
           size="sm"
-          className="bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20"
+          className={buttonClassName}
         >
           <Settings className="mr-2 h-4 w-4" />
           Gerenciar Áreas Internas

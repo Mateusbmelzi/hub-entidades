@@ -187,6 +187,10 @@ export function useTemplatesFormularios(entidadeId: number) {
     return templates.filter(t => t.tipo_evento === tipoEvento);
   };
 
+  const getTemplatesByTipoProcessoSeletivo = () => {
+    return templates.filter(t => t.tipo_evento === 'processo_seletivo');
+  };
+
   useEffect(() => {
     if (entidadeId) {
       fetchTemplates();
@@ -203,7 +207,8 @@ export function useTemplatesFormularios(entidadeId: number) {
     deleteTemplate,
     duplicateTemplate,
     getTemplateById,
-    getTemplatesByTipo
+    getTemplatesByTipo,
+    getTemplatesByTipoProcessoSeletivo
   };
 }
 

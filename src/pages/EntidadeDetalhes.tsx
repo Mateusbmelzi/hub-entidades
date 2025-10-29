@@ -20,15 +20,19 @@ import { useDeleteProjeto } from '@/hooks/useDeleteProjeto';
 import { useEventosEntidade } from '@/hooks/useEventosEntidade';
 import { useDeleteEventoAsEntity } from '@/hooks/useDeleteEventoAsEntity';
 import { useCheckInterestDemonstration } from '@/hooks/useCheckInterestDemonstration';
+import { useCheckProcessoSeletivo } from '@/hooks/useCheckProcessoSeletivo';
+import { useAplicacaoProcesso } from '@/hooks/useAplicacaoProcesso';
 import { useReservasUsuario } from '@/hooks/useReservas';
 import { supabase } from '@/integrations/supabase/client';
 import EditarEventoEntidade from '@/components/EditarEventoEntidade';
 import EntityLoginForm from '@/components/EntityLoginForm';
 import EditarEntidadeForm from '@/components/EditarEntidadeForm';
+import EditarProcessoSeletivo from '@/components/EditarProcessoSeletivo';
 import CriarProjetoForm from '@/components/CriarProjetoForm';
 import EditarProjetoForm from '@/components/EditarProjetoForm';
 import CriarEventoEntidade from '@/components/CriarEventoEntidade';
 import GerenciarAreasInternas from '@/components/GerenciarAreasInternas';
+import GerenciarAreasProcessoSeletivo from '@/components/GerenciarAreasProcessoSeletivo';
 import { GerenciarEmpresasParceiras } from '@/components/GerenciarEmpresasParceiras';
 import { EmpresasParceirasDisplay } from '@/components/EmpresasParceirasDisplay';
 import { ToastAction } from '@/components/ui/toast';
@@ -38,9 +42,16 @@ import { VincularEventoReserva } from '@/components/VincularEventoReserva';
 import { EventosReservasTabsEntidade } from '@/components/EventosReservasTabsEntidade';
 import { AreaAtuacaoDisplay } from '@/components/ui/area-atuacao-display';
 import { ConfigurarFormularioInscricao } from '@/components/ConfigurarFormularioInscricao';
+import { GerenciarMembrosEntidade } from '@/components/GerenciarMembrosEntidade';
+import { GerenciarCargosEntidade } from '@/components/GerenciarCargosEntidade';
+import { GerenciarFasesProcesso } from '@/components/GerenciarFasesProcesso';
+import { AcompanhamentoFasesPS } from '@/components/AcompanhamentoFasesPS';
+import ListaInscricoesEntidade from '@/components/ListaInscricoesEntidade';
+import BotaoInscreverEntidade from '@/components/BotaoInscreverEntidade';
 import { getFirstAreaColor } from '@/lib/constants';
 import { FotoPerfilEntidade } from '@/components/FotoPerfilEntidade';
 import { UploadFotoPerfil } from '@/components/UploadFotoPerfil';
+import { EntidadeOwnerNavigation } from '@/components/EntidadeOwnerNavigation';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { combineDataHorario } from '@/lib/date-utils';
@@ -69,6 +80,8 @@ const EntidadeDetalhes = () => {
   const { deleteProjeto, loading: deleteLoading } = useDeleteProjeto();
   const { deleteEvento, loading: deleteEventoLoading } = useDeleteEventoAsEntity();
   const { hasDemonstratedInterest, loading: interestCheckLoading, refresh: refreshInterestCheck } = useCheckInterestDemonstration(entidade?.id);
+  const { hasInscricaoProcesso, loading: processoCheckLoading, refresh: refreshProcessoCheck } = useCheckProcessoSeletivo(entidade?.id);
+  const { aplicar: aplicarProcessoSeletivo, loading: aplicacaoLoading } = useAplicacaoProcesso(entidade?.id);
   const { toast } = useToast();
   
   const isOwner = isAuthenticated && entidadeId === entidade?.id;
@@ -91,6 +104,9 @@ const EntidadeDetalhes = () => {
   const [showVincularDialog, setShowVincularDialog] = useState(false);
   const [selectedEventoVincular, setSelectedEventoVincular] = useState<any>(null);
   const [selectedReservaVincular, setSelectedReservaVincular] = useState<any>(null);
+  
+  // Estado para controlar qual seção está ativa (apenas para donos)
+  const [activeSection, setActiveSection] = useState<'visao-geral' | 'eventos' | 'projetos' | 'gestao' | 'processo' | 'templates' | 'areas'>('visao-geral');
   
   const { eventos: allEventos, loading: eventosLoading, refetch: refetchEventos } = useEventosEntidade(entidade?.id, isOwner);
   const eventos = allEventos?.filter(ev => {
@@ -174,6 +190,10 @@ const EntidadeDetalhes = () => {
     setShowCreateEventFromReservaDialog(true);
   };
 
+  const handleSectionChange = (section: string) => {
+    setActiveSection(section as any);
+  };
+
   const handleDemonstrarInteresse = async () => {
     if (!user || !profile || !entidade) {
       navigate('/auth');
@@ -185,6 +205,48 @@ const EntidadeDetalhes = () => {
       return;
     }
 
+    // Verificar se existe um processo seletivo ativo
+    if (entidade?.processo_seletivo_ativo) {
+      // Se já se inscreveu no processo seletivo
+      if (hasInscricaoProcesso) {
+        toast({
+          title: "Inscrição já realizada",
+          description: "Você já se inscreveu no processo seletivo desta entidade.",
+          variant: "default",
+        });
+        return;
+      }
+
+      // Usar nosso sistema interno de processo seletivo
+      try {
+        const result = await aplicarProcessoSeletivo();
+        if (result.success) {
+          toast({
+            title: "✅ Inscrição enviada!",
+            description: "Sua inscrição no processo seletivo foi enviada com sucesso.",
+            duration: 4000,
+          });
+          refreshProcessoCheck();
+        } else {
+          toast({
+            title: "❌ Erro ao inscrever",
+            description: result.error || "Tente novamente mais tarde.",
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        console.error('❌ Erro ao processar inscrição no processo seletivo:', error);
+        toast({
+          title: "❌ Erro",
+          description: "Erro ao processar inscrição no processo seletivo.",
+          variant: "destructive",
+        });
+      }
+      return;
+    }
+
+    // Se há processo seletivo ativo com link externo (comportamento antigo)
+    if (entidade?.processo_seletivo_ativo && entidade?.link_processo_seletivo) {
     if (hasDemonstratedInterest) {
       toast({
         title: "Interesse já demonstrado",
@@ -199,8 +261,6 @@ const EntidadeDetalhes = () => {
       return;
     }
 
-    // Verificar se existe um processo seletivo ativo com link de inscrição
-    if (entidade?.processo_seletivo_ativo && entidade?.link_processo_seletivo) {
       try {
         // Salvar automaticamente as informações do usuário na tabela demonstracoes_interesse
         const demonstrationData = {
@@ -256,6 +316,16 @@ const EntidadeDetalhes = () => {
     // Se não há processo seletivo ativo, redirecionar para a página de demonstração de interesse
     navigate(`/demonstrar-interesse/${entidade.id}`);
   };
+
+  // Calcular estatísticas para a navegação (apenas para donos)
+  const ownerStats = isOwner ? {
+    totalProjetos: projetos?.filter(p => p.status === 'ativo').length || 0,
+    totalEventos: allEventos?.filter(e => e.status_aprovacao === 'aprovado').length || 0,
+    totalMembros: entidade?.numero_membros || 0,
+    totalTemplates: 0, // TODO: implementar contagem de templates
+    processoAtivo: entidade?.processo_seletivo_ativo || false,
+    totalAreas: 0 // TODO: implementar contagem de áreas
+  } : {};
 
   if (loading) {
     return (
@@ -453,7 +523,8 @@ const EntidadeDetalhes = () => {
                   {/* Segunda linha - Áreas Internas */}
                   <GerenciarAreasInternas 
                     entidadeId={entidade.id}
-                    areasAtuais={entidade.areas_internas || []}
+                    areasAtuais={entidade.areas_estrutura_organizacional || []}
+                    variant="header"
                     onSuccess={() => {
                       // console.log('Áreas internas atualizadas');
                       refetchEntidade();
@@ -510,6 +581,12 @@ const EntidadeDetalhes = () => {
               ) : (
                 <>
                   {user && profile ? (
+                    <>
+                      {entidade?.processo_seletivo_ativo ? (
+                        // Usar novo componente com dialog quando processo seletivo ativo
+                        <BotaoInscreverEntidade entidadeId={entidade.id} />
+                      ) : (
+                        // Usar botão antigo para demonstrar interesse quando processo não ativo
                     <Button 
                       onClick={handleDemonstrarInteresse}
                       disabled={interestCheckLoading}
@@ -523,8 +600,10 @@ const EntidadeDetalhes = () => {
                     >
                       {interestCheckLoading ? 'Verificando...' : 
                        hasDemonstratedInterest ? '✓ Interesse já demonstrado' : 
-                       'Inscreva-se'}
+                           'Demonstrar Interesse'}
                     </Button>
+                      )}
+                    </>
                   ) : (
                     <Button 
                       onClick={() => navigate('/auth')}
@@ -553,8 +632,23 @@ const EntidadeDetalhes = () => {
         </div>
       </div>
 
+      {/* Navigation for Owners */}
+      {isOwner && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <EntidadeOwnerNavigation
+            activeSection={activeSection}
+            onSectionChange={handleSectionChange}
+            stats={ownerStats}
+          />
+        </div>
+      )}
+
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {isOwner ? (
+          // Layout para donos - apenas a seção selecionada
+          <div className="space-y-8">
+            {activeSection === 'visao-geral' && (
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
@@ -697,7 +791,7 @@ const EntidadeDetalhes = () => {
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <EditarEntidadeForm
+              <EditarProcessoSeletivo
                 entidade={entidade}
                 onSuccess={() => {
                   refetchEntidade();
@@ -1131,6 +1225,47 @@ const EntidadeDetalhes = () => {
                 </CardContent>
               </Card>
             )}
+
+            {/* Gestão de Membros - Apenas para proprietários */}
+            {isOwner && entidade && (
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 via-white to-purple-50">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center space-x-2">
+                    <Users className="w-5 h-5 text-blue-600" />
+                    <CardTitle className="text-2xl text-blue-800">Gestão de Membros</CardTitle>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Gerencie os membros e cargos da sua organização estudantil
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <Tabs defaultValue="membros" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="membros">
+                        <Users className="h-4 w-4 mr-2" />
+                        Membros
+                      </TabsTrigger>
+                      <TabsTrigger value="cargos">
+                        <Settings className="h-4 w-4 mr-2" />
+                        Cargos
+                      </TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="membros" className="mt-6">
+                      <GerenciarMembrosEntidade entidadeId={entidade.id} />
+                    </TabsContent>
+                    <TabsContent value="cargos" className="mt-6">
+                      {/* Flag global para os hooks detectarem modo owner e usarem RPC */}
+                      <script
+                        dangerouslySetInnerHTML={{
+                          __html: 'window.isOwnerEntity = true;',
+                        }}
+                      />
+                      <GerenciarCargosEntidade entidadeId={entidade.id} isOwner={isOwner} />
+                    </TabsContent>
+                  </Tabs>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Sidebar */}
@@ -1361,7 +1496,814 @@ const EntidadeDetalhes = () => {
             )}
           </div>
         </div>
+            )}
 
+            {activeSection === 'eventos' && (
+              <div className="space-y-8">
+                {/* Eventos e Reservas */}
+                <Card className="border-0 shadow-lg bg-white hover:shadow-xl transition-shadow duration-300">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Calendar className="w-5 h-5 text-red-600" />
+                        <CardTitle className="text-2xl text-gray-900">Eventos e Reservas</CardTitle>
+                        {allEventos && (
+                          <div className="flex items-center gap-2 ml-4">
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
+                              {allEventos.filter(e => e.status_aprovacao === 'aprovado').length} eventos aprovados
+                            </Badge>
+                            {allEventos.filter(e => e.status_aprovacao === 'pendente').length > 0 && (
+                              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
+                                {allEventos.filter(e => e.status_aprovacao === 'pendente').length} pendentes
+                              </Badge>
+                            )}
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
+                              {reservasEntidade?.filter((r: any) => r.status_reserva === 'aprovada').length || 0} reservas aprovadas
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button size="sm" className="bg-red-600 hover:bg-red-700">
+                              <Plus className="mr-2 h-4 w-4" />
+                              Criar Evento
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                            <CriarEventoEntidade
+                              onSuccess={() => {
+                                refetchEventos();
+                                toast({
+                                  title: 'Evento criado!',
+                                  description: 'Seu evento foi enviado para aprovação do admin.',
+                                });
+                              }}
+                            />
+                          </DialogContent>
+                        </Dialog>
+                        <Button size="sm" variant="outline" onClick={() => navigate(`/entidades/${id}/calendario`)}>
+                          <Calendar className="mr-2 h-4 w-4" />
+                          Ver calendário
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {eventosLoading || reservasLoading ? (
+                      <div className="space-y-4">
+                        <Skeleton className="h-24 w-full rounded-xl" />
+                        <Skeleton className="h-24 w-full rounded-xl" />
+                      </div>
+                    ) : (
+                      <EventosReservasTabsEntidade
+                        eventos={allEventos || []}
+                        reservas={reservasEntidade || []}
+                        entidadeId={entidade.id}
+                        isOwner={isOwner}
+                        onConfigurarFormulario={(evento) => {
+                          setEventoSelecionadoFormulario(evento);
+                          setMostrarDialogFormulario(true);
+                        }}
+                        onRefetch={() => {
+                          refetchEventos();
+                          refetchReservas();
+                        }}
+                        onEditEvent={handleEditEvent}
+                        onDeleteEvent={handleDeleteEvent}
+                      />
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {activeSection === 'projetos' && (
+              <div className="space-y-8">
+                {/* Projetos */}
+                <Card className="border-0 shadow-lg bg-white hover:shadow-xl transition-shadow duration-300">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <FolderOpen className="w-5 h-5 text-red-600" />
+                        <CardTitle className="text-2xl text-gray-900">Projetos</CardTitle>
+                      </div>
+                      <Dialog open={showCreateProjectDialog} onOpenChange={setShowCreateProjectDialog}>
+                        <DialogTrigger asChild>
+                          <Button size="sm" className="bg-red-600 hover:bg-red-700 shadow-sm hover:shadow-md transition-all duration-200">
+                            <Plus className="mr-2 h-4 w-4" />
+                            Adicionar Projeto
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                          <CriarProjetoForm 
+                            entidadeId={entidade.id} 
+                            onSuccess={() => {
+                              setShowCreateProjectDialog(false);
+                              refetchProjetos();
+                            }} 
+                          />
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {projetosLoading ? (
+                      <div className="space-y-4">
+                        <Skeleton className="h-20 w-full" />
+                        <Skeleton className="h-20 w-full" />
+                      </div>
+                    ) : projetos.length > 0 ? (
+                      <div className="space-y-4">
+                        {projetos.map((projeto) => (
+                          <div key={projeto.id} className="border-l-4 border-red-500 pl-6 py-4 bg-gradient-to-r from-red-50 to-transparent rounded-r-xl">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <h4 className="text-xl font-bold text-gray-900">{projeto.nome}</h4>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                                        <MoreVertical className="h-3 w-3" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem onClick={() => handleEditProject(projeto)}>
+                                        <Edit className="mr-2 h-3 w-3" />
+                                        Editar
+                                      </DropdownMenuItem>
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <DropdownMenuItem 
+                                            onSelect={(e) => e.preventDefault()}
+                                            className="text-destructive focus:text-destructive"
+                                          >
+                                            <Trash2 className="mr-2 h-3 w-3" />
+                                            Remover
+                                          </DropdownMenuItem>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>Confirmar remoção</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                              Tem certeza que deseja remover o projeto "{projeto.nome}"? 
+                                              Esta ação não pode ser desfeita.
+                                            </AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction 
+                                              onClick={() => handleDeleteProject(projeto)}
+                                              disabled={deleteLoading}
+                                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                            >
+                                              {deleteLoading ? 'Removendo...' : 'Remover'}
+                                            </AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </div>
+                                <p className="text-gray-600 mb-3 leading-relaxed">{projeto.descricao}</p>
+                                {projeto.tecnologias && projeto.tecnologias.length > 0 && (
+                                  <div className="flex flex-wrap gap-2 mb-3">
+                                    {projeto.tecnologias.map((tech, index) => (
+                                      <Badge key={index} variant="outline" className="text-xs bg-gray-50">
+                                        {tech}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                )}
+                                {projeto.repositorio_url && (
+                                  <a 
+                                    href={projeto.repositorio_url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-sm text-red-600 hover:text-red-700 hover:underline inline-flex items-center"
+                                  >
+                                    <ExternalLink className="mr-1 h-3 w-3" />
+                                    Ver repositório
+                                  </a>
+                                )}
+                              </div>
+                              <Badge 
+                                variant={projeto.status === 'ativo' ? 'default' : 'secondary'}
+                                className="ml-4 bg-red-600 hover:bg-red-700"
+                              >
+                                {projeto.status}
+                              </Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-16">
+                        <div className="w-24 h-24 bg-gradient-to-br from-red-100 to-red-200 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                          <FolderOpen className="h-12 w-12 text-red-600" />
+                        </div>
+                        <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                          Nenhum projeto cadastrado
+                        </h3>
+                        <p className="text-gray-600 mb-8 max-w-md mx-auto leading-relaxed">
+                          Que tal começar criando o primeiro projeto da sua organização? Mostre aos estudantes o que vocês estão desenvolvendo!
+                        </p>
+                        <div className="space-y-4">
+                          <Button 
+                            onClick={() => setShowCreateProjectDialog(true)}
+                            className="bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 px-8 py-3 text-lg"
+                          >
+                            <Plus className="mr-2 h-5 w-5" />
+                            Criar Primeiro Projeto
+                          </Button>
+                          <p className="text-sm text-gray-500">
+                            ✨ Projetos ajudam a mostrar o trabalho da organização
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {activeSection === 'gestao' && (
+              <div className="space-y-8">
+                {/* Gestão de Membros */}
+                <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 via-white to-purple-50">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-center space-x-2">
+                      <Users className="w-5 h-5 text-blue-600" />
+                      <CardTitle className="text-2xl text-blue-800">Gestão de Membros</CardTitle>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Gerencie os membros e cargos da sua organização estudantil
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <Tabs defaultValue="membros" className="w-full">
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="membros">
+                          <Users className="h-4 w-4 mr-2" />
+                          Membros
+                        </TabsTrigger>
+                        <TabsTrigger value="cargos">
+                          <Settings className="h-4 w-4 mr-2" />
+                          Cargos
+                        </TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="membros" className="mt-6">
+                        <GerenciarMembrosEntidade entidadeId={entidade.id} />
+                      </TabsContent>
+                      <TabsContent value="cargos" className="mt-6">
+                        <script
+                          dangerouslySetInnerHTML={{
+                            __html: 'window.isOwnerEntity = true;',
+                          }}
+                        />
+                        <GerenciarCargosEntidade entidadeId={entidade.id} isOwner={isOwner} />
+                      </TabsContent>
+                    </Tabs>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {activeSection === 'processo' && entidade?.processo_seletivo_ativo && (
+              <div className="space-y-8">
+                {/* Processo Seletivo */}
+                <Card className="border-0 shadow-lg bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-500">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-center space-x-2">
+                      <Target className="w-5 h-5 text-green-600" />
+                      <CardTitle className="text-2xl text-green-800">Processo Seletivo</CardTitle>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Gerencie todo o processo seletivo: configuração, fases, inscrições e acompanhamento
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <Tabs defaultValue="configuracao" className="w-full">
+                      <TabsList className="grid w-full grid-cols-4">
+                        <TabsTrigger value="configuracao">
+                          <Settings className="h-4 w-4 mr-2" />
+                          Configuração
+                        </TabsTrigger>
+                        <TabsTrigger value="fases">
+                          <Target className="h-4 w-4 mr-2" />
+                          Fases
+                        </TabsTrigger>
+                        <TabsTrigger value="inscricoes">
+                          <Users className="h-4 w-4 mr-2" />
+                          Inscrições
+                        </TabsTrigger>
+                        <TabsTrigger value="acompanhamento">
+                          <TrendingUp className="h-4 w-4 mr-2" />
+                          Acompanhamento
+                        </TabsTrigger>
+                      </TabsList>
+                      
+                      <TabsContent value="configuracao" className="mt-6">
+                        <div className="space-y-6">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h3 className="text-lg font-semibold text-gray-900">Configuração do Processo</h3>
+                              <p className="text-sm text-gray-600 mt-1">Datas e períodos do processo seletivo</p>
+                            </div>
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-green-700 border-green-300 hover:bg-green-100"
+                                >
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Editar Processo
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                                <EditarProcessoSeletivo
+                                  entidade={entidade}
+                                  onSuccess={() => {
+                                    refetchEntidade();
+                                  }}
+                                />
+                              </DialogContent>
+                            </Dialog>
+                          </div>
+
+                          {/* SEÇÃO: Áreas do Processo Seletivo */}
+                          <Card>
+                            <CardHeader>
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <CardTitle className="flex items-center gap-2">
+                                    <Target className="h-5 w-5 text-blue-600" />
+                                    Áreas com Vagas no Processo Seletivo
+                                  </CardTitle>
+                                  <p className="text-sm text-muted-foreground mt-1">
+                                    Selecione quais áreas internas têm vagas abertas neste processo
+                                  </p>
+                                </div>
+                                <GerenciarAreasProcessoSeletivo
+                                  entidadeId={entidade.id}
+                                  areasInternas={entidade.areas_estrutura_organizacional || []}
+                                  areasPS={entidade.areas_processo_seletivo || []}
+                                  onSuccess={() => refetchEntidade()}
+                                />
+                              </div>
+                            </CardHeader>
+                            <CardContent>
+                              {!entidade.areas_processo_seletivo || entidade.areas_processo_seletivo.length === 0 ? (
+                                <div className="text-center py-8 text-muted-foreground">
+                                  <Target className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                                  <p className="mb-2">Nenhuma área selecionada</p>
+                                  <p className="text-sm">
+                                    Selecione as áreas internas que têm vagas abertas
+                                  </p>
+                                </div>
+                              ) : (
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                  {entidade.areas_processo_seletivo.slice(0, 6).map(area => (
+                                    <Badge key={area} variant="outline" className="p-2 justify-center">
+                                      {area}
+                                    </Badge>
+                                  ))}
+                                  {entidade.areas_processo_seletivo.length > 6 && (
+                                    <Badge variant="secondary" className="p-2 justify-center">
+                                      +{entidade.areas_processo_seletivo.length - 6} mais
+                                    </Badge>
+                                  )}
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+
+                          {/* Datas do processo */}
+                          {(entidade.abertura_processo_seletivo ||
+                            entidade.fechamento_processo_seletivo ||
+                            entidade.data_primeira_fase ||
+                            entidade.data_segunda_fase ||
+                            entidade.data_terceira_fase ||
+                            entidade.encerramento_primeira_fase
+                          ) && (
+                            <div className="space-y-6">
+                              {/* Período de inscrições */}
+                              {(entidade.abertura_processo_seletivo || entidade.fechamento_processo_seletivo) && (
+                                <div className="bg-white rounded-xl border border-green-200 shadow-sm p-4">
+                                  <div className="flex items-center mb-3">
+                                    <Calendar className="mr-2 h-6 w-6 text-green-600" />
+                                    <h3 className="text-xl font-semibold text-gray-900">Período do Processo Seletivo</h3>
+                                  </div>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {entidade.abertura_processo_seletivo && (
+                                      <div>
+                                        <div className="text-sm text-gray-500">Abertura</div>
+                                        <div className="text-lg">
+                                        {
+                                          (() => {
+                                            const [y, m, d] = entidade.abertura_processo_seletivo.split("-");
+                                            return new Date(+y, +m - 1, +d).toLocaleDateString("pt-BR");
+                                          })()
+                                        }
+                                        </div>
+                                      </div>
+                                    )}
+                                    {entidade.fechamento_processo_seletivo && (
+                                      <div>
+                                        <div className="text-sm text-gray-500">Fechamento</div>
+                                        <div className="text-lg">
+                                          {
+                                            (() => {
+                                              const [y, m, d] = entidade.fechamento_processo_seletivo.split("-");
+                                              return new Date(+y, +m - 1, +d).toLocaleDateString("pt-BR");
+                                            })()
+                                          }
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Fases agrupadas */}
+                              {[
+                                {
+                                  titulo: "Primeira Fase",
+                                  datas: [
+                                    { label: "Início 1ª Fase", valor: entidade.data_primeira_fase },
+                                    { label: "Encerramento 1ª Fase", valor: entidade.encerramento_primeira_fase }
+                                  ],
+                                },
+                                {
+                                  titulo: "Segunda Fase",
+                                  datas: [
+                                    { label: "Início 2ª Fase", valor: entidade.data_segunda_fase },
+                                    { label: "Encerramento 2ª Fase", valor: entidade.encerramento_segunda_fase },
+                                  ],
+                                },
+                                {
+                                  titulo: "Terceira Fase",
+                                  datas: [
+                                    { label: "Início 3ª Fase", valor: entidade.data_terceira_fase },
+                                    { label: "Encerramento 3ª Fase", valor: entidade.encerramento_terceira_fase },
+                                  ],
+                                },
+                              ].map((fase, index) => {
+                                const datasValidas = fase.datas.filter(d => d.valor);
+                                if (datasValidas.length === 0) return null;
+
+                                return (
+                                  <div key={index} className="bg-white rounded-xl border border-green-200 shadow-sm p-4">
+                                    <div className="flex items-center mb-3">
+                                      <Calendar className="mr-2 h-6 w-6 text-green-600" />
+                                      <h3 className="text-xl font-semibold text-gray-900">{fase.titulo}</h3>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                      {datasValidas.map((data, idx) => (
+                                        <div key={idx}>
+                                          <div className="text-sm text-gray-500">{data.label}</div>
+                                          <div className="text-lg">
+                                            {
+                                              (() => {
+                                                const [y, m, d] = data.valor!.split("-");
+                                                return new Date(+y, +m - 1, +d).toLocaleDateString("pt-BR");
+                                              })()
+                                            }
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </TabsContent>
+                      
+                      <TabsContent value="fases" className="mt-6">
+                        <GerenciarFasesProcesso entidadeId={entidade.id} />
+                      </TabsContent>
+                      
+                      <TabsContent value="inscricoes" className="mt-6">
+                        <ListaInscricoesEntidade entidadeId={entidade.id} />
+                      </TabsContent>
+                      
+                      <TabsContent value="acompanhamento" className="mt-6">
+                        <AcompanhamentoFasesPS entidadeId={entidade.id} />
+                      </TabsContent>
+                    </Tabs>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {activeSection === 'templates' && (
+              <div className="space-y-8">
+                {/* Templates de Formulários */}
+                <Card className="border-0 shadow-lg bg-white hover:shadow-xl transition-shadow duration-300">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <ClipboardList className="w-5 h-5 text-red-600" />
+                        <CardTitle className="text-2xl text-gray-900">Templates de Formulários</CardTitle>
+                      </div>
+                      <Button 
+                        size="sm" 
+                        onClick={() => setShowGerenciarTemplates(true)}
+                        className="bg-red-600 hover:bg-red-700 shadow-sm hover:shadow-md transition-all duration-200"
+                      >
+                        <Settings className="h-4 w-4 mr-2" />
+                        Gerenciar Templates
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-8">
+                      <div className="w-20 h-20 bg-gradient-to-br from-red-100 to-red-200 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                        <ClipboardList className="h-10 w-10 text-red-600" />
+                      </div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                        Templates de Inscrição
+                      </h3>
+                      <p className="text-gray-600 mb-6 max-w-md mx-auto leading-relaxed">
+                        Crie e gerencie templates de formulários para reutilizar em seus eventos. 
+                        Economize tempo configurando inscrições padronizadas.
+                      </p>
+                      <Button 
+                        onClick={() => setShowGerenciarTemplates(true)}
+                        className="bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 px-6 py-2"
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Criar Template
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {activeSection === 'areas' && (
+              <div className="space-y-8">
+                {/* Áreas Internas */}
+                <Card className="border-0 shadow-lg bg-white hover:shadow-xl transition-shadow duration-300">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-center space-x-2">
+                      <Settings className="w-5 h-5 text-indigo-600" />
+                      <CardTitle className="text-2xl text-gray-900">Áreas Internas</CardTitle>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Gerencie as áreas de atuação e empresas parceiras da sua organização
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <GerenciarAreasInternas 
+                      entidadeId={entidade.id}
+                      areasAtuais={entidade.areas_estrutura_organizacional || []}
+                      onSuccess={() => {
+                        refetchEntidade();
+                      }}
+                    />
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </div>
+        ) : (
+          // Layout público - manter estrutura original
+          <div className="grid lg:grid-cols-3 gap-8">
+            {/* Main Content */}
+            <div className="lg:col-span-2 space-y-8">
+              {/* Sobre */}
+              <Card className="border-0 shadow-lg bg-white hover:shadow-xl transition-shadow duration-300">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center space-x-2">
+                    <Target className="w-5 h-5 text-red-600" />
+                    <CardTitle className="text-2xl text-gray-900">Sobre a Organização</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-600 leading-relaxed mb-6 text-lg">
+                    {entidade.descricao_detalhada || entidade.descricao_curta || 'Esta organização ainda não possui uma descrição detalhada.'}
+                  </p>
+                  
+                <div className="flex flex-wrap gap-3 items-center">
+                  <AreaAtuacaoDisplay 
+                    area_atuacao={entidade.area_atuacao}
+                    entidadeId={entidade.id}
+                    showEmpresasLogos={true}
+                    variant="secondary"
+                    className="text-sm font-medium"
+                    compact={true}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Informações da Feira - Só aparece se feira_ativa for true */}
+            {entidade.feira_ativa && (
+              <Card className="border-0 shadow-lg bg-gradient-to-r from-red-50 to-orange-50 border-l-4 border-red-500">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Award className="w-5 h-5 text-red-600" />
+                      <CardTitle className="text-2xl text-red-800">Informações da Feira</CardTitle>
+                    </div>
+                    {isOwner && (
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm" className="text-red-700 border-red-300 hover:bg-red-100">
+                            <Edit className="mr-2 h-4 w-4" />
+                            Editar Feira
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                          <EditarEntidadeForm 
+                            entidade={entidade} 
+                            onSuccess={() => {
+                              refetchEntidade();
+                            }}
+                          />
+                        </DialogContent>
+                      </Dialog>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {entidade.local_feira && (
+                      <div className="flex items-center p-4 bg-white rounded-xl border border-red-200 shadow-sm">
+                        <MapPin className="mr-4 h-6 w-6 text-red-600 flex-shrink-0" />
+                        <div>
+                          <div className="font-semibold text-gray-900">Local do Estande</div>
+                          <div className="text-lg font-bold text-red-600">{entidade.local_feira}</div>
+                        </div>
+                      </div>
+                    )}
+
+                    {entidade.local_apresentacao && (
+                      <div className="flex items-center p-4 bg-white rounded-xl border border-red-200 shadow-sm">
+                        <MapPin className="mr-4 h-6 w-6 text-red-600 flex-shrink-0" />
+                        <div>
+                          <div className="font-semibold text-gray-900">Local da Apresentação</div>
+                          <div className="text-lg text-gray-700">{entidade.local_apresentacao}</div>
+                        </div>
+                      </div>
+                    )}
+
+                    {entidade.horario_apresentacao && (
+                      <div className="flex items-center p-4 bg-white rounded-xl border border-red-200 shadow-sm">
+                        <Clock className="mr-4 h-6 w-6 text-red-600 flex-shrink-0" />
+                        <div>
+                          <div className="font-semibold text-gray-900">Horário da Apresentação</div>
+                          <div className="text-lg text-gray-700">{entidade.horario_apresentacao}</div>
+                        </div>
+                      </div>
+                    )}
+
+                    {!entidade.local_feira && !entidade.local_apresentacao && !entidade.horario_apresentacao && (
+                      <div className="text-center py-8">
+                        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <Award className="h-8 w-8 text-red-600" />
+                        </div>
+                        <p className="text-gray-600 mb-2">
+                          {isOwner 
+                            ? 'Nenhuma informação da feira cadastrada ainda.'
+                            : 'Esta organização ainda não cadastrou informações da feira.'
+                          }
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Sidebar */}
+            <div className="space-y-6">
+              {/* Redes Sociais e Site */}
+              <Card className="border-0 shadow-lg bg-white">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center space-x-2">
+                    <ExternalLink className="w-5 h-5 text-red-600" />
+                    <CardTitle className="text-xl">Redes Sociais e Site</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {entidade.site_url && (
+                    <div className="group flex items-center p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200 hover:border-red-300 hover:shadow-md transition-all duration-200">
+                      <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center mr-4 group-hover:bg-red-200 transition-colors">
+                        <ExternalLink className="h-5 w-5 text-red-600" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-gray-600 mb-1">Site</div>
+                        <a 
+                          href={entidade.site_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-red-600 hover:text-red-700 hover:underline font-semibold text-base transition-colors"
+                        >
+                          Visitar site
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
+                  {entidade.instagram_url && (
+                    <div className="group flex items-center p-4 bg-gradient-to-r from-pink-50 to-pink-100 rounded-xl border border-pink-200 hover:border-pink-300 hover:shadow-md transition-all duration-200">
+                      <div className="w-10 h-10 bg-pink-100 rounded-lg flex items-center justify-center mr-4 group-hover:bg-pink-200 transition-colors">
+                        <ExternalLink className="h-5 w-5 text-pink-600" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-gray-600 mb-1">Instagram</div>
+                        <a 
+                          href={entidade.instagram_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-pink-600 hover:text-pink-700 hover:underline font-semibold text-base transition-colors"
+                        >
+                          @{entidade.instagram_url.split('/').pop()}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
+                  {entidade.linkedin_url && (
+                    <div className="group flex items-center p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl border border-blue-200 hover:border-blue-300 hover:shadow-md transition-all duration-200">
+                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-4 group-hover:bg-blue-200 transition-colors">
+                        <ExternalLink className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-gray-600 mb-1">LinkedIn</div>
+                        <a 
+                          href={entidade.linkedin_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-700 hover:underline font-semibold text-base transition-colors"
+                        >
+                          Ver perfil
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
+                  {!entidade.site_url && !entidade.instagram_url && !entidade.linkedin_url && (
+                    <div className="text-center py-8">
+                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <ExternalLink className="h-8 w-8 text-gray-400" />
+                      </div>
+                      <p className="text-gray-500 text-sm">
+                        {isOwner 
+                          ? 'Nenhuma rede social cadastrada ainda.'
+                          : 'Esta organização ainda não cadastrou redes sociais.'
+                        }
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Empresas Parceiras */}
+              <Card className="border-0 shadow-lg bg-white">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Building2 className="w-5 h-5 text-red-600" />
+                      <CardTitle className="text-xl">Empresas Parceiras</CardTitle>
+                    </div>
+                    {isOwner && (
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm" className="text-red-700 border-red-300 hover:bg-red-100">
+                            <Settings className="mr-2 h-4 w-4" />
+                            Gerenciar
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                          <GerenciarEmpresasParceiras 
+                            entidadeId={entidade.id}
+                            entidadeNome={entidade.nome}
+                            onSuccess={() => {
+                              refetchEntidade();
+                            }}
+                          />
+                        </DialogContent>
+                      </Dialog>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <EmpresasParceirasDisplay entidadeId={entidade.id} />
+                </CardContent>
+              </Card>
+            </div>
+            </div>
+          </div>
+        )}
+
+        {/* Dialogs */}
         {/* Dialog for editing projects */}
         {selectedProject && (
           <Dialog open={showEditProjectDialog} onOpenChange={setShowEditProjectDialog}>

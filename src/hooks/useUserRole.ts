@@ -163,6 +163,27 @@ export function useUserRole() {
   const canCreateEvents = isEntityLeader || isAdmin;
   const canManageUsers = isAdmin;
 
+  // Verifica se o usuário é membro de uma entidade (novo sistema)
+  const isMemberOfEntity = async (entityId: number): Promise<boolean> => {
+    if (!user || isAdmin) return isAdmin || false;
+    
+    try {
+      const { data, error } = await supabase
+        .from('membros_entidade')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('entidade_id', entityId)
+        .eq('ativo', true)
+        .maybeSingle();
+
+      if (error) throw error;
+      return !!data;
+    } catch (err) {
+      console.error('Erro ao verificar membro:', err);
+      return false;
+    }
+  };
+
   return {
     userRole,
     entityLeaderships,
@@ -174,5 +195,6 @@ export function useUserRole() {
     canEditEntity,
     canCreateEvents,
     canManageUsers,
+    isMemberOfEntity,
   };
 }
