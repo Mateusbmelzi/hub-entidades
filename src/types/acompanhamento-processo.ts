@@ -40,6 +40,16 @@ export interface InscricaoProcessoUsuario {
   fase_atual?: FaseProcessoSeletivo;
   status_fase?: 'pendente' | 'aprovado' | 'reprovado';
   historico_fases?: InscricaoFasePS[];
+  reserva_atribuida?: {
+    id: string;
+    data_reserva: string;
+    horario_inicio: string;
+    horario_termino: string;
+    sala_nome?: string;
+    sala_predio?: string;
+    sala_andar?: string;
+  } | null;
+  inscricao_fase_atual_id?: string | null;
 }
 
 export interface MetricasFases {

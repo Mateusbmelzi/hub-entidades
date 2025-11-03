@@ -71,8 +71,11 @@ export function useAcompanhamentoFases(entidadeId: number) {
         profilesMap.set(profile.id, profile);
       });
 
+      // Preparar mapa da inscrição_fase atual (para buscar atribuições)
+      const inscricaoFaseAtualPorInscricao: Record<string, string | null> = {};
+
       // Processar dados das inscrições
-      const candidatosProcessados: InscricaoProcessoUsuario[] = (inscricoes || []).map(inscricao => {
+      const candidatosBase: InscricaoProcessoUsuario[] = (inscricoes || []).map(inscricao => {
         // Pegar a fase mais recente (ordenar por created_at descendente)
         const fasesOrdenadas = (inscricao.inscricao_fase || []).sort((a: any, b: any) => {
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
@@ -80,6 +83,8 @@ export function useAcompanhamentoFases(entidadeId: number) {
         
         const faseAtual = fasesOrdenadas[0]?.fase;
         const statusFase = fasesOrdenadas[0]?.status || 'pendente';
+        const inscricaoFaseAtualId = fasesOrdenadas[0]?.id || null;
+        inscricaoFaseAtualPorInscricao[inscricao.id] = inscricaoFaseAtualId;
         const profile = profilesMap.get(inscricao.user_id);
         
         console.log(`📋 Candidato ${inscricao.nome_estudante}: fase atual = ${faseAtual?.nome}, status = ${statusFase}`);
@@ -98,7 +103,58 @@ export function useAcompanhamentoFases(entidadeId: number) {
           respostas_formulario: inscricao.respostas_formulario || {},
           fase_atual: faseAtual,
           status_fase: statusFase,
-          historico_fases: fasesOrdenadas
+          historico_fases: fasesOrdenadas,
+          reserva_atribuida: null,
+          inscricao_fase_atual_id: inscricaoFaseAtualId
+        };
+      });
+
+      // Buscar atribuições de reservas para as inscrições_fases atuais
+      const inscricaoFaseIds = Object.values(inscricaoFaseAtualPorInscricao).filter(Boolean) as string[];
+      let reservasAtribuidasPorInscricao: Record<string, any> = {};
+
+      if (inscricaoFaseIds.length > 0) {
+        const { data: atribs, error: atribsError } = await supabase
+          .from('candidatos_reservas')
+          .select('inscricao_fase_id, reserva_id')
+          .in('inscricao_fase_id', inscricaoFaseIds);
+
+        if (!atribsError && atribs && atribs.length > 0) {
+          const reservaIds = [...new Set(atribs.map(a => a.reserva_id))];
+          const { data: reservas, error: reservasError } = await supabase
+            .from('reservas')
+            .select('id, data_reserva, horario_inicio, horario_termino, sala_nome, sala_predio, sala_andar')
+            .in('id', reservaIds);
+
+          if (!reservasError && reservas) {
+            const reservaMap = new Map(reservas.map(r => [r.id, r]));
+            const atribMap: Record<string, any> = {};
+            atribs.forEach(a => {
+              const r = reservaMap.get(a.reserva_id);
+              if (r) atribMap[a.inscricao_fase_id] = r;
+            });
+            reservasAtribuidasPorInscricao = atribMap;
+          }
+        }
+      }
+
+      // Anexar reserva_atribuida aos candidatos
+      const candidatosProcessados: InscricaoProcessoUsuario[] = candidatosBase.map(c => {
+        const faseIdAtual = inscricaoFaseAtualPorInscricao[c.id];
+        const reserva = faseIdAtual ? reservasAtribuidasPorInscricao[faseIdAtual] : null;
+        return {
+          ...c,
+          reserva_atribuida: reserva
+            ? {
+                id: reserva.id,
+                data_reserva: reserva.data_reserva,
+                horario_inicio: reserva.horario_inicio,
+                horario_termino: reserva.horario_termino,
+                sala_nome: reserva.sala_nome,
+                sala_predio: reserva.sala_predio,
+                sala_andar: reserva.sala_andar,
+              }
+            : null,
         };
       });
 

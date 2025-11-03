@@ -18,8 +18,10 @@ import {
 } from 'lucide-react';
 import { useAcompanhamentoFases } from '@/hooks/useAcompanhamentoFases';
 import { EstudanteFaseCard } from './EstudanteFaseCard';
+import { AtribuirCandidatosReserva } from './AtribuirCandidatosReserva';
 import type { InscricaoProcessoUsuario } from '@/types/acompanhamento-processo';
 import { toast } from 'sonner';
+import { useFaseReservas } from '@/hooks/useFaseReservas';
 
 interface AcompanhamentoFasesPSProps {
   entidadeId: number;
@@ -27,6 +29,8 @@ interface AcompanhamentoFasesPSProps {
 
 export function AcompanhamentoFasesPS({ entidadeId }: AcompanhamentoFasesPSProps) {
   const [detalhesEstudanteId, setDetalhesEstudanteId] = useState<string | null>(null);
+  const [faseAtribuicaoId, setFaseAtribuicaoId] = useState<string | null>(null);
+  const [reservasFase, setReservasFase] = useState<any[]>([]);
   
   const {
     candidatosPorFase,
@@ -37,6 +41,13 @@ export function AcompanhamentoFasesPS({ entidadeId }: AcompanhamentoFasesPSProps
     aprovarCandidato,
     reprovarCandidato
   } = useAcompanhamentoFases(entidadeId);
+  const { getReservasFase } = useFaseReservas();
+
+  const abrirAtribuicao = async (faseId: string) => {
+    setFaseAtribuicaoId(faseId);
+    const reservas = await getReservasFase(faseId);
+    setReservasFase(reservas || []);
+  };
 
   const handleAprovarCandidato = async (candidatoId: string) => {
     // Buscar o candidato para saber qual é a fase atual
@@ -241,10 +252,17 @@ export function AcompanhamentoFasesPS({ entidadeId }: AcompanhamentoFasesPSProps
                           </div>
                         </div>
                       </div>
-                      <Button variant="outline" size="sm" disabled>
+                      <div className="flex items-center gap-2">
+                        {fase.presencial && (
+                          <Button variant="default" size="sm" onClick={() => abrirAtribuicao(fase.id)}>
+                            Atribuir a Reserva
+                          </Button>
+                        )}
+                        <Button variant="outline" size="sm" disabled>
                         <Download className="h-4 w-4 mr-2" />
                         Exportar Lista
-                      </Button>
+                        </Button>
+                      </div>
                     </div>
                   </div>
 
@@ -278,6 +296,31 @@ export function AcompanhamentoFasesPS({ entidadeId }: AcompanhamentoFasesPSProps
           </Tabs>
         </CardContent>
       </Card>
+
+      {faseAtribuicaoId && (
+        <AtribuirCandidatosReserva
+          faseId={faseAtribuicaoId}
+          isOpen={!!faseAtribuicaoId}
+          onClose={() => setFaseAtribuicaoId(null)}
+          candidatos={(candidatosPorFase.get(faseAtribuicaoId) || []).map(c => ({
+            inscricaoId: c.id,
+            inscricaoFaseId: c.inscricao_fase_atual_id || '',
+            nome: c.nome_estudante,
+            email: c.email_estudante,
+            statusFase: c.status_fase,
+          })).filter(c => !!c.inscricaoFaseId)}
+          reservas={reservasFase.map((r: any) => ({
+            id: r.id,
+            data: r.data_reserva,
+            inicio: r.horario_inicio,
+            fim: r.horario_termino,
+            sala: r.sala_nome,
+            predio: r.sala_predio,
+            andar: r.sala_andar,
+            capacidade: r.sala_capacidade,
+          }))}
+        />
+      )}
     </div>
   );
 }

@@ -30,6 +30,7 @@ export interface FaseProcessoSeletivo {
   data_inicio?: string;
   data_fim?: string;
   ativa: boolean;
+  presencial?: boolean; // Indica se a fase é presencial
   template_formulario_id?: string; // Template de formulário vinculado a esta fase
   criterios_aprovacao?: {
     tipo: 'manual' | 'automatico';
@@ -37,6 +38,41 @@ export interface FaseProcessoSeletivo {
   };
   created_at: string;
   updated_at: string;
+  reservas?: ReservaVinculada[]; // Reservas vinculadas a esta fase
+}
+
+// Tipo para o relacionamento entre fase e reserva
+export interface FaseReserva {
+  id: string;
+  fase_id: string;
+  reserva_id: string;
+  created_at: string;
+}
+
+// Tipo para exibir informações da reserva vinculada
+export interface ReservaVinculada {
+  id: string;
+  data_reserva: string;
+  horario_inicio: string;
+  horario_termino: string;
+  quantidade_pessoas: number;
+  status_reserva: string;
+  sala_id?: number;
+  sala_nome?: string;
+  sala_predio?: string;
+  sala_andar?: string;
+  sala_capacidade?: number;
+}
+
+// Novo: vínculo candidato-reserva (atribuições dentro da fase)
+export interface CandidatoReserva {
+  id: string;
+  inscricao_fase_id: string;
+  reserva_id: string;
+  horario_atribuido?: string;
+  created_at: string;
+  updated_at: string;
+  reserva?: ReservaVinculada;
 }
 
 export interface FormularioFasePS {

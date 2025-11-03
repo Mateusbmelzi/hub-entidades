@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Mail, GraduationCap, Calendar, Eye, Check, X } from 'lucide-react';
+import { Mail, GraduationCap, Calendar, Eye, Check, X, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { InscricaoProcessoUsuario } from '@/types/acompanhamento-processo';
@@ -79,6 +79,11 @@ export function EstudanteFaseCard({
                   <Badge variant={getStatusBadgeVariant(candidato.status_fase || 'pendente')}>
                     {getStatusLabel(candidato.status_fase || 'pendente')}
                   </Badge>
+                    {candidato.reserva_atribuida && (
+                      <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                        <MapPin className="h-3 w-3 mr-1" /> Atribuído
+                      </Badge>
+                    )}
                   {areaInteresse && areaInteresse !== 'Não especificada' && (
                     <Badge variant="outline" className="text-xs">
                       {areaInteresse}
@@ -106,6 +111,15 @@ export function EstudanteFaseCard({
                   Inscrito em {format(new Date(candidato.created_at), 'dd/MM/yyyy', { locale: ptBR })}
                 </span>
               </div>
+              {candidato.reserva_atribuida && (
+                <div className="flex items-center">
+                  <MapPin className="h-3.5 w-3.5 mr-2" />
+                  <span>
+                    {candidato.reserva_atribuida.data_reserva} • {candidato.reserva_atribuida.horario_inicio}-{candidato.reserva_atribuida.horario_termino}
+                    {candidato.reserva_atribuida.sala_nome && ` • ${candidato.reserva_atribuida.sala_nome}`}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Botões de ação */}
