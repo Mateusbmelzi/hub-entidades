@@ -11,8 +11,12 @@ import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useEntidade } from '@/hooks/useEntidade';
+import { useUpdateEntidade } from '@/hooks/useUpdateEntidade';
 import { useProjetos } from '@/hooks/useProjetos';
 import { useEntityAuth } from '@/hooks/useEntityAuth';
 import { useAuth } from '@/hooks/useAuth';
@@ -71,6 +75,7 @@ const EntidadeDetalhes = () => {
   const { entidade, loading, error, refetch: refetchEntidade } = useEntidade(id, handleEntidadeUpdate);
   // console.log(entidade.encerramento_primeira_fase) 
   const { projetos, loading: projetosLoading, refetch: refetchProjetos } = useProjetos(entidade?.id);
+  const { updateEntidade } = useUpdateEntidade();
   
   // Debug log removido para melhor visualização
   // const { eventos, loading: eventosLoading, refetch: refetchEventos } = useEventosEntidade(entidade?.id);
@@ -1806,180 +1811,82 @@ const EntidadeDetalhes = () => {
                       
                       <TabsContent value="configuracao" className="mt-6">
                         <div className="space-y-6">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <h3 className="text-lg font-semibold text-gray-900">Configuração do Processo</h3>
-                              <p className="text-sm text-gray-600 mt-1">Datas e períodos do processo seletivo</p>
-                            </div>
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="text-green-700 border-green-300 hover:bg-green-100"
-                                >
-                                  <Edit className="mr-2 h-4 w-4" />
-                                  Editar Processo
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                                <EditarProcessoSeletivo
-                                  entidade={entidade}
-                                  onSuccess={() => {
-                                    refetchEntidade();
+                          {/* Switch de ativação do processo seletivo */}
+                          <Card>
+                            <CardContent className="pt-6">
+                              <div className="flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                  <Label htmlFor="processo-seletivo-ativo" className="text-base font-semibold">
+                                    Processo Seletivo Ativo
+                                  </Label>
+                                  <p className="text-sm text-muted-foreground">
+                                    Ative para permitir que estudantes se inscrevam no processo seletivo
+                                  </p>
+                                </div>
+                                <Switch
+                                  id="processo-seletivo-ativo"
+                                  checked={entidade.processo_seletivo_ativo || false}
+                                  onCheckedChange={async (checked) => {
+                                    const success = await updateEntidade(entidade.id, {
+                                      processo_seletivo_ativo: checked
+                                    });
+                                    if (success) {
+                                      refetchEntidade();
+                                    }
                                   }}
                                 />
-                              </DialogContent>
-                            </Dialog>
-                          </div>
-
-                          {/* SEÇÃO: Áreas do Processo Seletivo */}
-                          <Card>
-                            <CardHeader>
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <CardTitle className="flex items-center gap-2">
-                                    <Target className="h-5 w-5 text-blue-600" />
-                                    Áreas com Vagas no Processo Seletivo
-                                  </CardTitle>
-                                  <p className="text-sm text-muted-foreground mt-1">
-                                    Selecione quais áreas internas têm vagas abertas neste processo
-                                  </p>
-                                </div>
-                                <GerenciarAreasProcessoSeletivo
-                                  entidadeId={entidade.id}
-                                  areasInternas={entidade.areas_estrutura_organizacional || []}
-                                  areasPS={entidade.areas_processo_seletivo || []}
-                                  onSuccess={() => refetchEntidade()}
-                                />
                               </div>
-                            </CardHeader>
-                            <CardContent>
-                              {!entidade.areas_processo_seletivo || entidade.areas_processo_seletivo.length === 0 ? (
-                                <div className="text-center py-8 text-muted-foreground">
-                                  <Target className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                                  <p className="mb-2">Nenhuma área selecionada</p>
-                                  <p className="text-sm">
-                                    Selecione as áreas internas que têm vagas abertas
-                                  </p>
-                                </div>
-                              ) : (
-                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                  {entidade.areas_processo_seletivo.slice(0, 6).map(area => (
-                                    <Badge key={area} variant="outline" className="p-2 justify-center">
-                                      {area}
-                                    </Badge>
-                                  ))}
-                                  {entidade.areas_processo_seletivo.length > 6 && (
-                                    <Badge variant="secondary" className="p-2 justify-center">
-                                      +{entidade.areas_processo_seletivo.length - 6} mais
-                                    </Badge>
-                                  )}
-                                </div>
-                              )}
                             </CardContent>
                           </Card>
 
-                          {/* Datas do processo */}
-                          {(entidade.abertura_processo_seletivo ||
-                            entidade.fechamento_processo_seletivo ||
-                            entidade.data_primeira_fase ||
-                            entidade.data_segunda_fase ||
-                            entidade.data_terceira_fase ||
-                            entidade.encerramento_primeira_fase
-                          ) && (
-                            <div className="space-y-6">
-                              {/* Período de inscrições */}
-                              {(entidade.abertura_processo_seletivo || entidade.fechamento_processo_seletivo) && (
-                                <div className="bg-white rounded-xl border border-green-200 shadow-sm p-4">
-                                  <div className="flex items-center mb-3">
-                                    <Calendar className="mr-2 h-6 w-6 text-green-600" />
-                                    <h3 className="text-xl font-semibold text-gray-900">Período do Processo Seletivo</h3>
-                                  </div>
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    {entidade.abertura_processo_seletivo && (
-                                      <div>
-                                        <div className="text-sm text-gray-500">Abertura</div>
-                                        <div className="text-lg">
-                                        {
-                                          (() => {
-                                            const [y, m, d] = entidade.abertura_processo_seletivo.split("-");
-                                            return new Date(+y, +m - 1, +d).toLocaleDateString("pt-BR");
-                                          })()
-                                        }
-                                        </div>
-                                      </div>
-                                    )}
-                                    {entidade.fechamento_processo_seletivo && (
-                                      <div>
-                                        <div className="text-sm text-gray-500">Fechamento</div>
-                                        <div className="text-lg">
-                                          {
-                                            (() => {
-                                              const [y, m, d] = entidade.fechamento_processo_seletivo.split("-");
-                                              return new Date(+y, +m - 1, +d).toLocaleDateString("pt-BR");
-                                            })()
-                                          }
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
+                          {/* Período do Processo Seletivo - Edição */}
+                          <Card>
+                            <CardHeader>
+                              <CardTitle className="flex items-center gap-2">
+                                <Calendar className="h-5 w-5 text-green-600" />
+                                Período do Processo Seletivo
+                              </CardTitle>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                Configure as datas de abertura e fechamento do processo seletivo
+                              </p>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                  <Label htmlFor="abertura-processo">Data de Abertura</Label>
+                                  <Input
+                                    id="abertura-processo"
+                                    type="date"
+                                    value={entidade.abertura_processo_seletivo || ''}
+                                    onChange={async (e) => {
+                                      const success = await updateEntidade(entidade.id, {
+                                        abertura_processo_seletivo: e.target.value || null
+                                      });
+                                      if (success) {
+                                        refetchEntidade();
+                                      }
+                                    }}
+                                  />
                                 </div>
-                              )}
-
-                              {/* Fases agrupadas */}
-                              {[
-                                {
-                                  titulo: "Primeira Fase",
-                                  datas: [
-                                    { label: "Início 1ª Fase", valor: entidade.data_primeira_fase },
-                                    { label: "Encerramento 1ª Fase", valor: entidade.encerramento_primeira_fase }
-                                  ],
-                                },
-                                {
-                                  titulo: "Segunda Fase",
-                                  datas: [
-                                    { label: "Início 2ª Fase", valor: entidade.data_segunda_fase },
-                                    { label: "Encerramento 2ª Fase", valor: entidade.encerramento_segunda_fase },
-                                  ],
-                                },
-                                {
-                                  titulo: "Terceira Fase",
-                                  datas: [
-                                    { label: "Início 3ª Fase", valor: entidade.data_terceira_fase },
-                                    { label: "Encerramento 3ª Fase", valor: entidade.encerramento_terceira_fase },
-                                  ],
-                                },
-                              ].map((fase, index) => {
-                                const datasValidas = fase.datas.filter(d => d.valor);
-                                if (datasValidas.length === 0) return null;
-
-                                return (
-                                  <div key={index} className="bg-white rounded-xl border border-green-200 shadow-sm p-4">
-                                    <div className="flex items-center mb-3">
-                                      <Calendar className="mr-2 h-6 w-6 text-green-600" />
-                                      <h3 className="text-xl font-semibold text-gray-900">{fase.titulo}</h3>
-                                    </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                      {datasValidas.map((data, idx) => (
-                                        <div key={idx}>
-                                          <div className="text-sm text-gray-500">{data.label}</div>
-                                          <div className="text-lg">
-                                            {
-                                              (() => {
-                                                const [y, m, d] = data.valor!.split("-");
-                                                return new Date(+y, +m - 1, +d).toLocaleDateString("pt-BR");
-                                              })()
-                                            }
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
+                                <div>
+                                  <Label htmlFor="fechamento-processo">Data de Fechamento</Label>
+                                  <Input
+                                    id="fechamento-processo"
+                                    type="date"
+                                    value={entidade.fechamento_processo_seletivo || ''}
+                                    onChange={async (e) => {
+                                      const success = await updateEntidade(entidade.id, {
+                                        fechamento_processo_seletivo: e.target.value || null
+                                      });
+                                      if (success) {
+                                        refetchEntidade();
+                                      }
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
                         </div>
                       </TabsContent>
                       

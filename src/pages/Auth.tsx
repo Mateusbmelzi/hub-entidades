@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +27,18 @@ export default function Auth() {
   const { signIn, signUp, user, profile, loading: authLoading } = useAuth();
   const { destination, clearDestination } = useRedirectDestination();
   const navigate = useNavigate();
+  const destinationRef = useRef<string | null>(null);
+
+  // Limpar destination após o render quando há um destino salvo
+  useEffect(() => {
+    if (destination && user && profile?.profile_completed) {
+      destinationRef.current = destination;
+      // Limpar destination no próximo tick para evitar warning
+      setTimeout(() => {
+        clearDestination();
+      }, 0);
+    }
+  }, [destination, user, profile, clearDestination]);
 
   // Se ainda está carregando, não fazer redirecionamento
   if (authLoading) {
@@ -76,7 +88,7 @@ export default function Auth() {
     if (destination) {
       const targetRoute = destination;
       console.log('🔄 Redirecionando para destino salvo:', targetRoute);
-      clearDestination();
+      // clearDestination() será chamado no useEffect para evitar warning
       return <Navigate to={targetRoute} replace />;
     }
     

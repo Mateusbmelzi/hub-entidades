@@ -112,12 +112,21 @@ export function EstudanteFaseCard({
                 </span>
               </div>
               {candidato.reserva_atribuida && (
-                <div className="flex items-center">
-                  <MapPin className="h-3.5 w-3.5 mr-2" />
-                  <span>
-                    {candidato.reserva_atribuida.data_reserva} • {candidato.reserva_atribuida.horario_inicio}-{candidato.reserva_atribuida.horario_termino}
-                    {candidato.reserva_atribuida.sala_nome && ` • ${candidato.reserva_atribuida.sala_nome}`}
-                  </span>
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center">
+                    <MapPin className="h-3.5 w-3.5 mr-2 text-purple-600" />
+                    <span className="font-medium text-gray-900">
+                      {candidato.reserva_atribuida.sala_nome || 'Sala não informada'}
+                      {candidato.reserva_atribuida.sala_predio && ` - ${candidato.reserva_atribuida.sala_predio}`}
+                      {candidato.reserva_atribuida.sala_andar && ` - ${candidato.reserva_atribuida.sala_andar}`}
+                    </span>
+                  </div>
+                  <div className="flex items-center ml-5 text-xs text-muted-foreground">
+                    <Calendar className="h-3 w-3 mr-1" />
+                    <span>
+                      {format(new Date(candidato.reserva_atribuida.data_reserva), 'dd/MM/yyyy', { locale: ptBR })} • {candidato.reserva_atribuida.horario_inicio}-{candidato.reserva_atribuida.horario_termino}
+                    </span>
+                  </div>
                 </div>
               )}
             </div>

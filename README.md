@@ -3,7 +3,7 @@
 [![Vercel](https://img.shields.io/badge/Deploy-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com)
 [![React](https://img.shields.io/badge/React-18.3.1-blue?style=for-the-badge&logo=react)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5.3-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
-[![Vite](https://img.shields.io/badge/Vite-5.4.1-purple?style=for-the-badge&logo=vite)](https://vitejs.dev/)
+[![Vite](https://img.shields.io/badge/Vite-7.0.6-purple?style=for-the-badge&logo=vite)](https://vitejs.dev/)
 [![Supabase](https://img.shields.io/badge/Supabase-2.50.2-green?style=for-the-badge&logo=supabase)](https://supabase.com/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4.11-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
 
@@ -161,12 +161,12 @@ O Insper possui mais de **30 organizações estudantis** ativas, divididas em á
 ### Frontend
 - **React 18.3.1** - Biblioteca de interface
 - **TypeScript 5.5.3** - Tipagem estática
-- **Vite 5.4.1** - Build tool e dev server
+- **Vite 7.0.6** - Build tool e dev server
 - **React Router 6.26.2** - Roteamento
 - **React Query 5.56.2** - Gerenciamento de estado
 - **React Hook Form 7.53.0** - Formulários
 - **Zod 3.23.8** - Validação de schemas
-- **date-fns 3.6.0** - Manipulação de datas
+- **date-fns 2.30.0** - Manipulação de datas
 - **recharts 2.12.7** - Gráficos e visualizações
 
 ### UI/UX

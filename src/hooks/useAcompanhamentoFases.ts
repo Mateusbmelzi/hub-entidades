@@ -123,11 +123,40 @@ export function useAcompanhamentoFases(entidadeId: number) {
           const reservaIds = [...new Set(atribs.map(a => a.reserva_id))];
           const { data: reservas, error: reservasError } = await supabase
             .from('reservas')
-            .select('id, data_reserva, horario_inicio, horario_termino, sala_nome, sala_predio, sala_andar')
+            .select('id, data_reserva, horario_inicio, horario_termino, sala_id')
             .in('id', reservaIds);
 
           if (!reservasError && reservas) {
-            const reservaMap = new Map(reservas.map(r => [r.id, r]));
+            // Buscar informações das salas através da tabela salas
+            const reservasComSalaId = reservas.filter(r => r.sala_id).map(r => r.sala_id);
+            const { data: salas, error: salasError } = await supabase
+              .from('salas')
+              .select('id, reserva_id, predio, sala, andar, capacidade')
+              .in('reserva_id', reservaIds);
+
+            // Criar mapa de salas por reserva_id
+            const salasMap = new Map();
+            if (!salasError && salas) {
+              salas.forEach(sala => {
+                if (sala.reserva_id) {
+                  salasMap.set(sala.reserva_id, sala);
+                }
+              });
+            }
+
+            // Combinar dados de reserva com dados da sala
+            const reservasCompletas = reservas.map(r => {
+              const sala = salasMap.get(r.id);
+              return {
+                ...r,
+                sala_nome: sala?.sala || null,
+                sala_predio: sala?.predio || null,
+                sala_andar: sala?.andar || null,
+                sala_capacidade: sala?.capacidade || null,
+              };
+            });
+
+            const reservaMap = new Map(reservasCompletas.map(r => [r.id, r]));
             const atribMap: Record<string, any> = {};
             atribs.forEach(a => {
               const r = reservaMap.get(a.reserva_id);

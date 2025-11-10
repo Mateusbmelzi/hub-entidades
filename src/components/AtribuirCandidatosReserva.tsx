@@ -35,9 +35,10 @@ interface Props {
   onClose: () => void;
   candidatos: CandidatoItem[]; // candidatos na fase atual
   reservas: ReservaItem[]; // reservas vinculadas à fase
+  onSuccess?: () => void; // Callback quando a atribuição for bem-sucedida
 }
 
-export const AtribuirCandidatosReserva: React.FC<Props> = ({ faseId, isOpen, onClose, candidatos, reservas }) => {
+export const AtribuirCandidatosReserva: React.FC<Props> = ({ faseId, isOpen, onClose, candidatos, reservas, onSuccess }) => {
   const { atribuirCandidatosReserva, loading } = useCandidatosReservas();
   const [selecionados, setSelecionados] = useState<string[]>([]);
   const [reservaSelecionada, setReservaSelecionada] = useState<string>('');
@@ -54,6 +55,9 @@ export const AtribuirCandidatosReserva: React.FC<Props> = ({ faseId, isOpen, onC
     const result = await atribuirCandidatosReserva(reservaSelecionada, selecionados);
     if (result.success) {
       setSelecionados([]);
+      if (onSuccess) {
+        onSuccess();
+      }
       onClose();
     }
   };

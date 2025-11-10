@@ -39,7 +39,8 @@ export function AcompanhamentoFasesPS({ entidadeId }: AcompanhamentoFasesPSProps
     loading,
     error,
     aprovarCandidato,
-    reprovarCandidato
+    reprovarCandidato,
+    fetchCandidatos
   } = useAcompanhamentoFases(entidadeId);
   const { getReservasFase } = useFaseReservas();
 
@@ -302,6 +303,10 @@ export function AcompanhamentoFasesPS({ entidadeId }: AcompanhamentoFasesPSProps
           faseId={faseAtribuicaoId}
           isOpen={!!faseAtribuicaoId}
           onClose={() => setFaseAtribuicaoId(null)}
+          onSuccess={() => {
+            // Atualizar a lista de candidatos após atribuição bem-sucedida
+            fetchCandidatos();
+          }}
           candidatos={(candidatosPorFase.get(faseAtribuicaoId) || []).map(c => ({
             inscricaoId: c.id,
             inscricaoFaseId: c.inscricao_fase_atual_id || '',
