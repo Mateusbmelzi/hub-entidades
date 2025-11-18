@@ -24,6 +24,7 @@ interface UpdateEntidadeData {
   link_processo_seletivo?: string;
   abertura_processo_seletivo?: string;
   fechamento_processo_seletivo?: string;
+  numero_total_fases?: number;
   data_primeira_fase?: string;
   encerramento_primeira_fase?: string;
   data_segunda_fase?: string;
@@ -77,6 +78,7 @@ export const useUpdateEntidade = () => {
           encerramento_terceira_fase: data.encerramento_terceira_fase,
           abertura_processo_seletivo: data.abertura_processo_seletivo,
           fechamento_processo_seletivo: data.fechamento_processo_seletivo,
+          numero_total_fases: data.numero_total_fases,
         })
         .eq('id', id)
         .select();

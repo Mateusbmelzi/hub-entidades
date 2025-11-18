@@ -41,6 +41,7 @@ const formSchema = z.object({
   encerramento_terceira_fase: z.string().optional(),
   abertura_processo_seletivo: z.string().optional(),
   fechamento_processo_seletivo: z.string().optional(),
+  numero_total_fases: z.number().min(1, 'Mínimo 1 fase').max(10, 'Máximo 10 fases').optional(),
   empresas_parceiras: z.array(z.object({
     id: z.string(),
     nome: z.string(),
@@ -103,6 +104,7 @@ export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade
       data_terceira_fase: entidade.data_terceira_fase || '',
       encerramento_terceira_fase: entidade.encerramento_terceira_fase || '',
       fechamento_processo_seletivo: entidade.fechamento_processo_seletivo || '',
+      numero_total_fases: entidade.numero_total_fases || undefined,
       empresas_parceiras: empresasAssociadas || [],
     },
   });
@@ -136,6 +138,7 @@ export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade
         link_processo_seletivo: data.link_processo_seletivo || null,
         abertura_processo_seletivo: data.abertura_processo_seletivo || null,
         fechamento_processo_seletivo: data.fechamento_processo_seletivo || null,
+        numero_total_fases: data.numero_total_fases || null,
         data_primeira_fase: data.data_primeira_fase || null,
         encerramento_primeira_fase: data.encerramento_primeira_fase || null,
         data_segunda_fase: data.data_segunda_fase || null,
@@ -466,6 +469,24 @@ export const EditarEntidadeForm: React.FC<EditarEntidadeFormProps> = ({ entidade
             type="date"
             {...form.register('fechamento_processo_seletivo')}
           />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="numero_total_fases">Número Total de Fases</Label>
+          <Input
+            id="numero_total_fases"
+            type="number"
+            {...form.register('numero_total_fases', { valueAsNumber: true })}
+            placeholder="Ex: 3"
+            min="1"
+            max="10"
+          />
+          {form.formState.errors.numero_total_fases && (
+            <p className="text-sm text-red-500">{form.formState.errors.numero_total_fases.message}</p>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Ao aprovar um candidato na última fase, ele será automaticamente adicionado como membro da organização estudantil.
+          </p>
         </div>
 
         <div className="space-y-2">

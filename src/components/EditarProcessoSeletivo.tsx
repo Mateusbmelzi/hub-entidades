@@ -25,6 +25,7 @@ const EditarProcessoSeletivo: React.FC<EditarProcessoSeletivoProps> = ({
     processo_seletivo_ativo: entidade.processo_seletivo_ativo || false,
     abertura_processo_seletivo: entidade.abertura_processo_seletivo || '',
     fechamento_processo_seletivo: entidade.fechamento_processo_seletivo || '',
+    numero_total_fases: entidade.numero_total_fases || undefined,
     data_primeira_fase: entidade.data_primeira_fase || '',
     encerramento_primeira_fase: entidade.encerramento_primeira_fase || '',
     data_segunda_fase: entidade.data_segunda_fase || '',
@@ -39,6 +40,7 @@ const EditarProcessoSeletivo: React.FC<EditarProcessoSeletivoProps> = ({
       processo_seletivo_ativo: entidade.processo_seletivo_ativo || false,
       abertura_processo_seletivo: entidade.abertura_processo_seletivo || '',
       fechamento_processo_seletivo: entidade.fechamento_processo_seletivo || '',
+      numero_total_fases: entidade.numero_total_fases || undefined,
       data_primeira_fase: entidade.data_primeira_fase || '',
       encerramento_primeira_fase: entidade.encerramento_primeira_fase || '',
       data_segunda_fase: entidade.data_segunda_fase || '',
@@ -59,6 +61,7 @@ const EditarProcessoSeletivo: React.FC<EditarProcessoSeletivoProps> = ({
           processo_seletivo_ativo: formData.processo_seletivo_ativo,
           abertura_processo_seletivo: formData.abertura_processo_seletivo || null,
           fechamento_processo_seletivo: formData.fechamento_processo_seletivo || null,
+          numero_total_fases: formData.numero_total_fases || null,
           data_primeira_fase: formData.data_primeira_fase || null,
           encerramento_primeira_fase: formData.encerramento_primeira_fase || null,
           data_segunda_fase: formData.data_segunda_fase || null,
@@ -146,6 +149,35 @@ const EditarProcessoSeletivo: React.FC<EditarProcessoSeletivoProps> = ({
                 }
               />
             </div>
+          </div>
+        </div>
+
+        {/* Número Total de Fases */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-purple-600" />
+            <h3 className="text-lg font-semibold text-gray-900">Número Total de Fases</h3>
+          </div>
+          <div>
+            <Label htmlFor="numero_total_fases">Quantas fases terá o processo seletivo?</Label>
+            <Input
+              id="numero_total_fases"
+              type="number"
+              min="1"
+              max="10"
+              placeholder="Ex: 3"
+              value={formData.numero_total_fases || ''}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  numero_total_fases: e.target.value ? parseInt(e.target.value, 10) : undefined,
+                })
+              }
+              className="mt-2"
+            />
+            <p className="text-sm text-muted-foreground mt-2">
+              Ao aprovar um candidato na última fase, ele será automaticamente adicionado como membro da organização estudantil.
+            </p>
           </div>
         </div>
 

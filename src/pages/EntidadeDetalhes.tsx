@@ -67,12 +67,19 @@ const EntidadeDetalhes = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isUpdating, setIsUpdating] = useState(false);
+  const [numeroTotalFases, setNumeroTotalFases] = useState<number | undefined>(undefined);
+  const [salvandoNumeroFases, setSalvandoNumeroFases] = useState(false);
   
   const handleEntidadeUpdate = useCallback(() => {
     setIsUpdating(false);
   }, []);
   
   const { entidade, loading, error, refetch: refetchEntidade } = useEntidade(id, handleEntidadeUpdate);
+  
+  // Sincronizar estado local com entidade quando ela mudar
+  useEffect(() => {
+    setNumeroTotalFases(entidade?.numero_total_fases);
+  }, [entidade?.numero_total_fases]);
   // console.log(entidade.encerramento_primeira_fase) 
   const { projetos, loading: projetosLoading, refetch: refetchProjetos } = useProjetos(entidade?.id);
   const { updateEntidade } = useUpdateEntidade();
@@ -1884,6 +1891,58 @@ const EntidadeDetalhes = () => {
                                     }}
                                   />
                                 </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+
+                          {/* Número Total de Fases */}
+                          <Card>
+                            <CardHeader>
+                              <CardTitle className="flex items-center gap-2">
+                                <Target className="h-5 w-5 text-purple-600" />
+                                Número Total de Fases
+                              </CardTitle>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                Defina quantas fases terá o processo seletivo
+                              </p>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                              <div>
+                                <Label htmlFor="numero-total-fases">Quantas fases terá o processo seletivo?</Label>
+                                <Input
+                                  id="numero-total-fases"
+                                  type="number"
+                                  min="1"
+                                  max="10"
+                                  placeholder="Ex: 3"
+                                  value={numeroTotalFases || ''}
+                                  onChange={(e) => {
+                                    const value = e.target.value ? parseInt(e.target.value, 10) : undefined;
+                                    setNumeroTotalFases(value);
+                                  }}
+                                  className="mt-2"
+                                />
+                                <p className="text-sm text-muted-foreground mt-2">
+                                  Ao aprovar um candidato na última fase, ele será automaticamente adicionado como membro da organização estudantil.
+                                </p>
+                              </div>
+                              <div className="flex justify-end pt-2">
+                                <Button
+                                  onClick={async () => {
+                                    setSalvandoNumeroFases(true);
+                                    const success = await updateEntidade(entidade.id, {
+                                      numero_total_fases: numeroTotalFases || null
+                                    });
+                                    if (success) {
+                                      refetchEntidade();
+                                    }
+                                    setSalvandoNumeroFases(false);
+                                  }}
+                                  disabled={salvandoNumeroFases || numeroTotalFases === entidade?.numero_total_fases}
+                                  className="bg-green-600 hover:bg-green-700"
+                                >
+                                  {salvandoNumeroFases ? 'Salvando...' : 'Salvar'}
+                                </Button>
                               </div>
                             </CardContent>
                           </Card>

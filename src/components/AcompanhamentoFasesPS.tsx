@@ -22,6 +22,7 @@ import { AtribuirCandidatosReserva } from './AtribuirCandidatosReserva';
 import type { InscricaoProcessoUsuario } from '@/types/acompanhamento-processo';
 import { toast } from 'sonner';
 import { useFaseReservas } from '@/hooks/useFaseReservas';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AcompanhamentoFasesPSProps {
   entidadeId: number;
@@ -59,15 +60,27 @@ export function AcompanhamentoFasesPS({ entidadeId }: AcompanhamentoFasesPSProps
     const faseAtual = candidato?.fase_atual;
     const proximaFase = faseAtual ? fases.find(f => f.ordem === faseAtual.ordem + 1) : null;
     
+    // Buscar numero_total_fases para verificar se é última fase
+    const { data: entidadeData } = await supabase
+      .from('entidades')
+      .select('numero_total_fases')
+      .eq('id', candidato?.entidade_id)
+      .single();
+    
+    const numeroTotalFases = entidadeData?.numero_total_fases;
+    const ehUltimaFase = numeroTotalFases 
+      ? faseAtual?.ordem === numeroTotalFases
+      : !proximaFase;
+    
     const result = await aprovarCandidato(candidatoId);
     if (result.success) {
-      if (proximaFase) {
+      if (proximaFase && !ehUltimaFase) {
         toast.success(`Candidato aprovado e movido para: ${proximaFase.nome}!`, {
           duration: 4000,
         });
-      } else if (faseAtual) {
-        toast.success('Candidato aprovado definitivamente no processo seletivo!', {
-          duration: 4000,
+      } else if (ehUltimaFase) {
+        toast.success('Candidato aprovado definitivamente e adicionado como membro da organização estudantil!', {
+          duration: 5000,
         });
       } else {
         toast.success('Candidato aprovado com sucesso!');

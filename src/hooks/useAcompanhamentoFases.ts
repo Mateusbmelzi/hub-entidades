@@ -292,6 +292,113 @@ export function useAcompanhamentoFases(entidadeId: number) {
     }
   }, [fetchCandidatos]);
 
+  const adicionarCandidatoComoMembro = useCallback(async (candidatoId: string) => {
+    try {
+      // Buscar dados completos da inscrição
+      const { data: inscricao, error: inscricaoError } = await supabase
+        .from('inscricoes_processo_seletivo')
+        .select('user_id, entidade_id')
+        .eq('id', candidatoId)
+        .single();
+
+      if (inscricaoError || !inscricao) {
+        console.error('Erro ao buscar inscrição:', inscricaoError);
+        return false;
+      }
+
+      // Buscar o cargo padrão "Membro" da entidade
+      const { data: cargoMembro, error: cargoError } = await supabase
+        .from('cargos_entidade')
+        .select('id')
+        .eq('entidade_id', inscricao.entidade_id)
+        .eq('nome', 'Membro')
+        .single();
+
+      if (cargoError || !cargoMembro) {
+        console.error('Erro ao buscar cargo Membro:', cargoError);
+        return false;
+      }
+
+      // Verificar se já é membro
+      const { data: membroExistente, error: checkError } = await supabase
+        .from('membros_entidade')
+        .select('id, ativo')
+        .eq('user_id', inscricao.user_id)
+        .eq('entidade_id', inscricao.entidade_id)
+        .maybeSingle();
+
+      if (checkError) throw checkError;
+
+      // Se já é membro ativo, não fazer nada
+      if (membroExistente?.ativo) {
+        console.log('Usuário já é membro ativo');
+        return true;
+      }
+
+      // Se já foi membro mas está inativo, reativar
+      if (membroExistente && !membroExistente.ativo) {
+        const { error: updateError } = await supabase
+          .from('membros_entidade')
+          .update({
+            cargo_id: cargoMembro.id,
+            ativo: true,
+            data_entrada: new Date().toISOString(),
+          })
+          .eq('id', membroExistente.id);
+
+        if (updateError) throw updateError;
+        console.log('Membro reativado com sucesso');
+        
+        // Incrementar numero_membros
+        const { data: entidadeAtual, error: entidadeError } = await supabase
+          .from('entidades')
+          .select('numero_membros')
+          .eq('id', inscricao.entidade_id)
+          .single();
+        
+        if (!entidadeError && entidadeAtual) {
+          await supabase
+            .from('entidades')
+            .update({ numero_membros: (entidadeAtual.numero_membros || 0) + 1 })
+            .eq('id', inscricao.entidade_id);
+        }
+        return true;
+      }
+
+      // Criar novo membro
+      const { error: insertError } = await supabase
+        .from('membros_entidade')
+        .insert({
+          user_id: inscricao.user_id,
+          entidade_id: inscricao.entidade_id,
+          cargo_id: cargoMembro.id,
+          data_entrada: new Date().toISOString(),
+          ativo: true,
+        });
+
+      if (insertError) throw insertError;
+      console.log('Novo membro adicionado com sucesso');
+      
+      // Incrementar numero_membros
+      const { data: entidadeAtual, error: entidadeError } = await supabase
+        .from('entidades')
+        .select('numero_membros')
+        .eq('id', inscricao.entidade_id)
+        .single();
+      
+      if (!entidadeError && entidadeAtual) {
+        await supabase
+          .from('entidades')
+          .update({ numero_membros: (entidadeAtual.numero_membros || 0) + 1 })
+          .eq('id', inscricao.entidade_id);
+      }
+      return true;
+    } catch (err) {
+      console.error('Erro ao adicionar como membro:', err);
+      return false;
+    }
+  }, []);
+
   const aprovarCandidato = useCallback(async (candidatoId: string, feedback?: string) => {
     try {
       // Atualizar status da fase atual
@@ -306,19 +413,42 @@ export function useAcompanhamentoFases(entidadeId: number) {
 
       if (faseError) throw faseError;
 
-      // Se for a última fase, aprovar o candidato
+      // Buscar numero_total_fases da entidade
       const candidato = Array.from(candidatosPorFase.values())
         .flat()
         .find(c => c.id === candidatoId);
 
+      if (!candidato) {
+        throw new Error('Candidato não encontrado');
+      }
+
+      const { data: entidadeData, error: entidadeError } = await supabase
+        .from('entidades')
+        .select('numero_total_fases')
+        .eq('id', candidato.entidade_id)
+        .single();
+
+      if (entidadeError) {
+        console.warn('Erro ao buscar numero_total_fases:', entidadeError);
+      }
+
+      const numeroTotalFases = entidadeData?.numero_total_fases;
+
+      // Se for a última fase, aprovar o candidato
       if (candidato?.fase_atual) {
         const faseAtual = candidato.fase_atual;
         const proximaFase = fases.find(f => f.ordem === faseAtual.ordem + 1);
         
         console.log(`📊 Fase atual: ${faseAtual.nome} (ordem ${faseAtual.ordem})`);
         console.log(`🔍 Próxima fase: ${proximaFase ? `${proximaFase.nome} (ordem ${proximaFase.ordem})` : 'Nenhuma (última fase)'}`);
+        console.log(`🔢 Número total de fases configurado: ${numeroTotalFases || 'não configurado'}`);
         
-        if (!proximaFase) {
+        // Verificar se é a última fase usando numero_total_fases ou fallback para lógica antiga
+        const ehUltimaFase = numeroTotalFases 
+          ? faseAtual.ordem === numeroTotalFases
+          : !proximaFase;
+        
+        if (ehUltimaFase) {
           // É a última fase, aprovar candidato definitivamente
           console.log('✅ Última fase - Aprovando candidato definitivamente');
           const { error: candidatoError } = await supabase
@@ -327,6 +457,13 @@ export function useAcompanhamentoFases(entidadeId: number) {
             .eq('id', candidatoId);
 
           if (candidatoError) throw candidatoError;
+
+          // Adicionar como membro da entidade
+          console.log('👤 Adicionando candidato como membro da entidade...');
+          const membroAdicionado = await adicionarCandidatoComoMembro(candidatoId);
+          if (!membroAdicionado) {
+            console.warn('⚠️ Candidato aprovado, mas erro ao adicionar como membro');
+          }
         } else {
           // Mover para próxima fase
           console.log(`🚀 Movendo candidato para: ${proximaFase.nome}`);
@@ -343,7 +480,7 @@ export function useAcompanhamentoFases(entidadeId: number) {
       setError('Erro ao aprovar candidato');
       return { success: false, error: err };
     }
-  }, [candidatosPorFase, fases, moverCandidatoParaFase, fetchCandidatos]);
+  }, [candidatosPorFase, fases, moverCandidatoParaFase, fetchCandidatos, adicionarCandidatoComoMembro]);
 
   const reprovarCandidato = useCallback(async (candidatoId: string, feedback?: string) => {
     try {
