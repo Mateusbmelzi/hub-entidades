@@ -27,6 +27,7 @@ interface CardFaseProps {
   datasEditadas: Record<string, { data_inicio: string; data_fim: string }>;
   onAtualizarData: (faseId: string, campo: 'data_inicio' | 'data_fim', valor: string) => void;
   onSalvarDatas: (fase: FaseProcessoSeletivo) => Promise<void>;
+  onEditar: (fase: FaseProcessoSeletivo) => void;
   onDeletar: (fase: FaseProcessoSeletivo) => void;
   validarPeriodoProcesso: (dataInicio: string, dataFim: string) => string | null;
   validarSequenciaFases: (ordem: number, dataInicio: string, faseIdExcluir?: string) => string | null;
@@ -38,6 +39,7 @@ function CardFase({
   datasEditadas, 
   onAtualizarData, 
   onSalvarDatas, 
+  onEditar,
   onDeletar,
   validarPeriodoProcesso,
   validarSequenciaFases,
@@ -98,14 +100,23 @@ function CardFase({
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-lg">{fase.nome}</h3>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onDeletar(fase)}
-            disabled={fase.ordem === 1}
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onEditar(fase)}
+            >
+              <Edit className="w-4 h-4" />
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onDeletar(fase)}
+              disabled={fase.ordem === 1}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
 
         {/* Reservas Vinculadas */}
@@ -670,6 +681,7 @@ export function GerenciarFasesProcesso({ entidadeId }: GerenciarFasesProcessoPro
                   datasEditadas={datasEditadas}
                   onAtualizarData={handleAtualizarData}
                   onSalvarDatas={handleSalvarDatas}
+                  onEditar={openEditDialog}
                   onDeletar={setFaseParaDeletar}
                   validarPeriodoProcesso={validarPeriodoProcesso}
                   validarSequenciaFases={validarSequenciaFases}
