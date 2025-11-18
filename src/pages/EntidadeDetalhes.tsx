@@ -1263,6 +1263,12 @@ const EntidadeDetalhes = () => {
                       </TabsTrigger>
                     </TabsList>
                     <TabsContent value="membros" className="mt-6">
+                      {/* Flag global para os hooks detectarem modo owner e usarem RPC */}
+                      <script
+                        dangerouslySetInnerHTML={{
+                          __html: 'window.isOwnerEntity = true;',
+                        }}
+                      />
                       <GerenciarMembrosEntidade entidadeId={entidade.id} />
                     </TabsContent>
                     <TabsContent value="cargos" className="mt-6">
@@ -1766,6 +1772,12 @@ const EntidadeDetalhes = () => {
                         </TabsTrigger>
                       </TabsList>
                       <TabsContent value="membros" className="mt-6">
+                        {/* Flag global para os hooks detectarem modo owner e usarem RPC */}
+                        <script
+                          dangerouslySetInnerHTML={{
+                            __html: 'window.isOwnerEntity = true;',
+                          }}
+                        />
                         <GerenciarMembrosEntidade entidadeId={entidade.id} />
                       </TabsContent>
                       <TabsContent value="cargos" className="mt-6">

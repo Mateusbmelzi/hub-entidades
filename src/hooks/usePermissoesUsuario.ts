@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { useEntityAuth } from './useEntityAuth';
 import type { Permissao } from '@/types/membro-entidade';
 
 interface UsePermissoesUsuarioOptions {
@@ -8,14 +9,33 @@ interface UsePermissoesUsuarioOptions {
   enabled?: boolean;
 }
 
+// Todas as permissões disponíveis (para presidente autenticado)
+const TODAS_PERMISSOES: Permissao[] = [
+  'visualizar',
+  'criar_eventos',
+  'editar_projetos',
+  'editar_entidade',
+  'aprovar_conteudo',
+  'gerenciar_membros',
+  'gerenciar_cargos',
+];
+
 export function usePermissoesUsuario(options: UsePermissoesUsuarioOptions = {}) {
   const { entidadeId, enabled = true } = options;
   const { user } = useAuth();
+  const { entidadeId: authenticatedEntidadeId, isAuthenticated: isEntityAuthenticated } = useEntityAuth();
   const [permissoes, setPermissoes] = useState<Permissao[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchPermissoes = useCallback(async () => {
+    // Se o presidente está autenticado via useEntityAuth e é a mesma entidade, retornar todas as permissões
+    if (isEntityAuthenticated && authenticatedEntidadeId === entidadeId && enabled) {
+      setPermissoes(TODAS_PERMISSOES);
+      setLoading(false);
+      return;
+    }
+
     if (!user || !entidadeId || !enabled) {
       setPermissoes([]);
       setLoading(false);
@@ -42,7 +62,7 @@ export function usePermissoesUsuario(options: UsePermissoesUsuarioOptions = {}) 
     } finally {
       setLoading(false);
     }
-  }, [user, entidadeId, enabled]);
+  }, [user, entidadeId, enabled, isEntityAuthenticated, authenticatedEntidadeId]);
 
   useEffect(() => {
     fetchPermissoes();

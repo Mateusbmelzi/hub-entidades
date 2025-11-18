@@ -117,6 +117,28 @@ export function useMembrosEntidade(options: UseMembrosEntidadeOptions = {}) {
   const addMembro = useCallback(
     async (data: AddMembroData): Promise<{ success: boolean; membro?: MembroEntidade; error?: string }> => {
       try {
+        const isOwnerEntity = typeof window !== 'undefined' && (window as any).isOwnerEntity;
+        
+        // Se for owner, usar RPC que permite presidente autenticado
+        if (isOwnerEntity) {
+          const { data: novoMembro, error: rpcError } = await supabase.rpc('entity_add_membro', {
+            _user_id: data.user_id,
+            _entidade_id: data.entidade_id,
+            _cargo_id: data.cargo_id,
+            _as_entity_owner: true, // Presidente autenticado via useEntityAuth
+          });
+          
+          if (rpcError) throw rpcError;
+          
+          toast({
+            title: 'Membro adicionado',
+            description: 'O membro foi adicionado à organização estudantil com sucesso.',
+          });
+
+          await fetchMembros();
+          return { success: true, membro: novoMembro as any };
+        }
+        
         // Verificar se o usuário já é membro ativo
         const { data: membroExistente, error: checkError } = await supabase
           .from('membros_entidade')
@@ -197,6 +219,26 @@ export function useMembrosEntidade(options: UseMembrosEntidadeOptions = {}) {
   const removeMembro = useCallback(
     async (membroId: string): Promise<{ success: boolean; error?: string }> => {
       try {
+        const isOwnerEntity = typeof window !== 'undefined' && (window as any).isOwnerEntity;
+        
+        // Se for owner, usar RPC que permite presidente autenticado
+        if (isOwnerEntity) {
+          const { error: rpcError } = await supabase.rpc('entity_remove_membro', {
+            _membro_id: membroId,
+            _as_entity_owner: true, // Presidente autenticado via useEntityAuth
+          });
+          
+          if (rpcError) throw rpcError;
+          
+          toast({
+            title: 'Membro removido',
+            description: 'O membro foi removido da organização estudantil.',
+          });
+
+          await fetchMembros();
+          return { success: true };
+        }
+        
         // Desativar o membro (não deletar, para manter histórico)
         const { error: updateError } = await supabase
           .from('membros_entidade')
@@ -240,6 +282,27 @@ export function useMembrosEntidade(options: UseMembrosEntidadeOptions = {}) {
   const updateMembroCargo = useCallback(
     async (membroId: string, novoCargoId: string): Promise<{ success: boolean; error?: string }> => {
       try {
+        const isOwnerEntity = typeof window !== 'undefined' && (window as any).isOwnerEntity;
+        
+        // Se for owner, usar RPC que permite presidente autenticado
+        if (isOwnerEntity) {
+          const { error: rpcError } = await supabase.rpc('entity_update_membro_cargo', {
+            _membro_id: membroId,
+            _novo_cargo_id: novoCargoId,
+            _as_entity_owner: true, // Presidente autenticado via useEntityAuth
+          });
+          
+          if (rpcError) throw rpcError;
+          
+          toast({
+            title: 'Cargo atualizado',
+            description: 'O cargo do membro foi atualizado com sucesso.',
+          });
+
+          await fetchMembros();
+          return { success: true };
+        }
+        
         const { error: updateError } = await supabase
           .from('membros_entidade')
           .update({ cargo_id: novoCargoId })

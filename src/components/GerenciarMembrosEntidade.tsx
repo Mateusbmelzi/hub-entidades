@@ -3,16 +3,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { UserPlus, MoreVertical, Trash2, UserCog, Search, Users, Calendar } from 'lucide-react';
+import { MoreVertical, Trash2, UserCog, Search, Users, Calendar } from 'lucide-react';
 import { useMembrosEntidade } from '@/hooks/useMembrosEntidade';
 import { useCargosEntidade } from '@/hooks/useCargosEntidade';
 import { usePermissoesUsuario } from '@/hooks/usePermissoesUsuario';
-import { BuscadorAlunos } from './BuscadorAlunos';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { MembroEntidadeComDetalhes } from '@/types/membro-entidade';
@@ -22,14 +21,13 @@ interface GerenciarMembrosEntidadeProps {
 }
 
 export function GerenciarMembrosEntidade({ entidadeId }: GerenciarMembrosEntidadeProps) {
-  const { membros, loading, addMembro, removeMembro, updateMembroCargo, refetch } = useMembrosEntidade({
+  const { membros, loading, removeMembro, updateMembroCargo, refetch } = useMembrosEntidade({
     entidadeId,
     includeInativos: false,
   });
   const { cargos } = useCargosEntidade({ entidadeId, enabled: true });
   const { hasPermission } = usePermissoesUsuario({ entidadeId });
 
-  const [showAddDialog, setShowAddDialog] = useState(false);
   const [membroParaRemover, setMembroParaRemover] = useState<MembroEntidadeComDetalhes | null>(null);
   const [membroParaAlterarCargo, setMembroParaAlterarCargo] = useState<MembroEntidadeComDetalhes | null>(null);
   const [novoCargoId, setNovoCargoId] = useState<string>('');
@@ -51,18 +49,6 @@ export function GerenciarMembrosEntidade({ entidadeId }: GerenciarMembrosEntidad
     });
   }, [membros, busca, cargoFiltro]);
 
-  const handleAdicionarMembro = async (userId: string, cargoId: string) => {
-    const result = await addMembro({
-      user_id: userId,
-      entidade_id: entidadeId,
-      cargo_id: cargoId,
-    });
-
-    if (result.success) {
-      setShowAddDialog(false);
-    }
-  };
-
   const handleConfirmarRemocao = async () => {
     if (!membroParaRemover) return;
 
@@ -82,8 +68,6 @@ export function GerenciarMembrosEntidade({ entidadeId }: GerenciarMembrosEntidad
     }
   };
 
-  const membrosAtuaisIds = membros.map((m) => m.user_id);
-
   return (
     <div className="space-y-6">
       <Card>
@@ -98,30 +82,6 @@ export function GerenciarMembrosEntidade({ entidadeId }: GerenciarMembrosEntidad
                 Gerencie os membros e seus cargos na organização estudantil
               </CardDescription>
             </div>
-            {podeGerenciarMembros && (
-              <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Adicionar Membro
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>Adicionar Novo Membro</DialogTitle>
-                    <DialogDescription>
-                      Busque um aluno e selecione o cargo para adicioná-lo à organização estudantil
-                    </DialogDescription>
-                  </DialogHeader>
-                  <BuscadorAlunos
-                    entidadeId={entidadeId}
-                    cargos={cargos}
-                    onAlunoSelecionado={handleAdicionarMembro}
-                    membrosAtuaisIds={membrosAtuaisIds}
-                  />
-                </DialogContent>
-              </Dialog>
-            )}
           </div>
         </CardHeader>
         <CardContent>

@@ -8,6 +8,7 @@ export interface FaseProcessoSeletivo {
   data_inicio?: string;
   data_fim?: string;
   ativa?: boolean;
+  presencial?: boolean; // Indica se a fase é presencial
   criterios_aprovacao?: Record<string, any>;
   created_at?: string;
   updated_at?: string;

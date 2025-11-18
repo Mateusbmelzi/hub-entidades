@@ -117,6 +117,7 @@ export function useCargosEntidade(options: UseCargosEntidadeOptions = {}) {
             _nivel: data.nivel_hierarquia,
             _cor: data.cor ?? null,
             _permissoes: data.permissoes || [],
+            _as_entity_owner: true, // Presidente autenticado via useEntityAuth
           });
           if (rpcError) throw rpcError;
           novoCargo = rpcData as any;
@@ -173,7 +174,37 @@ export function useCargosEntidade(options: UseCargosEntidadeOptions = {}) {
       data: UpdateCargoData
     ): Promise<{ success: boolean; cargo?: CargoEntidade; error?: string }> => {
       try {
-        // Atualizar o cargo (apenas campos não-undefined)
+        const isOwnerEntity = typeof window !== 'undefined' && (window as any).isOwnerEntity;
+        
+        // Se for owner, usar RPC que permite presidente autenticado
+        if (isOwnerEntity) {
+          const { data: cargoAtualizado, error: rpcError } = await supabase.rpc('entity_update_cargo', {
+            _cargo_id: cargoId,
+            _nome: data.nome ?? null,
+            _descricao: data.descricao ?? null,
+            _nivel: data.nivel_hierarquia ?? null,
+            _cor: data.cor ?? null,
+            _permissoes: data.permissoes ?? null,
+            _as_entity_owner: true, // Presidente autenticado via useEntityAuth
+          });
+          
+          if (rpcError) throw rpcError;
+          
+          // Atualizar permissões se fornecidas
+          if (data.permissoes !== undefined) {
+            // As permissões já foram atualizadas pela RPC
+          }
+          
+          toast({
+            title: 'Cargo atualizado',
+            description: 'O cargo foi atualizado com sucesso.',
+          });
+
+          await fetchCargos();
+          return { success: true, cargo: cargoAtualizado as any };
+        }
+        
+        // Atualizar o cargo (apenas campos não-undefined) - modo normal
         const updateData: Partial<CargoEntidade> = {};
         if (data.nome !== undefined) updateData.nome = data.nome;
         if (data.descricao !== undefined) updateData.descricao = data.descricao;
@@ -262,7 +293,10 @@ export function useCargosEntidade(options: UseCargosEntidadeOptions = {}) {
         const isOwnerEntity = typeof window !== 'undefined' && (window as any).isOwnerEntity;
         let deleteError: any = null;
         if (isOwnerEntity) {
-          const { error } = await supabase.rpc('entity_delete_cargo', { _cargo_id: cargoId });
+          const { error } = await supabase.rpc('entity_delete_cargo', { 
+            _cargo_id: cargoId,
+            _as_entity_owner: true, // Presidente autenticado via useEntityAuth
+          });
           deleteError = error;
         } else {
           const { error } = await supabase
