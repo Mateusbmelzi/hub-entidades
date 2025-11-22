@@ -960,87 +960,51 @@ const EntidadeDetalhes = () => {
 
 
 
-            {/* Eventos e Reservas com Tabs - Sempre visível */}
-            <Card className="border-0 shadow-lg bg-white hover:shadow-xl transition-shadow duration-300">
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Calendar className="w-5 h-5 text-red-600" />
-                    <CardTitle className="text-2xl text-gray-900">Eventos e Reservas</CardTitle>
-                    {isOwner && allEventos && (
-                      <div className="flex items-center gap-2 ml-4">
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
-                          {allEventos.filter(e => e.status_aprovacao === 'aprovado').length} eventos aprovados
-                        </Badge>
-                        {allEventos.filter(e => e.status_aprovacao === 'pendente').length > 0 && (
-                          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
-                            {allEventos.filter(e => e.status_aprovacao === 'pendente').length} pendentes
-                          </Badge>
-                        )}
-                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
-                          {reservasEntidade?.filter((r: any) => r.status_reserva === 'aprovada').length || 0} reservas aprovadas
-                        </Badge>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {isOwner && (
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button size="sm" className="bg-red-600 hover:bg-red-700">
-                            <Plus className="mr-2 h-4 w-4" />
-                            Criar Evento
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-                          <CriarEventoEntidade
-                            onSuccess={() => {
-                              refetchEventos();
-                              toast({
-                                title: 'Evento criado!',
-                                description: 'Seu evento foi enviado para aprovação do admin.',
-                              });
-                            }}
-                          />
-                        </DialogContent>
-                      </Dialog>
-                    )}
+            {/* Eventos e Reservas com Tabs - Sempre visível para usuários normais, removido da visão geral para owners */}
+            {!isOwner && (
+              <Card className="border-0 shadow-lg bg-white hover:shadow-xl transition-shadow duration-300">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Calendar className="w-5 h-5 text-red-600" />
+                      <CardTitle className="text-2xl text-gray-900">Eventos e Reservas</CardTitle>
+                    </div>
                     <Button size="sm" variant="outline" onClick={() => navigate(`/entidades/${id}/calendario`)}>
                       <Calendar className="mr-2 h-4 w-4" />
                       Ver calendário
                     </Button>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {eventosLoading || reservasLoading ? (
-                  <div className="space-y-4">
-                    <Skeleton className="h-24 w-full rounded-xl" />
-                    <Skeleton className="h-24 w-full rounded-xl" />
-                  </div>
-                ) : (
-                  <EventosReservasTabsEntidade
-                    eventos={allEventos || []}
-                    reservas={reservasEntidade || []}
-                    entidadeId={entidade.id}
-                    isOwner={isOwner}
-                    onConfigurarFormulario={(evento) => {
-                      setEventoSelecionadoFormulario(evento);
-                      setMostrarDialogFormulario(true);
-                    }}
-                    onRefetch={() => {
-                      refetchEventos();
-                      refetchReservas();
-                    }}
-                    onEditEvent={handleEditEvent}
-                    onDeleteEvent={handleDeleteEvent}
-                  />
-                )}
-              </CardContent>
-            </Card>
+                </CardHeader>
+                <CardContent>
+                  {eventosLoading || reservasLoading ? (
+                    <div className="space-y-4">
+                      <Skeleton className="h-24 w-full rounded-xl" />
+                      <Skeleton className="h-24 w-full rounded-xl" />
+                    </div>
+                  ) : (
+                    <EventosReservasTabsEntidade
+                      eventos={allEventos || []}
+                      reservas={reservasEntidade || []}
+                      entidadeId={entidade.id}
+                      isOwner={isOwner}
+                      onConfigurarFormulario={(evento) => {
+                        setEventoSelecionadoFormulario(evento);
+                        setMostrarDialogFormulario(true);
+                      }}
+                      onRefetch={() => {
+                        refetchEventos();
+                        refetchReservas();
+                      }}
+                      onEditEvent={handleEditEvent}
+                      onDeleteEvent={handleDeleteEvent}
+                    />
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
-            {/* Projetos */}
-            {(projetos.length > 0 || isOwner) && (
+            {/* Projetos - Sempre visível para usuários normais, removido da visão geral para owners */}
+            {!isOwner && projetos.length > 0 && (
               <Card className="border-0 shadow-lg bg-white hover:shadow-xl transition-shadow duration-300">
                 <CardHeader className="pb-4">
                   <div className="flex items-center justify-between">
@@ -1195,95 +1159,9 @@ const EntidadeDetalhes = () => {
               </Card>
             )}
 
-            {/* Templates de Formulários */}
-            {isOwner && (
-              <Card className="border-0 shadow-lg bg-white hover:shadow-xl transition-shadow duration-300">
-                <CardHeader className="pb-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <ClipboardList className="w-5 h-5 text-red-600" />
-                      <CardTitle className="text-2xl text-gray-900">Templates de Formulários</CardTitle>
-                    </div>
-                    <Button 
-                      size="sm" 
-                      onClick={() => setShowGerenciarTemplates(true)}
-                      className="bg-red-600 hover:bg-red-700 shadow-sm hover:shadow-md transition-all duration-200"
-                    >
-                      <Settings className="h-4 w-4 mr-2" />
-                      Gerenciar Templates
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-8">
-                    <div className="w-20 h-20 bg-gradient-to-br from-red-100 to-red-200 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                      <ClipboardList className="h-10 w-10 text-red-600" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                      Templates de Inscrição
-                    </h3>
-                    <p className="text-gray-600 mb-6 max-w-md mx-auto leading-relaxed">
-                      Crie e gerencie templates de formulários para reutilizar em seus eventos. 
-                      Economize tempo configurando inscrições padronizadas.
-                    </p>
-                    <Button 
-                      onClick={() => setShowGerenciarTemplates(true)}
-                      className="bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 px-6 py-2"
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Criar Template
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Gestão de Membros - Apenas para proprietários */}
-            {isOwner && entidade && (
-              <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 via-white to-purple-50">
-                <CardHeader className="pb-4">
-                  <div className="flex items-center space-x-2">
-                    <Users className="w-5 h-5 text-blue-600" />
-                    <CardTitle className="text-2xl text-blue-800">Gestão de Membros</CardTitle>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Gerencie os membros e cargos da sua organização estudantil
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  <Tabs defaultValue="membros" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="membros">
-                        <Users className="h-4 w-4 mr-2" />
-                        Membros
-                      </TabsTrigger>
-                      <TabsTrigger value="cargos">
-                        <Settings className="h-4 w-4 mr-2" />
-                        Cargos
-                      </TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="membros" className="mt-6">
-                      {/* Flag global para os hooks detectarem modo owner e usarem RPC */}
-                      <script
-                        dangerouslySetInnerHTML={{
-                          __html: 'window.isOwnerEntity = true;',
-                        }}
-                      />
-                      <GerenciarMembrosEntidade entidadeId={entidade.id} />
-                    </TabsContent>
-                    <TabsContent value="cargos" className="mt-6">
-                      {/* Flag global para os hooks detectarem modo owner e usarem RPC */}
-                      <script
-                        dangerouslySetInnerHTML={{
-                          __html: 'window.isOwnerEntity = true;',
-                        }}
-                      />
-                      <GerenciarCargosEntidade entidadeId={entidade.id} isOwner={isOwner} />
-                    </TabsContent>
-                  </Tabs>
-                </CardContent>
-              </Card>
-            )}
+            {/* Templates de Formulários - Removido da visão geral para owners (está na aba templates) */}
+            
+            {/* Gestão de Membros - Removido da visão geral para owners (está na aba gestao) */}
           </div>
 
           {/* Sidebar */}
@@ -1382,136 +1260,7 @@ const EntidadeDetalhes = () => {
               className="mb-6"
             />
 
-            {/* Minhas Reservas - Apenas para proprietários */}
-            {isOwner && (
-              <Card className="border-0 shadow-lg bg-white">
-                <CardHeader className="pb-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <ClipboardList className="w-5 h-5 text-red-600" />
-                      <CardTitle className="text-xl">Minhas Reservas</CardTitle>
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-2">
-                
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {reservasLoading ? (
-                    <div className="space-y-4">
-                      <Skeleton className="h-24 w-full rounded-xl" />
-                      <Skeleton className="h-24 w-full rounded-xl" />
-                    </div>
-                  ) : reservasEntidade && reservasEntidade.length > 0 ? (
-                    <div className="space-y-4">
-                      {reservasEntidade.map((reserva) => (
-                        <div key={reserva.id} className="group border border-gray-200 rounded-xl p-4 hover:border-red-300 hover:shadow-md transition-all duration-200 bg-gradient-to-r from-white to-gray-50">
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex items-center gap-3">
-                              <div className={`w-3 h-3 rounded-full ${
-                                reserva.status === 'aprovada' ? 'bg-green-500' :
-                                reserva.status === 'rejeitada' ? 'bg-red-500' :
-                                'bg-yellow-500'
-                              }`}></div>
-                              <h4 className="font-bold text-gray-900 text-lg">
-                                Reserva de {reserva.tipo_reserva === 'sala' ? 'Sala' : 'Auditório'}
-                              </h4>
-                            </div>
-                            <Badge 
-                              variant={
-                                reserva.status === 'aprovada' ? 'default' : 
-                                reserva.status === 'rejeitada' ? 'destructive' : 
-                                'secondary'
-                              }
-                              className={`text-xs font-medium ${
-                                reserva.status === 'aprovada' ? 'bg-green-600 hover:bg-green-700 text-white' :
-                                reserva.status === 'rejeitada' ? 'bg-red-600 hover:bg-red-700 text-white' :
-                                'bg-yellow-600 hover:bg-yellow-700 text-white'
-                              }`}
-                            >
-                              {reserva.status === 'pendente' ? 'Pendente' :
-                               reserva.status === 'aprovada' ? 'Aprovada' :
-                               reserva.status === 'rejeitada' ? 'Rejeitada' :
-                               'Cancelada'}
-                            </Badge>
-                          </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                            <div className="flex items-center text-gray-600">
-                              <Calendar className="mr-2 h-4 w-4 text-red-500 flex-shrink-0" />
-                              <span className="font-medium">{format(new Date(reserva.data_reserva), "dd 'de' MMMM, yyyy", { locale: ptBR })}</span>
-                            </div>
-                            <div className="flex items-center text-gray-600">
-                              <Clock className="mr-2 h-4 w-4 text-red-500 flex-shrink-0" />
-                              <span className="font-medium">{reserva.horario_inicio} - {reserva.horario_termino}</span>
-                            </div>
-                            <div className="flex items-center text-gray-600">
-                              <Users className="mr-2 h-4 w-4 text-red-500 flex-shrink-0" />
-                              <span className="font-medium">{reserva.quantidade_pessoas} pessoas</span>
-                            </div>
-                            <div className="flex items-center text-gray-600">
-                              <User className="mr-2 h-4 w-4 text-red-500 flex-shrink-0" />
-                              <span className="font-medium">{reserva.nome_solicitante}</span>
-                            </div>
-                          </div>
-                          
-                          {/* Botão para criar evento a partir da reserva aprovada */}
-                          {reserva.status === 'aprovada' && !reserva.evento_id && (
-                            <div className="mt-4 pt-3 border-t border-gray-200">
-                              <Button
-                                size="sm"
-                                onClick={() => handleCriarEventoDeReserva(reserva)}
-                                className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
-                              >
-                                <Plus className="mr-2 h-4 w-4" />
-                                Criar Evento desta Reserva
-                              </Button>
-                            </div>
-                          )}
-                          
-                          {/* Indicador de evento já criado */}
-                          {reserva.status === 'aprovada' && reserva.evento_id && (
-                            <div className="mt-4 pt-3 border-t border-gray-200">
-                              <div className="flex items-center text-green-700 bg-green-50 px-3 py-2 rounded-lg text-sm">
-                                <Calendar className="mr-2 h-4 w-4" />
-                                <span className="font-medium">Evento já criado para esta reserva</span>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <ClipboardList className="h-10 w-10 text-red-600" />
-                      </div>
-                      <h4 className="font-bold text-gray-900 mb-3 text-lg">
-                        Nenhuma reserva cadastrada
-                      </h4>
-                      <p className="text-gray-600 mb-6 max-w-sm mx-auto">
-                        Crie a primeira reserva para começar a organizar seus eventos!
-                      </p>
-                      <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                        <Button 
-                          onClick={() => navigate('/reserva-sala')}
-                          className="bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-                        >
-                          <Plus className="mr-2 h-4 w-4" />
-                          Reservar Sala
-                        </Button>
-                        <Button 
-                          onClick={() => navigate('/reserva-auditorio')}
-                          className="bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-                        >
-                          <Plus className="mr-2 h-4 w-4" />
-                          Reservar Auditório
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
+            {/* Minhas Reservas - Removido da visão geral para owners (está na aba eventos) */}
           </div>
         </div>
             )}
