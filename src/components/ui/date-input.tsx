@@ -66,7 +66,7 @@ export const DateInput: React.FC<DateInputProps> = ({
     if (selectedDate) {
       setCurrentDate(selectedDate);
     }
-  }, [value, selectedDate]);
+  }, [value]); // Removido selectedDate das dependências para evitar loop infinito
 
   const handleDateSelect = (date: Date | undefined) => {
     if (date) {

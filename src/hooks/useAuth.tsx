@@ -47,6 +47,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const { loginAsStudent, logout: logoutAuthState } = useAuthStateContext();
+  const initializedRef = useRef(false);
+  const loginAsStudentRef = useRef(loginAsStudent);
+  
+  // Atualizar ref quando loginAsStudent mudar
+  useEffect(() => {
+    loginAsStudentRef.current = loginAsStudent;
+  }, [loginAsStudent]);
   
 
 
@@ -120,6 +127,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, fetchUserProfile]);
 
   useEffect(() => {
+    // Evitar múltiplas inicializações
+    if (initializedRef.current) {
+      return;
+    }
+    initializedRef.current = true;
+
     // Verificar se já está autenticado como super admin
     const isSuperAdmin = localStorage.getItem('superAdminAuthenticated') === 'true';
     
@@ -145,8 +158,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           authLog('🔍 User ID:', session.user.id);
           authLog('🔍 User Email:', session.user.email);
           
-          // Notificar o sistema de autenticação exclusivo
-          loginAsStudent(session.user);
+          // Notificar o sistema de autenticação exclusivo usando ref
+          loginAsStudentRef.current(session.user);
           
           // Verificar localStorage após login
           setTimeout(() => {
@@ -191,7 +204,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         authLog('🔍 User ID:', session.user.id);
         authLog('🔍 User Email:', session.user.email);
         
-        loginAsStudent(session.user);
+        // Usar ref para evitar dependência no useEffect
+        loginAsStudentRef.current(session.user);
         
         // Verificar localStorage após loginAsStudent
         setTimeout(() => {
@@ -210,8 +224,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, [loginAsStudent, fetchUserProfile]);
+    return () => {
+      subscription.unsubscribe();
+      initializedRef.current = false;
+    };
+  }, [fetchUserProfile]); // Removido loginAsStudent das dependências
 
   // Limpar cache periodicamente
   useEffect(() => {

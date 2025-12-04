@@ -18,6 +18,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useEntidade } from '@/hooks/useEntidade';
 import { useUpdateEntidade } from '@/hooks/useUpdateEntidade';
 import { useProjetos } from '@/hooks/useProjetos';
+import { useProjetosPublicos } from '@/hooks/useProjetosPublicos';
+import { ProjetoCard } from '@/components/ProjetoCard';
 import { useEntityAuth } from '@/hooks/useEntityAuth';
 import { useAuth } from '@/hooks/useAuth';
 import { useDeleteProjeto } from '@/hooks/useDeleteProjeto';
@@ -34,6 +36,8 @@ import EditarEntidadeForm from '@/components/EditarEntidadeForm';
 import EditarProcessoSeletivo from '@/components/EditarProcessoSeletivo';
 import CriarProjetoForm from '@/components/CriarProjetoForm';
 import EditarProjetoForm from '@/components/EditarProjetoForm';
+import { GerenciarProjetosEntidade } from '@/components/GerenciarProjetosEntidade';
+import { ProjetosGrid } from '@/components/ProjetosGrid';
 import CriarEventoEntidade from '@/components/CriarEventoEntidade';
 import GerenciarAreasInternas from '@/components/GerenciarAreasInternas';
 import GerenciarAreasProcessoSeletivo from '@/components/GerenciarAreasProcessoSeletivo';
@@ -80,8 +84,22 @@ const EntidadeDetalhes = () => {
   useEffect(() => {
     setNumeroTotalFases(entidade?.numero_total_fases);
   }, [entidade?.numero_total_fases]);
+
+  // Verificar se há parâmetro de seção na URL
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const section = searchParams.get('section');
+    if (section && ['visao-geral', 'eventos', 'projetos', 'gestao', 'processo', 'templates', 'areas'].includes(section)) {
+      setActiveSection(section as any);
+    }
+  }, [location.search]);
   // console.log(entidade.encerramento_primeira_fase) 
   const { projetos, loading: projetosLoading, refetch: refetchProjetos } = useProjetos(entidade?.id);
+  // Buscar projetos visíveis publicamente para não-owners
+  const { projetos: projetosVisiveis, loading: projetosVisiveisLoading } = useProjetosPublicos({ 
+    entidadeId: entidade?.id,
+    enablePagination: false
+  });
   const { updateEntidade } = useUpdateEntidade();
   
   // Debug log removido para melhor visualização
@@ -100,13 +118,10 @@ const EntidadeDetalhes = () => {
   
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
-  const [showCreateProjectDialog, setShowCreateProjectDialog] = useState(false);
-  const [showEditProjectDialog, setShowEditProjectDialog] = useState(false);
   const [mostrarDialogFormulario, setMostrarDialogFormulario] = useState(false);
   const [eventoSelecionadoFormulario, setEventoSelecionadoFormulario] = useState<any>(null);
   const [showEditEventDialog, setShowEditEventDialog] = useState(false);
   const [showFotoDialog, setShowFotoDialog] = useState(false);
-  const [selectedProject, setSelectedProject] = useState<Projeto | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Evento | null>(null);
   const [participationLoading, setParticipationLoading] = useState(false);
   const [currentFotoUrl, setCurrentFotoUrl] = useState<string | null>(null);
@@ -154,19 +169,6 @@ const EntidadeDetalhes = () => {
     }
   }, [location.state, navigate, location.pathname, toast]);
 
-  const handleDeleteProject = async (projeto: Projeto) => {
-    if (!entidade) return;
-    
-    const success = await deleteProjeto(projeto.id, entidade.id);
-    if (success) {
-      refetchProjetos();
-    }
-  };
-
-  const handleEditProject = (projeto: Projeto) => {
-    setSelectedProject(projeto);
-    setShowEditProjectDialog(true);
-  };
 
   const handleDeleteEvent = async (evento: Evento) => {
     if (!entidade) return;
@@ -1004,155 +1006,26 @@ const EntidadeDetalhes = () => {
             )}
 
             {/* Projetos - Sempre visível para usuários normais, removido da visão geral para owners */}
-            {!isOwner && projetos.length > 0 && (
+            {!isOwner && (
               <Card className="border-0 shadow-lg bg-white hover:shadow-xl transition-shadow duration-300">
                 <CardHeader className="pb-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <FolderOpen className="w-5 h-5 text-red-600" />
-                      <CardTitle className="text-2xl text-gray-900">Projetos</CardTitle>
-                    </div>
-                    {isOwner && (
-                      <Dialog open={showCreateProjectDialog} onOpenChange={setShowCreateProjectDialog}>
-                        <DialogTrigger asChild>
-                          <Button size="sm" className="bg-red-600 hover:bg-red-700 shadow-sm hover:shadow-md transition-all duration-200">
-                            <Plus className="mr-2 h-4 w-4" />
-                            Adicionar Projeto
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                          <CriarProjetoForm 
-                            entidadeId={entidade.id} 
-                            onSuccess={() => {
-                              setShowCreateProjectDialog(false);
-                              refetchProjetos();
-                            }} 
-                          />
-                        </DialogContent>
-                      </Dialog>
-                    )}
+                  <div className="flex items-center space-x-2">
+                    <FolderOpen className="w-5 h-5 text-red-600" />
+                    <CardTitle className="text-2xl text-gray-900">Projetos</CardTitle>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  {projetosLoading ? (
-                    <div className="space-y-4">
-                      <Skeleton className="h-20 w-full" />
-                      <Skeleton className="h-20 w-full" />
-                    </div>
-                  ) : projetos.length > 0 ? (
-                    <div className="space-y-4">
-                      {projetos.map((projeto) => (
-                        <div key={projeto.id} className="border-l-4 border-red-500 pl-6 py-4 bg-gradient-to-r from-red-50 to-transparent rounded-r-xl">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <h4 className="text-xl font-bold text-gray-900">{projeto.nome}</h4>
-                                {isOwner && (
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                                        <MoreVertical className="h-3 w-3" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                      <DropdownMenuItem onClick={() => handleEditProject(projeto)}>
-                                        <Edit className="mr-2 h-3 w-3" />
-                                        Editar
-                                      </DropdownMenuItem>
-                                      <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                          <DropdownMenuItem 
-                                            onSelect={(e) => e.preventDefault()}
-                                            className="text-destructive focus:text-destructive"
-                                          >
-                                            <Trash2 className="mr-2 h-3 w-3" />
-                                            Remover
-                                          </DropdownMenuItem>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                          <AlertDialogHeader>
-                                            <AlertDialogTitle>Confirmar remoção</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                              Tem certeza que deseja remover o projeto "{projeto.nome}"? 
-                                              Esta ação não pode ser desfeita.
-                                            </AlertDialogDescription>
-                                          </AlertDialogHeader>
-                                          <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                            <AlertDialogAction 
-                                              onClick={() => handleDeleteProject(projeto)}
-                                              disabled={deleteLoading}
-                                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                            >
-                                              {deleteLoading ? 'Removendo...' : 'Remover'}
-                                            </AlertDialogAction>
-                                          </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                      </AlertDialog>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                )}
-                              </div>
-                              <p className="text-gray-600 mb-3 leading-relaxed">{projeto.descricao}</p>
-                              {projeto.tecnologias && projeto.tecnologias.length > 0 && (
-                                <div className="flex flex-wrap gap-2 mb-3">
-                                  {projeto.tecnologias.map((tech, index) => (
-                                    <Badge key={index} variant="outline" className="text-xs bg-gray-50">
-                                      {tech}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              )}
-                              {projeto.repositorio_url && (
-                                <a 
-                                  href={projeto.repositorio_url} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="text-sm text-red-600 hover:text-red-700 hover:underline inline-flex items-center"
-                                >
-                                  <ExternalLink className="mr-1 h-3 w-3" />
-                                  Ver repositório
-                                </a>
-                              )}
-                            </div>
-                            <Badge 
-                              variant={projeto.status === 'ativo' ? 'default' : 'secondary'}
-                              className="ml-4 bg-red-600 hover:bg-red-700"
-                            >
-                              {projeto.status}
-                            </Badge>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-16">
-                      <div className="w-24 h-24 bg-gradient-to-br from-red-100 to-red-200 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-                        <FolderOpen className="h-12 w-12 text-red-600" />
-                      </div>
-                      <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                        Nenhum projeto cadastrado
-                      </h3>
-                      <p className="text-gray-600 mb-8 max-w-md mx-auto leading-relaxed">
-                        {isOwner 
-                          ? 'Que tal começar criando o primeiro projeto da sua organização? Mostre aos estudantes o que vocês estão desenvolvendo!'
-                          : 'Esta organização ainda não possui projetos cadastrados. Fique atento às atualizações!'
-                        }
+                  <ProjetosGrid
+                    projetos={projetos}
+                    loading={projetosLoading}
+                    isOwner={false}
+                    viewMode="list"
+                  />
+                  {!projetosLoading && projetos.length === 0 && (
+                    <div className="text-center py-8">
+                      <p className="text-gray-600">
+                        Esta organização ainda não possui projetos cadastrados. Fique atento às atualizações!
                       </p>
-                      {isOwner && (
-                        <div className="space-y-4">
-                          <Button 
-                            onClick={() => setShowCreateProjectDialog(true)}
-                            className="bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 px-8 py-3 text-lg"
-                          >
-                            <Plus className="mr-2 h-5 w-5" />
-                            Criar Primeiro Projeto
-                          </Button>
-                          <p className="text-sm text-gray-500">
-                            ✨ Projetos ajudam a mostrar o trabalho da organização
-                          </p>
-                        </div>
-                      )}
                     </div>
                   )}
                 </CardContent>
@@ -1347,152 +1220,10 @@ const EntidadeDetalhes = () => {
             )}
 
             {activeSection === 'projetos' && (
-              <div className="space-y-8">
-                {/* Projetos */}
-                <Card className="border-0 shadow-lg bg-white hover:shadow-xl transition-shadow duration-300">
-                  <CardHeader className="pb-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <FolderOpen className="w-5 h-5 text-red-600" />
-                        <CardTitle className="text-2xl text-gray-900">Projetos</CardTitle>
-                      </div>
-                      <Dialog open={showCreateProjectDialog} onOpenChange={setShowCreateProjectDialog}>
-                        <DialogTrigger asChild>
-                          <Button size="sm" className="bg-red-600 hover:bg-red-700 shadow-sm hover:shadow-md transition-all duration-200">
-                            <Plus className="mr-2 h-4 w-4" />
-                            Adicionar Projeto
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                          <CriarProjetoForm 
-                            entidadeId={entidade.id} 
-                            onSuccess={() => {
-                              setShowCreateProjectDialog(false);
-                              refetchProjetos();
-                            }} 
-                          />
-                        </DialogContent>
-                      </Dialog>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {projetosLoading ? (
-                      <div className="space-y-4">
-                        <Skeleton className="h-20 w-full" />
-                        <Skeleton className="h-20 w-full" />
-                      </div>
-                    ) : projetos.length > 0 ? (
-                      <div className="space-y-4">
-                        {projetos.map((projeto) => (
-                          <div key={projeto.id} className="border-l-4 border-red-500 pl-6 py-4 bg-gradient-to-r from-red-50 to-transparent rounded-r-xl">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <h4 className="text-xl font-bold text-gray-900">{projeto.nome}</h4>
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                                        <MoreVertical className="h-3 w-3" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                      <DropdownMenuItem onClick={() => handleEditProject(projeto)}>
-                                        <Edit className="mr-2 h-3 w-3" />
-                                        Editar
-                                      </DropdownMenuItem>
-                                      <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                          <DropdownMenuItem 
-                                            onSelect={(e) => e.preventDefault()}
-                                            className="text-destructive focus:text-destructive"
-                                          >
-                                            <Trash2 className="mr-2 h-3 w-3" />
-                                            Remover
-                                          </DropdownMenuItem>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                          <AlertDialogHeader>
-                                            <AlertDialogTitle>Confirmar remoção</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                              Tem certeza que deseja remover o projeto "{projeto.nome}"? 
-                                              Esta ação não pode ser desfeita.
-                                            </AlertDialogDescription>
-                                          </AlertDialogHeader>
-                                          <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                            <AlertDialogAction 
-                                              onClick={() => handleDeleteProject(projeto)}
-                                              disabled={deleteLoading}
-                                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                            >
-                                              {deleteLoading ? 'Removendo...' : 'Remover'}
-                                            </AlertDialogAction>
-                                          </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                      </AlertDialog>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                </div>
-                                <p className="text-gray-600 mb-3 leading-relaxed">{projeto.descricao}</p>
-                                {projeto.tecnologias && projeto.tecnologias.length > 0 && (
-                                  <div className="flex flex-wrap gap-2 mb-3">
-                                    {projeto.tecnologias.map((tech, index) => (
-                                      <Badge key={index} variant="outline" className="text-xs bg-gray-50">
-                                        {tech}
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                )}
-                                {projeto.repositorio_url && (
-                                  <a 
-                                    href={projeto.repositorio_url} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="text-sm text-red-600 hover:text-red-700 hover:underline inline-flex items-center"
-                                  >
-                                    <ExternalLink className="mr-1 h-3 w-3" />
-                                    Ver repositório
-                                  </a>
-                                )}
-                              </div>
-                              <Badge 
-                                variant={projeto.status === 'ativo' ? 'default' : 'secondary'}
-                                className="ml-4 bg-red-600 hover:bg-red-700"
-                              >
-                                {projeto.status}
-                              </Badge>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-16">
-                        <div className="w-24 h-24 bg-gradient-to-br from-red-100 to-red-200 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-                          <FolderOpen className="h-12 w-12 text-red-600" />
-                        </div>
-                        <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                          Nenhum projeto cadastrado
-                        </h3>
-                        <p className="text-gray-600 mb-8 max-w-md mx-auto leading-relaxed">
-                          Que tal começar criando o primeiro projeto da sua organização? Mostre aos estudantes o que vocês estão desenvolvendo!
-                        </p>
-                        <div className="space-y-4">
-                          <Button 
-                            onClick={() => setShowCreateProjectDialog(true)}
-                            className="bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 px-8 py-3 text-lg"
-                          >
-                            <Plus className="mr-2 h-5 w-5" />
-                            Criar Primeiro Projeto
-                          </Button>
-                          <p className="text-sm text-gray-500">
-                            ✨ Projetos ajudam a mostrar o trabalho da organização
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
+              <GerenciarProjetosEntidade 
+                entidadeId={entidade.id}
+                isOwner={isOwner}
+              />
             )}
 
             {activeSection === 'gestao' && (
@@ -2031,22 +1762,6 @@ const EntidadeDetalhes = () => {
         )}
 
         {/* Dialogs */}
-        {/* Dialog for editing projects */}
-        {selectedProject && (
-          <Dialog open={showEditProjectDialog} onOpenChange={setShowEditProjectDialog}>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <EditarProjetoForm 
-                projeto={selectedProject}
-                entidadeId={entidade?.id || 0}
-                onSuccess={() => {
-                  setShowEditProjectDialog(false);
-                  setSelectedProject(null);
-                  refetchProjetos();
-                }}
-              />
-            </DialogContent>
-          </Dialog>
-        )}
 
         {/* Dialog for editing events */}
         {selectedEvent && (

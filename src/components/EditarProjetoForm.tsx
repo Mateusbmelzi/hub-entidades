@@ -2,6 +2,7 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DateInput } from '@/components/ui/date-input';
@@ -9,9 +10,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Switch } from '@/components/ui/switch';
 import { useUpdateProjeto } from '@/hooks/useUpdateProjeto';
 import type { Projeto } from '@/hooks/useProjetos';
 import { formatDateToISO, formatDateFromISO } from '@/lib/date-utils';
+import { VincularMembrosProjeto } from './VincularMembrosProjeto';
+import { UploadImagemProjeto } from './UploadImagemProjeto';
+import { GerenciarEmpresasParceirasProjeto } from './GerenciarEmpresasParceirasProjeto';
 
 const formSchema = z.object({
   nome: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
@@ -21,8 +26,12 @@ const formSchema = z.object({
   repositorio_url: z.string().optional().refine((val) => !val || z.string().url().safeParse(val).success, {
     message: 'URL inválida'
   }),
+  link_apresentacao: z.string().optional().refine((val) => !val || z.string().url().safeParse(val).success, {
+    message: 'URL inválida'
+  }),
   tecnologias: z.string().optional(),
   status: z.string().default('ativo'),
+  visivel: z.boolean().default(false),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -41,11 +50,13 @@ const EditarProjetoForm: React.FC<EditarProjetoFormProps> = ({ projeto, entidade
     defaultValues: {
       nome: projeto.nome || '',
       descricao: projeto.descricao || '',
-      data_inicio: projeto.data_inicio || '',
-      data_fim: projeto.data_fim || '',
+      data_inicio: projeto.data_inicio ? formatDateFromISO(projeto.data_inicio) : '',
+      data_fim: projeto.data_fim ? formatDateFromISO(projeto.data_fim) : '',
       repositorio_url: projeto.repositorio_url || '',
+      link_apresentacao: projeto.link_apresentacao || '',
       tecnologias: projeto.tecnologias?.join(', ') || '',
       status: projeto.status || 'ativo',
+      visivel: projeto.visivel ?? false,
     },
   });
 
@@ -54,14 +65,43 @@ const EditarProjetoForm: React.FC<EditarProjetoFormProps> = ({ projeto, entidade
       ? data.tecnologias.split(',').map(tech => tech.trim()).filter(tech => tech.length > 0)
       : [];
 
+    // Garantir que strings vazias sejam convertidas para null
+    // Validar e formatar data_inicio - garantir que nunca seja string vazia
+    let dataInicioFinal: string | null = null;
+    if (data.data_inicio && typeof data.data_inicio === 'string') {
+      const trimmed = data.data_inicio.trim();
+      if (trimmed !== '' && trimmed.length === 10) {
+        const formatted = formatDateToISO(trimmed);
+        // Validar se formatDateToISO retornou uma data válida no formato YYYY-MM-DD
+        if (formatted && formatted.length === 10 && /^\d{4}-\d{2}-\d{2}$/.test(formatted)) {
+          dataInicioFinal = formatted;
+        }
+      }
+    }
+
+    // Validar e formatar data_fim - garantir que nunca seja string vazia
+    let dataFimFinal: string | null = null;
+    if (data.data_fim && typeof data.data_fim === 'string') {
+      const trimmed = data.data_fim.trim();
+      if (trimmed !== '' && trimmed.length === 10) {
+        const formatted = formatDateToISO(trimmed);
+        // Validar se formatDateToISO retornou uma data válida no formato YYYY-MM-DD
+        if (formatted && formatted.length === 10 && /^\d{4}-\d{2}-\d{2}$/.test(formatted)) {
+          dataFimFinal = formatted;
+        }
+      }
+    }
+
     const success = await updateProjeto(projeto.id, entidadeId, {
       nome: data.nome,
       descricao: data.descricao || null,
-      data_inicio: data.data_inicio ? formatDateToISO(data.data_inicio) : null,
-      data_fim: data.data_fim ? formatDateToISO(data.data_fim) : null,
+      data_inicio: dataInicioFinal,
+      data_fim: dataFimFinal,
       repositorio_url: data.repositorio_url || null,
+      link_apresentacao: data.link_apresentacao || null,
       tecnologias: tecnologiasArray.length > 0 ? tecnologiasArray : null,
       status: data.status,
+      visivel: data.visivel,
     });
     
     if (success) {
@@ -166,6 +206,26 @@ const EditarProjetoForm: React.FC<EditarProjetoFormProps> = ({ projeto, entidade
 
           <FormField
             control={form.control}
+            name="link_apresentacao"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Link de Apresentação</FormLabel>
+                <FormControl>
+                  <Input 
+                    placeholder="https://docs.google.com/presentation/... ou link para PDF, slides, etc."
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Link para apresentação do projeto (Google Slides, PowerPoint Online, PDF, etc.)
+                </p>
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
             name="tecnologias"
             render={({ field }) => (
               <FormItem>
@@ -203,6 +263,71 @@ const EditarProjetoForm: React.FC<EditarProjetoFormProps> = ({ projeto, entidade
                 <FormMessage />
               </FormItem>
             )}
+          />
+
+          <FormField
+            control={form.control}
+            name="visivel"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <FormLabel className="text-base">
+                    Projeto visível publicamente
+                  </FormLabel>
+                  <p className="text-sm text-muted-foreground">
+                    Quando ativado, o projeto aparecerá na página pública de projetos para todos os usuários autenticados
+                  </p>
+                </div>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+
+          <UploadImagemProjeto
+            projetoId={projeto.id}
+            onImagemUpdated={(url) => {
+              // A imagem já é atualizada automaticamente no banco pelo componente
+              // Atualizar o objeto projeto localmente para refletir a mudança imediatamente
+              if (url) {
+                projeto.imagem_url = url;
+                // Forçar re-render do componente pai se necessário
+                // O onSuccess será chamado quando o formulário for salvo
+              }
+            }}
+            currentImagemUrl={projeto.imagem_url}
+          />
+
+          <div className="space-y-3 border-t pt-6">
+            <div className="space-y-1">
+              <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-red-600" />
+                Empresas Parceiras do Projeto
+              </h3>
+              <p className="text-xs text-gray-600">
+                Associe empresas parceiras da entidade a este projeto. As alterações são salvas automaticamente.
+              </p>
+            </div>
+            <GerenciarEmpresasParceirasProjeto
+              projetoId={projeto.id}
+              entidadeId={entidadeId}
+              onSuccess={() => {
+                // As empresas são atualizadas automaticamente pelo componente
+                // O onSuccess do formulário será chamado quando o usuário salvar
+              }}
+            />
+          </div>
+
+          <VincularMembrosProjeto
+            projetoId={projeto.id}
+            entidadeId={entidadeId}
+            onUpdate={() => {
+              // Recarregar dados se necessário
+            }}
           />
 
           <div className="flex justify-end space-x-2 pt-4">

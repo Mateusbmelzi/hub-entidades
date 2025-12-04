@@ -12,7 +12,8 @@ import {
   User, 
   LogOut,
   Settings,
-  Building
+  Building,
+  FolderOpen
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthStateContext } from '@/components/AuthStateProvider';
@@ -82,6 +83,7 @@ const Navigation: React.FC = () => {
     { name: 'Home', href: '/', icon: Home },
     { name: 'Organizações', href: '/entidades', icon: Building2 },
     { name: 'Eventos', href: '/eventos', icon: Calendar },
+    { name: 'Projetos', href: '/projetos', icon: FolderOpen },
   ];
 
   return (

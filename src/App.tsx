@@ -23,6 +23,8 @@ import Entidades from '@/pages/Entidades';
 import EntidadeDetalhes from '@/pages/EntidadeDetalhes';
 import Eventos from '@/pages/Eventos';
 import EventoDetalhes from '@/pages/EventoDetalhes';
+import Projetos from '@/pages/Projetos';
+import ProjetoDetalhes from '@/pages/ProjetoDetalhes';
 import CriarEvento from '@/pages/CriarEvento';
 import DemonstrarInteresse from '@/pages/DemonstrarInteresse';
 import DemonstracoesInteresse from '@/pages/DemonstracoesInteresse';
@@ -117,6 +119,18 @@ function AppRouter() {
           <Route path="/eventos/:id" element={
             <ProtectedRoute>
               <EventoDetalhes />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/projetos" element={
+            <ProtectedRoute>
+              <Projetos />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/projetos/:id" element={
+            <ProtectedRoute>
+              <ProjetoDetalhes />
             </ProtectedRoute>
           } />
           
