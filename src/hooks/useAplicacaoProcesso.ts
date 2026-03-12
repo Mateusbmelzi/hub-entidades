@@ -110,7 +110,7 @@ export function useAplicacaoProcesso(entidadeId?: number) {
               inscricao_id: data.id,
               fase_id: primeiraFase.id,
               respostas_formulario: respostasExtras || {},
-              formulario_preenchido: !!primeiraFase.template_formulario_id,
+              formulario_preenchido: false,
               status: 'pendente'
             });
 

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { ensureMembroEntidade, removeMembroEntidade as removeMembroEntidadeLib } from '@/lib/membro-entidade';
 import type {
   MembroEntidade,
   MembroEntidadeComDetalhes,
@@ -139,17 +140,15 @@ export function useMembrosEntidade(options: UseMembrosEntidadeOptions = {}) {
           return { success: true, membro: novoMembro as any };
         }
         
-        // Verificar se o usuário já é membro ativo
-        const { data: membroExistente, error: checkError } = await supabase
+        const { data: jaAtivo } = await supabase
           .from('membros_entidade')
-          .select('id, ativo')
+          .select('id')
           .eq('user_id', data.user_id)
           .eq('entidade_id', data.entidade_id)
+          .eq('ativo', true)
           .maybeSingle();
 
-        if (checkError) throw checkError;
-
-        if (membroExistente?.ativo) {
+        if (jaAtivo) {
           toast({
             title: 'Já é membro',
             description: 'Este usuário já é um membro ativo desta organização estudantil.',
@@ -158,42 +157,13 @@ export function useMembrosEntidade(options: UseMembrosEntidadeOptions = {}) {
           return { success: false, error: 'Usuário já é membro ativo' };
         }
 
-        // Se já foi membro mas está inativo, reativar
-        if (membroExistente && !membroExistente.ativo) {
-          const { data: membroReativado, error: updateError } = await supabase
-            .from('membros_entidade')
-            .update({
-              cargo_id: data.cargo_id,
-              ativo: true,
-              data_entrada: new Date().toISOString(),
-            })
-            .eq('id', membroExistente.id)
-            .select()
-            .single();
+        const result = await ensureMembroEntidade({
+          user_id: data.user_id,
+          entidade_id: data.entidade_id,
+          cargo_id: data.cargo_id,
+        });
 
-          if (updateError) throw updateError;
-
-          toast({
-            title: 'Membro reativado',
-            description: 'O membro foi reativado com sucesso.',
-          });
-
-          await fetchMembros();
-          return { success: true, membro: membroReativado };
-        }
-
-        // Criar novo membro
-        const { data: novoMembro, error: insertError } = await supabase
-          .from('membros_entidade')
-          .insert({
-            user_id: data.user_id,
-            entidade_id: data.entidade_id,
-            cargo_id: data.cargo_id,
-          })
-          .select()
-          .single();
-
-        if (insertError) throw insertError;
+        if (!result.success) throw new Error(result.error);
 
         toast({
           title: 'Membro adicionado',
@@ -201,7 +171,10 @@ export function useMembrosEntidade(options: UseMembrosEntidadeOptions = {}) {
         });
 
         await fetchMembros();
-        return { success: true, membro: novoMembro };
+        const membroAtualizado = result.membro_id
+          ? (await supabase.from('membros_entidade').select('*').eq('id', result.membro_id).single()).data
+          : undefined;
+        return { success: true, membro: membroAtualizado as MembroEntidade | undefined };
       } catch (err) {
         console.error('Erro ao adicionar membro:', err);
         const errorMessage = err instanceof Error ? err.message : 'Erro ao adicionar membro';
@@ -239,13 +212,8 @@ export function useMembrosEntidade(options: UseMembrosEntidadeOptions = {}) {
           return { success: true };
         }
         
-        // Desativar o membro (não deletar, para manter histórico)
-        const { error: updateError } = await supabase
-          .from('membros_entidade')
-          .update({ ativo: false })
-          .eq('id', membroId);
-
-        if (updateError) throw updateError;
+        const result = await removeMembroEntidadeLib(membroId);
+        if (!result.success) throw new Error(result.error);
 
         toast({
           title: 'Membro removido',

@@ -163,15 +163,50 @@ export function useInscricoesProcessoUsuario() {
     }
 
     try {
-      // Verificar se a inscrição existe e pertence ao usuário
+      // Verificar se a inscrição existe, pertence ao usuário e está pendente
       const inscricao = inscricoes.find(i => i.id === inscricaoId);
       if (!inscricao) {
         throw new Error('Inscrição não encontrada');
       }
 
-      // Removido: Alunos podem cancelar inscrição a qualquer momento
+      if (inscricao.status !== 'pendente') {
+        throw new Error('Só é possível cancelar inscrições com status pendente');
+      }
 
-      // Deletar inscrição
+      // Buscar inscrições de fases associadas
+      const { data: inscricoesFases, error: fasesError } = await supabase
+        .from('inscricoes_fases_ps')
+        .select('id')
+        .eq('inscricao_id', inscricaoId);
+
+      if (fasesError) {
+        throw fasesError;
+      }
+
+      const inscricaoFaseIds = (inscricoesFases || []).map((f: { id: string }) => f.id);
+
+      // Remover vínculos de candidatos com reservas, se existirem
+      if (inscricaoFaseIds.length > 0) {
+        const { error: candidatosReservasError } = await supabase
+          .from('candidatos_reservas')
+          .delete()
+          .in('inscricao_fase_id', inscricaoFaseIds);
+
+        if (candidatosReservasError) {
+          throw candidatosReservasError;
+        }
+
+        const { error: fasesDeleteError } = await supabase
+          .from('inscricoes_fases_ps')
+          .delete()
+          .eq('inscricao_id', inscricaoId);
+
+        if (fasesDeleteError) {
+          throw fasesDeleteError;
+        }
+      }
+
+      // Deletar inscrição principal
       const { error } = await supabase
         .from('inscricoes_processo_seletivo')
         .delete()

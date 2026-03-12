@@ -1,10 +1,20 @@
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
+
+interface RpcResult {
+  success: boolean;
+  error?: string;
+}
 
 export function useVincularEventoReserva() {
   const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const invalidateEventoQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ['evento'] });
+  };
 
   const vincularEventoReserva = async (
     eventoId: string,
@@ -13,47 +23,26 @@ export function useVincularEventoReserva() {
     try {
       setLoading(true);
 
-      // Atualizar eventos.reserva_id
-      const { error: eventoError } = await supabase
-        .from('eventos')
-        .update({ reserva_id: reservaId })
-        .eq('id', eventoId);
-
-      if (eventoError) {
-        console.error('Erro ao vincular evento:', eventoError);
-        throw eventoError;
-      }
-
-      // Atualizar reservas.evento_id
-      const { error: reservaError } = await supabase
-        .from('reservas')
-        .update({ evento_id: eventoId })
-        .eq('id', reservaId);
-
-      if (reservaError) {
-        console.error('Erro ao vincular reserva:', reservaError);
-        // Reverter mudança no evento
-        await supabase
-          .from('eventos')
-          .update({ reserva_id: null })
-          .eq('id', eventoId);
-        throw reservaError;
-      }
-
-      toast({
-        title: 'Vinculação realizada',
-        description: 'Evento e reserva foram vinculados com sucesso!',
+      const { data, error } = await supabase.rpc('vincular_evento_reserva', {
+        p_evento_id: eventoId,
+        p_reserva_id: reservaId,
       });
 
+      if (error) throw error;
+
+      const result = data as unknown as RpcResult;
+
+      if (!result.success) {
+        toast.error(result.error ?? 'Validação falhou.');
+        return { success: false, error: result.error };
+      }
+
+      toast.success('Evento e reserva foram vinculados com sucesso!');
+      invalidateEventoQueries();
       return { success: true };
-    } catch (error) {
-      console.error('Erro ao vincular evento e reserva:', error);
-      toast({
-        title: 'Erro ao vincular',
-        description: 'Não foi possível vincular o evento à reserva.',
-        variant: 'destructive',
-      });
-      return { success: false, error };
+    } catch (err) {
+      toast.error('Não foi possível vincular o evento à reserva.');
+      return { success: false, error: err };
     } finally {
       setLoading(false);
     }
@@ -66,51 +55,34 @@ export function useVincularEventoReserva() {
     try {
       setLoading(true);
 
-      // Remover vínculo do evento
-      const { error: eventoError } = await supabase
-        .from('eventos')
-        .update({ reserva_id: null })
-        .eq('id', eventoId);
-
-      if (eventoError) {
-        console.error('Erro ao desvincular evento:', eventoError);
-        throw eventoError;
-      }
-
-      // Remover vínculo da reserva
-      const { error: reservaError } = await supabase
-        .from('reservas')
-        .update({ evento_id: null })
-        .eq('id', reservaId);
-
-      if (reservaError) {
-        console.error('Erro ao desvincular reserva:', reservaError);
-        throw reservaError;
-      }
-
-      toast({
-        title: 'Desvinculação realizada',
-        description: 'Evento e reserva foram desvinculados. A reserva está livre para ser vinculada a outro evento.',
+      const { data, error } = await supabase.rpc('desvincular_evento_reserva', {
+        p_evento_id: eventoId,
+        p_reserva_id: reservaId,
       });
 
+      if (error) throw error;
+
+      const result = data as unknown as RpcResult;
+
+      if (!result.success) {
+        toast.error(result.error ?? 'Validação falhou.');
+        return { success: false, error: result.error };
+      }
+
+      toast.success('Evento e reserva foram desvinculados.');
+      invalidateEventoQueries();
       return { success: true };
-    } catch (error) {
-      console.error('Erro ao desvincular evento e reserva:', error);
-      toast({
-        title: 'Erro ao desvincular',
-        description: 'Não foi possível desvincular o evento da reserva.',
-        variant: 'destructive',
-      });
-      return { success: false, error };
+    } catch (err) {
+      toast.error('Não foi possível desvincular o evento da reserva.');
+      return { success: false, error: err };
     } finally {
       setLoading(false);
     }
   };
 
-  return { 
-    vincularEventoReserva, 
-    desvincularEventoReserva, 
-    loading 
+  return {
+    vincularEventoReserva,
+    desvincularEventoReserva,
+    loading,
   };
 }
-

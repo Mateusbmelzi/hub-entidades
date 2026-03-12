@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { 
-  FaseProcessoSeletivo, 
-  InscricaoProcessoUsuario, 
-  MetricasFases, 
-  InscricaoFasePS 
+import { ensureMembroEntidade } from '@/lib/membro-entidade';
+import type {
+  FaseProcessoSeletivo,
+  InscricaoProcessoUsuario,
+  MetricasFases,
 } from '@/types/acompanhamento-processo';
 
 export function useAcompanhamentoFases(entidadeId: number) {
@@ -13,6 +13,7 @@ export function useAcompanhamentoFases(entidadeId: number) {
   const [metricas, setMetricas] = useState<MetricasFases | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [acaoEmProgressoId, setAcaoEmProgressoId] = useState<string | null>(null);
 
   const fetchFases = useCallback(async () => {
     try {
@@ -52,14 +53,11 @@ export function useAcompanhamentoFases(entidadeId: number) {
 
       // Buscar dados dos perfis separadamente
       const estudanteIds = (inscricoes || []).map(inscricao => inscricao.user_id).filter(Boolean);
-      console.log('🔍 IDs dos estudantes encontrados:', estudanteIds);
-      
+
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('id, nome, curso, email')
         .in('id', estudanteIds);
-        
-      console.log('👤 Perfis encontrados:', profiles);
 
       if (profilesError) {
         console.warn('Erro ao buscar perfis:', profilesError);
@@ -77,18 +75,17 @@ export function useAcompanhamentoFases(entidadeId: number) {
       // Processar dados das inscrições
       const candidatosBase: InscricaoProcessoUsuario[] = (inscricoes || []).map(inscricao => {
         // Pegar a fase mais recente (ordenar por created_at descendente)
-        const fasesOrdenadas = (inscricao.inscricao_fase || []).sort((a: any, b: any) => {
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-        });
+        const fasesOrdenadas = (inscricao.inscricao_fase || []).sort(
+          (a: { created_at: string }, b: { created_at: string }) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
         
         const faseAtual = fasesOrdenadas[0]?.fase;
         const statusFase = fasesOrdenadas[0]?.status || 'pendente';
         const inscricaoFaseAtualId = fasesOrdenadas[0]?.id || null;
         inscricaoFaseAtualPorInscricao[inscricao.id] = inscricaoFaseAtualId;
         const profile = profilesMap.get(inscricao.user_id);
-        
-        console.log(`📋 Candidato ${inscricao.nome_estudante}: fase atual = ${faseAtual?.nome}, status = ${statusFase}`);
-        
+
         return {
           id: inscricao.id,
           entidade_id: inscricao.entidade_id,
@@ -264,12 +261,44 @@ export function useAcompanhamentoFases(entidadeId: number) {
     };
   };
 
+  const ehUltimaFase = useCallback(async (entidadeId: number, ordemFase: number): Promise<boolean> => {
+    const { data: entidade, error: entidadeError } = await supabase
+      .from('entidades')
+      .select('numero_total_fases')
+      .eq('id', entidadeId)
+      .maybeSingle();
+
+    if (!entidadeError && entidade?.numero_total_fases != null) {
+      return ordemFase === entidade.numero_total_fases;
+    }
+    const { data: fasesAtivas } = await supabase
+      .from('processos_seletivos_fases')
+      .select('ordem')
+      .eq('entidade_id', entidadeId)
+      .eq('ativa', true);
+    const maxOrdem = fasesAtivas?.length
+      ? Math.max(...fasesAtivas.map((f: { ordem: number }) => f.ordem))
+      : 0;
+    return ordemFase === maxOrdem;
+  }, []);
+
   const moverCandidatoParaFase = useCallback(async (
     candidatoId: string,
     faseDestinoId: string
   ) => {
     try {
-      // Criar nova inscrição na fase destino
+      const { data: existente } = await supabase
+        .from('inscricoes_fases_ps')
+        .select('id')
+        .eq('inscricao_id', candidatoId)
+        .eq('fase_id', faseDestinoId)
+        .maybeSingle();
+
+      if (existente) {
+        await fetchCandidatos();
+        return { success: true };
+      }
+
       const { error } = await supabase
         .from('inscricoes_fases_ps')
         .insert({
@@ -281,9 +310,7 @@ export function useAcompanhamentoFases(entidadeId: number) {
 
       if (error) throw error;
 
-      // Atualizar dados
       await fetchCandidatos();
-      
       return { success: true };
     } catch (err) {
       console.error('Erro ao mover candidato:', err);
@@ -293,216 +320,115 @@ export function useAcompanhamentoFases(entidadeId: number) {
   }, [fetchCandidatos]);
 
   const adicionarCandidatoComoMembro = useCallback(async (candidatoId: string) => {
-    try {
-      // Buscar dados completos da inscrição
-      const { data: inscricao, error: inscricaoError } = await supabase
-        .from('inscricoes_processo_seletivo')
-        .select('user_id, entidade_id')
-        .eq('id', candidatoId)
-        .single();
+    const { data: inscricao, error: inscricaoError } = await supabase
+      .from('inscricoes_processo_seletivo')
+      .select('user_id, entidade_id')
+      .eq('id', candidatoId)
+      .maybeSingle();
 
-      if (inscricaoError || !inscricao) {
-        console.error('Erro ao buscar inscrição:', inscricaoError);
-        return false;
-      }
+    if (inscricaoError || !inscricao) return false;
 
-      // Buscar o cargo padrão "Membro" da entidade
-      const { data: cargoMembro, error: cargoError } = await supabase
-        .from('cargos_entidade')
-        .select('id')
-        .eq('entidade_id', inscricao.entidade_id)
-        .eq('nome', 'Membro')
-        .single();
-
-      if (cargoError || !cargoMembro) {
-        console.error('Erro ao buscar cargo Membro:', cargoError);
-        return false;
-      }
-
-      // Verificar se já é membro
-      const { data: membroExistente, error: checkError } = await supabase
-        .from('membros_entidade')
-        .select('id, ativo')
-        .eq('user_id', inscricao.user_id)
-        .eq('entidade_id', inscricao.entidade_id)
-        .maybeSingle();
-
-      if (checkError) throw checkError;
-
-      // Se já é membro ativo, não fazer nada
-      if (membroExistente?.ativo) {
-        console.log('Usuário já é membro ativo');
-        return true;
-      }
-
-      // Se já foi membro mas está inativo, reativar
-      if (membroExistente && !membroExistente.ativo) {
-        const { error: updateError } = await supabase
-          .from('membros_entidade')
-          .update({
-            cargo_id: cargoMembro.id,
-            ativo: true,
-            data_entrada: new Date().toISOString(),
-          })
-          .eq('id', membroExistente.id);
-
-        if (updateError) throw updateError;
-        console.log('Membro reativado com sucesso');
-        
-        // Incrementar numero_membros
-        const { data: entidadeAtual, error: entidadeError } = await supabase
-          .from('entidades')
-          .select('numero_membros')
-          .eq('id', inscricao.entidade_id)
-          .single();
-        
-        if (!entidadeError && entidadeAtual) {
-          await supabase
-            .from('entidades')
-            .update({ numero_membros: (entidadeAtual.numero_membros || 0) + 1 })
-            .eq('id', inscricao.entidade_id);
-        }
-        return true;
-      }
-
-      // Criar novo membro
-      const { error: insertError } = await supabase
-        .from('membros_entidade')
-        .insert({
-          user_id: inscricao.user_id,
-          entidade_id: inscricao.entidade_id,
-          cargo_id: cargoMembro.id,
-          data_entrada: new Date().toISOString(),
-          ativo: true,
-        });
-
-      if (insertError) throw insertError;
-      console.log('Novo membro adicionado com sucesso');
-      
-      // Incrementar numero_membros
-      const { data: entidadeAtual, error: entidadeError } = await supabase
-        .from('entidades')
-        .select('numero_membros')
-        .eq('id', inscricao.entidade_id)
-        .single();
-      
-      if (!entidadeError && entidadeAtual) {
-        await supabase
-          .from('entidades')
-          .update({ numero_membros: (entidadeAtual.numero_membros || 0) + 1 })
-          .eq('id', inscricao.entidade_id);
-      }
-      return true;
-    } catch (err) {
-      console.error('Erro ao adicionar como membro:', err);
-      return false;
-    }
+    const result = await ensureMembroEntidade({
+      user_id: inscricao.user_id,
+      entidade_id: inscricao.entidade_id,
+    });
+    return result.success;
   }, []);
 
   const aprovarCandidato = useCallback(async (candidatoId: string, feedback?: string) => {
+    setAcaoEmProgressoId(candidatoId);
     try {
-      // Atualizar status da fase atual
-      const { error: faseError } = await supabase
+      const { data: rowsAtualizadas, error: faseError } = await supabase
         .from('inscricoes_fases_ps')
-        .update({ 
+        .update({
           status: 'aprovado',
-          feedback: feedback || null
+          feedback: feedback ?? null
         })
         .eq('inscricao_id', candidatoId)
-        .eq('status', 'pendente');
+        .eq('status', 'pendente')
+        .select('id, fase_id');
 
       if (faseError) throw faseError;
 
-      // Buscar numero_total_fases da entidade
-      const candidato = Array.from(candidatosPorFase.values())
-        .flat()
-        .find(c => c.id === candidatoId);
-
-      if (!candidato) {
-        throw new Error('Candidato não encontrado');
+      const faseAtualizada = rowsAtualizadas?.[0] ?? null;
+      if (!faseAtualizada) {
+        await fetchCandidatos();
+        return { success: true, ehUltimaFase: false };
       }
 
-      const { data: entidadeData, error: entidadeError } = await supabase
-        .from('entidades')
-        .select('numero_total_fases')
-        .eq('id', candidato.entidade_id)
-        .single();
+      const { data: inscricao, error: inscricaoErr } = await supabase
+        .from('inscricoes_processo_seletivo')
+        .select('entidade_id')
+        .eq('id', candidatoId)
+        .maybeSingle();
 
-      if (entidadeError) {
-        console.warn('Erro ao buscar numero_total_fases:', entidadeError);
+      if (inscricaoErr || !inscricao) {
+        await fetchCandidatos();
+        return { success: true, ehUltimaFase: false };
       }
 
-      const numeroTotalFases = entidadeData?.numero_total_fases;
+      const { data: fase, error: faseErr } = await supabase
+        .from('processos_seletivos_fases')
+        .select('id, ordem')
+        .eq('id', faseAtualizada.fase_id)
+        .maybeSingle();
 
-      // Se for a última fase, aprovar o candidato
-      if (candidato?.fase_atual) {
-        const faseAtual = candidato.fase_atual;
-        const proximaFase = fases.find(f => f.ordem === faseAtual.ordem + 1);
-        
-        console.log(`📊 Fase atual: ${faseAtual.nome} (ordem ${faseAtual.ordem})`);
-        console.log(`🔍 Próxima fase: ${proximaFase ? `${proximaFase.nome} (ordem ${proximaFase.ordem})` : 'Nenhuma (última fase)'}`);
-        console.log(`🔢 Número total de fases configurado: ${numeroTotalFases || 'não configurado'}`);
-        
-        // Verificar se é a última fase usando numero_total_fases ou fallback para lógica antiga
-        const ehUltimaFase = numeroTotalFases 
-          ? faseAtual.ordem === numeroTotalFases
-          : !proximaFase;
-        
-        if (ehUltimaFase) {
-          // É a última fase, aprovar candidato definitivamente
-          console.log('✅ Última fase - Aprovando candidato definitivamente');
-          const { error: candidatoError } = await supabase
-            .from('inscricoes_processo_seletivo')
-            .update({ status: 'aprovado' })
-            .eq('id', candidatoId);
+      if (faseErr || !fase) {
+        await fetchCandidatos();
+        return { success: true, ehUltimaFase: false };
+      }
 
-          if (candidatoError) throw candidatoError;
+      const ultimaFase = await ehUltimaFase(inscricao.entidade_id, fase.ordem);
 
-          // Adicionar como membro da entidade
-          console.log('👤 Adicionando candidato como membro da entidade...');
-          const membroAdicionado = await adicionarCandidatoComoMembro(candidatoId);
-          if (!membroAdicionado) {
-            console.warn('⚠️ Candidato aprovado, mas erro ao adicionar como membro');
-          }
-        } else {
-          // Mover para próxima fase
-          console.log(`🚀 Movendo candidato para: ${proximaFase.nome}`);
+      if (ultimaFase) {
+        const { error: candidatoError } = await supabase
+          .from('inscricoes_processo_seletivo')
+          .update({ status: 'aprovado' })
+          .eq('id', candidatoId);
+
+        if (candidatoError) throw candidatoError;
+        await adicionarCandidatoComoMembro(candidatoId);
+      } else {
+        const proximaFase = fases.find(f => f.ordem === fase.ordem + 1);
+        if (proximaFase) {
           await moverCandidatoParaFase(candidatoId, proximaFase.id);
         }
-      } else {
-        console.warn('⚠️ Candidato sem fase atual - não pode ser movido para próxima fase');
       }
 
       await fetchCandidatos();
-      return { success: true };
+      return { success: true, ehUltimaFase: ultimaFase };
     } catch (err) {
       console.error('Erro ao aprovar candidato:', err);
       setError('Erro ao aprovar candidato');
-      return { success: false, error: err };
+      return { success: false, error: err, ehUltimaFase: false };
+    } finally {
+      setAcaoEmProgressoId(null);
     }
-  }, [candidatosPorFase, fases, moverCandidatoParaFase, fetchCandidatos, adicionarCandidatoComoMembro]);
+  }, [fases, ehUltimaFase, moverCandidatoParaFase, fetchCandidatos, adicionarCandidatoComoMembro]);
 
   const reprovarCandidato = useCallback(async (candidatoId: string, feedback?: string) => {
+    setAcaoEmProgressoId(candidatoId);
     try {
-      // Atualizar status da fase atual
-      const { error: faseError } = await supabase
+      const { data: rowsAtualizadas, error: faseError } = await supabase
         .from('inscricoes_fases_ps')
-        .update({ 
+        .update({
           status: 'reprovado',
-          feedback: feedback || null
+          feedback: feedback ?? null
         })
         .eq('inscricao_id', candidatoId)
-        .eq('status', 'pendente');
+        .eq('status', 'pendente')
+        .select('id');
 
       if (faseError) throw faseError;
 
-      // Reprovar candidato
-      const { error: candidatoError } = await supabase
-        .from('inscricoes_processo_seletivo')
-        .update({ status: 'reprovado' })
-        .eq('id', candidatoId);
+      if (rowsAtualizadas && rowsAtualizadas.length > 0) {
+        const { error: candidatoError } = await supabase
+          .from('inscricoes_processo_seletivo')
+          .update({ status: 'reprovado' })
+          .eq('id', candidatoId);
 
-      if (candidatoError) throw candidatoError;
+        if (candidatoError) throw candidatoError;
+      }
 
       await fetchCandidatos();
       return { success: true };
@@ -510,6 +436,8 @@ export function useAcompanhamentoFases(entidadeId: number) {
       console.error('Erro ao reprovar candidato:', err);
       setError('Erro ao reprovar candidato');
       return { success: false, error: err };
+    } finally {
+      setAcaoEmProgressoId(null);
     }
   }, [fetchCandidatos]);
 
@@ -553,6 +481,7 @@ export function useAcompanhamentoFases(entidadeId: number) {
     metricas,
     loading,
     error,
+    acaoEmProgressoId,
     fetchCandidatos,
     moverCandidatoParaFase,
     aprovarCandidato,

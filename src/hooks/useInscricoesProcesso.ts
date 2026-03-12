@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { ensureMembroEntidade } from '@/lib/membro-entidade';
 import type { InscricaoProcessoSeletivo } from '@/types/processo-seletivo';
 
 export function useInscricoesProcesso(entidadeId?: number) {
@@ -60,70 +61,12 @@ export function useInscricoesProcesso(entidadeId?: number) {
   useEffect(() => { fetchInscricoes(); }, [fetchInscricoes]);
 
   const adicionarComoMembro = async (inscricao: InscricaoProcessoSeletivo) => {
-    try {
-      // Buscar o cargo padrão "Membro" da entidade
-      const { data: cargoMembro, error: cargoError } = await supabase
-        .from('cargos_entidade')
-        .select('id')
-        .eq('entidade_id', entidadeId)
-        .eq('nome', 'Membro')
-        .single();
-
-      if (cargoError || !cargoMembro) {
-        console.error('Erro ao buscar cargo Membro:', cargoError);
-        return false;
-      }
-
-      // Verificar se já é membro
-      const { data: membroExistente, error: checkError } = await supabase
-        .from('membros_entidade')
-        .select('id, ativo')
-        .eq('user_id', inscricao.user_id)
-        .eq('entidade_id', entidadeId)
-        .maybeSingle();
-
-      if (checkError) throw checkError;
-
-      // Se já é membro ativo, não fazer nada
-      if (membroExistente?.ativo) {
-        console.log('Usuário já é membro ativo');
-        return true;
-      }
-
-      // Se já foi membro mas está inativo, reativar
-      if (membroExistente && !membroExistente.ativo) {
-        const { error: updateError } = await supabase
-          .from('membros_entidade')
-          .update({
-            cargo_id: cargoMembro.id,
-            ativo: true,
-            data_entrada: new Date().toISOString(),
-          })
-          .eq('id', membroExistente.id);
-
-        if (updateError) throw updateError;
-        console.log('Membro reativado com sucesso');
-        return true;
-      }
-
-      // Criar novo membro
-      const { error: insertError } = await supabase
-        .from('membros_entidade')
-        .insert({
-          user_id: inscricao.user_id,
-          entidade_id: entidadeId,
-          cargo_id: cargoMembro.id,
-          data_entrada: new Date().toISOString(),
-          ativo: true,
-        });
-
-      if (insertError) throw insertError;
-      console.log('Novo membro adicionado com sucesso');
-      return true;
-    } catch (err) {
-      console.error('Erro ao adicionar como membro:', err);
-      return false;
-    }
+    if (!entidadeId) return false;
+    const result = await ensureMembroEntidade({
+      user_id: inscricao.user_id,
+      entidade_id: entidadeId,
+    });
+    return result.success;
   };
 
   const decidir = useCallback(
@@ -146,7 +89,6 @@ export function useInscricoesProcesso(entidadeId?: number) {
         }
 
         if (inscricaoFase) {
-          // Atualizar status da fase
           const { error: updateFaseError } = await supabase
             .from('inscricoes_fases_ps')
             .update({ 
@@ -158,51 +100,69 @@ export function useInscricoesProcesso(entidadeId?: number) {
           if (updateFaseError) throw updateFaseError;
 
           if (status === 'aprovado') {
-            // Verificar se há próxima fase
             const { data: proximaFase, error: proximaFaseError } = await supabase
               .from('processos_seletivos_fases')
               .select('id, ordem')
               .eq('entidade_id', inscricaoFase.fase.entidade_id)
               .eq('ordem', inscricaoFase.fase.ordem + 1)
               .eq('ativa', true)
-              .single();
+              .maybeSingle();
 
-            if (proximaFaseError && proximaFaseError.code !== 'PGRST116') {
+            if (proximaFaseError) {
               throw proximaFaseError;
             }
 
             if (proximaFase) {
-              // Criar inscrição na próxima fase
-              const { error: proximaFaseError } = await supabase
+              const { data: inscricaoProximaExistente, error: inscricaoProximaError } = await supabase
                 .from('inscricoes_fases_ps')
-                .insert({
-                  inscricao_id: inscricaoId,
-                  fase_id: proximaFase.id,
-                  respostas_formulario: {},
-                  status: 'pendente'
-                });
+                .select('id')
+                .eq('inscricao_id', inscricaoId)
+                .eq('fase_id', proximaFase.id)
+                .maybeSingle();
 
-              if (proximaFaseError) {
-                console.warn('Erro ao criar inscrição na próxima fase:', proximaFaseError);
+              if (inscricaoProximaError && inscricaoProximaError.code !== 'PGRST116') {
+                throw inscricaoProximaError;
+              }
+
+              if (!inscricaoProximaExistente) {
+                const { error: insertProximaError } = await supabase
+                  .from('inscricoes_fases_ps')
+                  .insert({
+                    inscricao_id: inscricaoId,
+                    fase_id: proximaFase.id,
+                    respostas_formulario: {},
+                    status: 'pendente'
+                  });
+
+                if (insertProximaError) {
+                  console.warn('Erro ao criar inscrição na próxima fase:', insertProximaError);
+                }
               }
 
               toast({
-                title: '✅ Aprovado!',
-                description: `Candidato aprovado na fase e avançou para a próxima fase.`,
+                title: 'Aprovado!',
+                description: 'Candidato aprovado na fase e avançou para a próxima fase.',
               });
             } else {
-              // É a última fase, adicionar como membro
+              await supabase
+                .from('inscricoes_processo_seletivo')
+                .update({ 
+                  status: 'aprovado', 
+                  updated_at: new Date().toISOString() 
+                })
+                .eq('id', inscricaoId);
+
               const inscricao = inscricoes.find(i => i.id === inscricaoId);
               if (inscricao) {
                 const sucesso = await adicionarComoMembro(inscricao);
                 if (sucesso) {
                   toast({
-                    title: '✅ Aprovado e adicionado como membro!',
+                    title: 'Aprovado e adicionado como membro!',
                     description: 'O candidato foi aprovado na última fase e automaticamente se tornou membro da organização estudantil.',
                   });
                 } else {
                   toast({
-                    title: '⚠️ Aprovado, mas erro ao adicionar como membro',
+                    title: 'Aprovado, mas erro ao adicionar como membro',
                     description: 'O candidato foi aprovado, mas houve um erro ao adicioná-lo como membro. Adicione manualmente.',
                     variant: 'destructive',
                   });
@@ -210,13 +170,20 @@ export function useInscricoesProcesso(entidadeId?: number) {
               }
             }
           } else {
+            await supabase
+              .from('inscricoes_processo_seletivo')
+              .update({ 
+                status: 'reprovado', 
+                updated_at: new Date().toISOString() 
+              })
+              .eq('id', inscricaoId);
+
             toast({
-              title: '❌ Inscrição reprovada',
+              title: 'Inscrição reprovada',
               description: 'O candidato foi reprovado nesta fase.',
             });
           }
         } else {
-          // Fallback para sistema antigo (sem fases)
           const { error } = await supabase
             .from('inscricoes_processo_seletivo')
             .update({ status, updated_at: new Date().toISOString() })
@@ -230,12 +197,12 @@ export function useInscricoesProcesso(entidadeId?: number) {
               const sucesso = await adicionarComoMembro(inscricao);
               if (sucesso) {
                 toast({
-                  title: '✅ Aprovado e adicionado como membro!',
+                  title: 'Aprovado e adicionado como membro!',
                   description: 'O candidato foi aprovado e automaticamente se tornou membro da organização estudantil.',
                 });
               } else {
                 toast({
-                  title: '⚠️ Aprovado, mas erro ao adicionar como membro',
+                  title: 'Aprovado, mas erro ao adicionar como membro',
                   description: 'O candidato foi aprovado, mas houve um erro ao adicioná-lo como membro. Adicione manualmente.',
                   variant: 'destructive',
                 });
@@ -243,20 +210,11 @@ export function useInscricoesProcesso(entidadeId?: number) {
             }
           } else {
             toast({
-              title: '❌ Inscrição reprovada',
+              title: 'Inscrição reprovada',
               description: 'O candidato foi reprovado no processo seletivo.',
             });
           }
         }
-
-        // Atualizar status geral da inscrição
-        await supabase
-          .from('inscricoes_processo_seletivo')
-          .update({ 
-            status, 
-            updated_at: new Date().toISOString() 
-          })
-          .eq('id', inscricaoId);
 
         await fetchInscricoes();
         return { success: true };

@@ -8,7 +8,7 @@ export interface ActivityLogData {
   description?: string;
   userId?: string;
   entityId?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   status?: 'completed' | 'pending' | 'failed' | 'cancelled';
   pageUrl?: string;
   sessionId?: string;
@@ -20,7 +20,7 @@ export interface PageVisitData {
   entityId?: number;
   sessionId?: string;
   referrer?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface SearchActivityData {
@@ -40,87 +40,117 @@ export interface InterestDemonstrationData {
 export const useActivityLogger = () => {
   const logActivity = useCallback(async (data: ActivityLogData) => {
     try {
-      console.log('Activity logged (simulated):', data);
-      // TODO: Implement actual RPC call when database is ready
-      // const { error } = await supabase.rpc('log_activity', {
-      //   p_activity_type: data.activityType,
-      //   p_activity_subtype: data.activitySubtype || null,
-      //   p_title: data.title,
-      //   p_description: data.description || null,
-      //   p_user_id: data.userId || null,
-      //   p_entity_id: data.entityId || null,
-      //   p_metadata: data.metadata || {},
-      //   p_status: data.status || 'completed',
-      //   p_page_url: data.pageUrl || null,
-      //   p_session_id: data.sessionId || null,
-      //   p_referrer: data.referrer || null
-      // });
+      const { error } = await supabase.rpc('log_activity', {
+        p_activity_type: data.activityType,
+        p_activity_subtype: data.activitySubtype ?? null,
+        p_title: data.title,
+        p_description: data.description ?? null,
+        p_user_id: data.userId ?? null,
+        p_entity_id: data.entityId ?? null,
+        p_metadata: (data.metadata ?? {}) as Record<string, unknown>,
+        p_status: data.status ?? 'completed',
+        p_page_url: data.pageUrl ?? null,
+        p_session_id: data.sessionId ?? null,
+        p_referrer: data.referrer ?? null
+      });
+      if (error) throw error;
     } catch (error) {
       console.error('Erro ao logar atividade:', error);
     }
   }, []);
 
-  const logUserLogin = useCallback(async (userEmail: string) => {
-    try {
-      console.log('User login logged (simulated):', userEmail);
-      // TODO: Implement actual RPC call when database is ready
-    } catch (error) {
-      console.error('Erro ao logar login:', error);
-    }
-  }, []);
+  const logUserLogin = useCallback(
+    async (userEmail: string) => {
+      await logActivity({
+        activityType: 'user_login',
+        title: 'Login',
+        description: userEmail,
+        status: 'completed'
+      });
+    },
+    [logActivity]
+  );
 
-  const logUserLogout = useCallback(async (userEmail: string) => {
-    try {
-      console.log('User logout logged (simulated):', userEmail);
-      // TODO: Implement actual RPC call when database is ready
-    } catch (error) {
-      console.error('Erro ao logar logout:', error);
-    }
-  }, []);
+  const logUserLogout = useCallback(
+    async (userEmail: string) => {
+      await logActivity({
+        activityType: 'user_logout',
+        title: 'Logout',
+        description: userEmail,
+        status: 'completed'
+      });
+    },
+    [logActivity]
+  );
 
-  // New function to log page visits
   const logPageVisit = useCallback(async (data: PageVisitData) => {
     try {
-      console.log('Page visit logged (simulated):', data);
-      // TODO: Implement actual RPC call when database is ready
+      const meta = data.metadata && typeof data.metadata === 'object' ? data.metadata : {};
+      const userAgent = (meta.userAgent as string) ?? null;
+      const screenResolution = (meta.screenResolution as string) ?? null;
+      const language = (meta.language as string) ?? null;
+
+      const { error } = await supabase.rpc('log_page_visit', {
+        p_page_url: data.pageUrl,
+        p_entity_id: data.entityId ?? null,
+        p_session_id: data.sessionId ?? null,
+        p_referrer: data.referrer ?? null,
+        p_user_agent: userAgent,
+        p_screen_resolution: screenResolution,
+        p_language: language,
+        p_metadata: (data.metadata ?? {}) as Record<string, unknown>
+      });
+      if (error) throw error;
     } catch (error) {
       console.error('Erro ao logar visita de página:', error);
     }
   }, []);
 
-  // New function to log entity page visits specifically
-  const logEntityPageVisit = useCallback(async (entityId: number, sessionId?: string, referrer?: string) => {
-    try {
-      console.log('Entity page visit logged (simulated):', { entityId, sessionId, referrer });
-      // TODO: Implement actual RPC call when database is ready
-    } catch (error) {
-      console.error('Erro ao logar visita de página da entidade:', error);
-    }
-  }, []);
+  const logEntityPageVisit = useCallback(
+    async (entityId: number, sessionId?: string, referrer?: string) => {
+      await logPageVisit({
+        pageUrl: window.location.pathname + window.location.search,
+        entityId,
+        sessionId,
+        referrer: referrer ?? undefined
+      });
+    },
+    [logPageVisit]
+  );
 
-  // New function to log search activities
-  const logSearchActivity = useCallback(async (data: SearchActivityData) => {
-    try {
-      console.log('Search activity logged (simulated):', data);
-      // TODO: Implement actual RPC call when database is ready
-    } catch (error) {
-      console.error('Erro ao logar atividade de busca:', error);
-    }
-  }, []);
+  const logSearchActivity = useCallback(
+    async (data: SearchActivityData) => {
+      await logActivity({
+        activityType: 'search',
+        activitySubtype: data.searchType,
+        title: 'Busca',
+        description: data.searchTerm,
+        sessionId: data.sessionId,
+        metadata:
+          data.resultsCount !== undefined
+            ? { searchTerm: data.searchTerm, resultsCount: data.resultsCount }
+            : { searchTerm: data.searchTerm }
+      });
+    },
+    [logActivity]
+  );
 
-  // New function to log interest demonstrations
-  const logInterestDemonstration = useCallback(async (data: InterestDemonstrationData) => {
-    try {
-      console.log('Interest demonstration logged (simulated):', data);
-      // TODO: Implement actual RPC call when database is ready
-    } catch (error) {
-      console.error('Erro ao logar demonstração de interesse:', error);
-    }
-  }, []);
+  const logInterestDemonstration = useCallback(
+    async (data: InterestDemonstrationData) => {
+      await logActivity({
+        activityType: 'interest_demonstration',
+        title: 'Demonstração de interesse',
+        description: data.estudanteEmail,
+        entityId: data.entidadeId,
+        sessionId: data.sessionId,
+        metadata: data.areaInteresse ? { areaInteresse: data.areaInteresse } : undefined
+      });
+    },
+    [logActivity]
+  );
 
-  // Helper functions
   const generateSessionId = useCallback(() => {
-    return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
   }, []);
 
   const getCurrentPageUrl = useCallback(() => {
@@ -128,7 +158,7 @@ export const useActivityLogger = () => {
   }, []);
 
   const getReferrer = useCallback(() => {
-    return document.referrer || null;
+    return document.referrer || undefined;
   }, []);
 
   return {
@@ -143,4 +173,4 @@ export const useActivityLogger = () => {
     getCurrentPageUrl,
     getReferrer
   };
-}; 
+};

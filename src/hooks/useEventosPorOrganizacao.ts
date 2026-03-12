@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { isEventoPublicamenteVisivel } from '@/lib/evento-visibility';
 
 export interface EventoPorOrganizacao {
   entidade_id: number;
@@ -17,32 +18,35 @@ export const useEventosPorOrganizacao = () => {
       setLoading(true);
       setError(null);
 
-      console.log('🔄 Buscando eventos por organização...');
-
-      // Buscar eventos com JOIN para entidades
       const { data: eventosData, error: eventosError } = await supabase
         .from('eventos')
         .select(`
           entidade_id,
           status_aprovacao,
-          entidades!inner(
-            id,
-            nome
-          )
+          reserva_id,
+          entidades!inner(id, nome),
+          reservas!left(id, status_reserva)
         `)
-        .eq('status_aprovacao', 'aprovado'); // Apenas eventos aprovados
+        .eq('status_aprovacao', 'aprovado')
+        .neq('status', 'cancelado');
 
-      if (eventosError) {
-        console.error('❌ Erro ao buscar eventos:', eventosError);
-        throw eventosError;
-      }
+      if (eventosError) throw eventosError;
 
-      console.log('✅ Eventos com entidades carregados:', eventosData?.length || 0, 'eventos encontrados');
+      const normalized = (eventosData || []).map((row) => ({
+        ...row,
+        reservas: Array.isArray(row.reservas) ? row.reservas : row.reservas ? [row.reservas] : [],
+      }));
+      const visibleEventos = normalized.filter((row) => {
+        try {
+          return isEventoPublicamenteVisivel(row);
+        } catch {
+          return false;
+        }
+      });
 
-      // Processar os dados para contar eventos por organização
       const organizacaoCount: { [key: number]: { nome: string; total: number } } = {};
       
-      eventosData?.forEach(evento => {
+      visibleEventos.forEach(evento => {
         if (evento.entidade_id && evento.entidades) {
           const entidadeId = evento.entidade_id;
           const entidadeNome = evento.entidades.nome;
@@ -68,10 +72,9 @@ export const useEventosPorOrganizacao = () => {
         .slice(0, 5); // Top 5 organizações
 
       setEventosPorOrganizacao(eventosPorOrganizacaoArray);
-      console.log('📊 Top 5 organizações por eventos processadas:', eventosPorOrganizacaoArray);
 
     } catch (err) {
-      console.error('❌ Erro ao buscar eventos por organização:', err);
+      console.error('useEventosPorOrganizacao:', err);
       setError(err instanceof Error ? err.message : 'Erro desconhecido');
     } finally {
       setLoading(false);

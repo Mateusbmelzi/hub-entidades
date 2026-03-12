@@ -14,6 +14,7 @@ import { useAreasInternas } from '@/hooks/useAreasInternas';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import type { CampoPersonalizado } from '@/types/processo-seletivo';
+import type { TemplateFormulario } from '@/types/template-formulario';
 
 interface Props {
   entidadeId?: number;
@@ -28,10 +29,34 @@ export default function BotaoInscreverEntidade({ entidadeId }: Props) {
   const { toast } = useToast();
   
   const [open, setOpen] = useState(false);
+  const [template, setTemplate] = useState<TemplateFormulario | null>(null);
   
   // Buscar fase 1 e template vinculado
   const fase1 = fases.find(f => f.ordem === 1);
-  const template = fase1?.template_formulario_id ? getTemplateById(fase1.template_formulario_id) : null;
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadTemplate = async () => {
+      if (!fase1?.template_formulario_id) {
+        if (isMounted) {
+          setTemplate(null);
+        }
+        return;
+      }
+
+      const data = await getTemplateById(fase1.template_formulario_id);
+      if (isMounted) {
+        setTemplate(data);
+      }
+    };
+
+    void loadTemplate();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [fase1?.template_formulario_id, getTemplateById]);
   
   // Debug logs
   useEffect(() => {

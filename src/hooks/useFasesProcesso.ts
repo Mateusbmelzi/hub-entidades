@@ -233,6 +233,29 @@ export function useFasesProcesso(entidadeId?: number) {
       setLoading(true);
       setError(null);
 
+      if (data.ativa === false) {
+        const { data: inscricoesAtivasRaw, error: inscricoesAtivasError } = await supabase
+          .from('inscricoes_fases_ps')
+          .select('id, status')
+          .eq('fase_id', faseId)
+          .in('status', ['pendente', 'em_avaliacao']);
+
+        if (inscricoesAtivasError) {
+          throw inscricoesAtivasError;
+        }
+
+        const inscricoesAtivas = (inscricoesAtivasRaw ?? []) as { id: string; status: string }[];
+
+        if (inscricoesAtivas.length > 0) {
+          toast({
+            title: 'Erro',
+            description: 'Não é possível desativar uma fase que ainda possui candidatos em andamento.',
+            variant: 'destructive',
+          });
+          return { success: false, error: 'Fase possui candidatos em andamento' };
+        }
+      }
+
       // Se mudando ordem, verificar conflito
       if (data.ordem !== undefined) {
         const { data: faseExistente, error: checkError } = await supabase
@@ -317,6 +340,44 @@ export function useFasesProcesso(entidadeId?: number) {
           });
           return { success: false, error: 'Fase 1 não pode ser deletada' };
         }
+      }
+
+      const { data: inscricoesFaseRaw, error: inscricoesFaseError } = await supabase
+        .from('inscricoes_fases_ps')
+        .select('id')
+        .eq('fase_id', faseId)
+        .limit(1);
+
+      if (inscricoesFaseError) {
+        throw inscricoesFaseError;
+      }
+
+      if (inscricoesFaseRaw && inscricoesFaseRaw.length > 0) {
+        toast({
+          title: 'Erro',
+          description: 'Não é possível deletar uma fase que já possui inscrições vinculadas. Arquive a fase desativando-a, se necessário.',
+          variant: 'destructive',
+        });
+        return { success: false, error: 'Fase possui inscrições vinculadas' };
+      }
+
+      const { data: reservasFaseRaw, error: reservasFaseError } = await supabase
+        .from('fases_reservas')
+        .select('id')
+        .eq('fase_id', faseId)
+        .limit(1);
+
+      if (reservasFaseError) {
+        throw reservasFaseError;
+      }
+
+      if (reservasFaseRaw && reservasFaseRaw.length > 0) {
+        toast({
+          title: 'Erro',
+          description: 'Não é possível deletar uma fase que possui reservas vinculadas. Remova os vínculos de reserva antes de deletar.',
+          variant: 'destructive',
+        });
+        return { success: false, error: 'Fase possui reservas vinculadas' };
       }
 
       const { error: deleteError } = await supabase

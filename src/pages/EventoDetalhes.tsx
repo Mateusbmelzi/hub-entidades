@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { combineDataHorario, formatDataHorario, isEventoAtivo, getEventoStatus } from '@/lib/date-utils';
+import { isEventoPublicamenteVisivel } from '@/lib/evento-visibility';
 import { useAuth } from '@/hooks/useAuth';
 import { useEntityAuth } from '@/hooks/useEntityAuth';
 import InscricaoEventoForm from '@/components/InscricaoEventoForm';
@@ -29,25 +30,41 @@ const EventoDetalhes = () => {
   const [showEntityLoginDialog, setShowEntityLoginDialog] = useState(false);
 
   const { data: evento, isLoading: eventoLoading, error: eventoError } = useQuery({
-    queryKey: ['evento', id],
+    queryKey: ['evento', id, isAuthenticated, entidadeId],
     queryFn: async () => {
-      // Primeiro buscar o evento
-      const { data: eventoData, error: eventoError } = await supabase
+      const { data: eventoData, error: evError } = await supabase
         .from('eventos')
         .select(`
           *,
-          entidades(id, nome, descricao_curta, contato)
+          entidades(id, nome, descricao_curta, contato),
+          reservas!left(id, status_reserva)
         `)
         .eq('id', id)
         .single();
-      
-      if (eventoError) throw eventoError;
-      
-      // Buscar a reserva associada pelo nome do evento ou outros critérios
-      let reservaData = null;
-      let professoresConvidados = [];
-      
-      if (eventoData) {
+
+      if (evError) throw evError;
+      if (!eventoData) throw new Error('Evento não encontrado');
+
+      const isOwner = isAuthenticated && entidadeId != null && eventoData.entidades && (eventoData.entidades as { id?: number }).id === entidadeId;
+      const forVisibility = {
+        ...eventoData,
+        reservas: Array.isArray(eventoData.reservas) ? eventoData.reservas : eventoData.reservas ? [eventoData.reservas] : [],
+      };
+      if (!isOwner && !isEventoPublicamenteVisivel(forVisibility)) {
+        throw new Error('Evento não disponível');
+      }
+
+      let reservaData: {
+        id: string;
+        motivo_reserva?: string;
+        tem_palestrante_externo?: boolean;
+        nome_palestrante_externo?: string | null;
+        apresentacao_palestrante_externo?: string | null;
+        eh_pessoa_publica?: boolean;
+      } | null = null;
+      let professoresConvidados: unknown[] = [];
+
+      if (eventoData.reserva_id) {
         const { data: reserva, error: reservaError } = await supabase
           .from('reservas')
           .select(`
@@ -58,37 +75,29 @@ const EventoDetalhes = () => {
             apresentacao_palestrante_externo,
             eh_pessoa_publica
           `)
-          .eq('status', 'aprovada')
-          .ilike('titulo_evento_capacitacao', `%${eventoData.nome}%`)
-          .single();
-        
+          .eq('id', eventoData.reserva_id)
+          .maybeSingle();
+
         if (!reservaError && reserva) {
           reservaData = reserva;
-          
-          // Buscar professores convidados da nova tabela
-          try {
-            const { data: professores, error: professoresError } = await (supabase as any)
-              .from('professores_convidados')
-              .select('*')
-              .eq('reserva_id', (reserva as any).id)
-              .order('created_at', { ascending: true });
-            
-            if (!professoresError && professores) {
-              professoresConvidados = professores;
-            }
-          } catch (e) {
-            console.log('Erro ao buscar professores convidados:', e);
+          const { data: professores, error: professoresError } = await supabase
+            .from('professores_convidados')
+            .select('*')
+            .eq('reserva_id', reserva.id)
+            .order('created_at', { ascending: true });
+          if (!professoresError && professores) {
+            professoresConvidados = professores;
           }
         }
       }
-      
+
       return {
         ...eventoData,
         reservas: reservaData,
-        professores_convidados: professoresConvidados
+        professores_convidados: professoresConvidados,
       };
     },
-    enabled: !!id
+    enabled: !!id,
   });
 
   const { data: participantes = [], isLoading: participantesLoading, refetch: refetchParticipantes } = useQuery({
@@ -160,15 +169,20 @@ const EventoDetalhes = () => {
   }
 
   if (eventoError) {
+    const isNotAvailable = eventoError instanceof Error && eventoError.message === 'Evento não disponível';
     return (
       <div className="min-h-screen bg-gradient-to-br from-insper-light-gray to-white flex items-center justify-center">
         <div className="text-center max-w-md mx-auto px-4">
           <div className="w-20 h-20 bg-insper-red/10 rounded-full flex items-center justify-center mx-auto mb-6">
             <Calendar className="w-10 h-10 text-insper-red" />
           </div>
-          <h1 className="text-2xl font-bold text-insper-black mb-4">Erro ao carregar evento</h1>
+          <h1 className="text-2xl font-bold text-insper-black mb-4">
+            {isNotAvailable ? 'Evento não disponível' : 'Erro ao carregar evento'}
+          </h1>
           <p className="text-insper-dark-gray mb-6">
-            {eventoError instanceof Error ? eventoError.message : 'Erro desconhecido'}
+            {isNotAvailable
+              ? 'Este evento não está disponível para visualização no momento.'
+              : (eventoError instanceof Error ? eventoError.message : 'Erro desconhecido')}
           </p>
           <Button asChild className="bg-insper-red hover:bg-red-700 text-white">
             <Link to="/eventos">

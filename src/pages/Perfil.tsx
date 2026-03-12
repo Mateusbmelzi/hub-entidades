@@ -1262,19 +1262,21 @@ export default function Perfil() {
                         )}
                       </div>
                       
-                      {/* Botão de cancelar - disponível para todos os status */}
-                      <div className="mt-3 pt-3 border-t border-gray-200">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleCancelarInscricaoProcesso(inscricao.id)}
-                          disabled={loadingAction}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Cancelar Inscrição
-                        </Button>
-                      </div>
+                      {/* Botão de cancelar - apenas enquanto status estiver pendente */}
+                      {inscricao.status === 'pendente' && (
+                        <div className="mt-3 pt-3 border-t border-gray-200">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleCancelarInscricaoProcesso(inscricao.id)}
+                            disabled={loadingAction}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Cancelar Inscrição
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

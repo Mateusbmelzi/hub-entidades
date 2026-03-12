@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { isEventoPublicamenteVisivel } from '@/lib/evento-visibility';
 
 export interface EventoCompleto {
   id: string;
@@ -16,6 +17,7 @@ export interface EventoCompleto {
   comentario_aprovacao?: string;
   data_aprovacao?: string;
   aprovador_email?: string;
+  reserva_id?: string | null;
   entidade_id: number;
   created_at: string;
   updated_at: string;
@@ -24,6 +26,7 @@ export interface EventoCompleto {
     nome: string;
     foto_perfil_url?: string | null;
   };
+  reservas?: { id: string; status_reserva?: string }[] | null;
 }
 
 export const useTodosEventosAprovados = () => {
@@ -33,7 +36,6 @@ export const useTodosEventosAprovados = () => {
 
   const fetchTodosEventos = async () => {
     try {
-      console.log('🔄 useTodosEventosAprovados: buscando todos os eventos aprovados');
       setLoading(true);
       setError(null);
       
@@ -41,23 +43,31 @@ export const useTodosEventosAprovados = () => {
         .from('eventos')
         .select(`
           *,
-          entidades(id, nome, foto_perfil_url)
+          entidades(id, nome, foto_perfil_url),
+          reservas!left(id, status_reserva)
         `)
         .eq('status_aprovacao', 'aprovado')
         .neq('status', 'cancelado')
         .order('data', { ascending: true })
         .order('horario_inicio', { ascending: true });
       
-      if (error) {
-        console.error('❌ useTodosEventosAprovados: erro na busca:', error);
-        throw error;
-      }
-      
-      console.log('✅ useTodosEventosAprovados: eventos carregados:', data?.length || 0);
-      setEventos(data || []);
+      if (error) throw error;
+
+      const normalized = (data || []).map((row) => ({
+        ...row,
+        reservas: Array.isArray(row.reservas) ? row.reservas : row.reservas ? [row.reservas] : [],
+      }));
+      const filtered = normalized.filter((row) => {
+        try {
+          return isEventoPublicamenteVisivel(row);
+        } catch {
+          return false;
+        }
+      });
+      setEventos(filtered);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao carregar eventos';
-      console.error('❌ useTodosEventosAprovados: erro:', err);
+      console.error('useTodosEventosAprovados:', err);
       setError(message);
     } finally {
       setLoading(false);
@@ -65,7 +75,6 @@ export const useTodosEventosAprovados = () => {
   };
 
   const refetch = useCallback(async () => {
-    console.log('🔄 useTodosEventosAprovados: refetch solicitado');
     await fetchTodosEventos();
   }, []);
 

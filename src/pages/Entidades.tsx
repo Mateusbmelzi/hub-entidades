@@ -80,27 +80,9 @@ const Entidades = () => {
     setShowAll(false);
   }, [selectedFilters, debouncedSearchTerm]);
 
-  // Função para aplicar filtros no servidor
+  // Filtros aplicados localmente a partir dos dados já carregados
   const applyServerFilters = async () => {
-    if (selectedFilters.length === 0) return;
-    
-    setIsFilteringFromServer(true);
-    
-    try {
-      // Como area_atuacao agora é um array JSON, precisamos usar uma abordagem diferente
-      // Por enquanto, vamos desabilitar o filtro do servidor e usar apenas filtros locais
-      // TODO: Implementar filtro JSON quando o Supabase suportar melhor arrays JSON
-      setFilteredFromServer(false);
-      
-      // Fallback para filtros locais
-      setServerFilterResults([]);
-      
-    } catch (err) {
-      // Fallback para filtros locais
-      setFilteredFromServer(false);
-    } finally {
-      setIsFilteringFromServer(false);
-    }
+    setIsFilteringFromServer(false);
   };
 
   // Função para obter a área de atuação de uma entidade

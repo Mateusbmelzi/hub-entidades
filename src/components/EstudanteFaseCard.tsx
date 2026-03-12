@@ -13,13 +13,15 @@ interface EstudanteFaseCardProps {
   onAprovar: (id: string) => void;
   onReprovar: (id: string) => void;
   onVerDetalhes: (id: string) => void;
+  acaoEmProgresso?: boolean;
 }
 
 export function EstudanteFaseCard({
   candidato,
   onAprovar,
   onReprovar,
-  onVerDetalhes
+  onVerDetalhes,
+  acaoEmProgresso = false
 }: EstudanteFaseCardProps) {
   const getInitials = (name: string) => {
     const names = name.split(' ');
@@ -150,6 +152,7 @@ export function EstudanteFaseCard({
                     variant="default"
                     onClick={() => onAprovar(candidato.id)}
                     className="text-xs bg-green-600 hover:bg-green-700"
+                    disabled={acaoEmProgresso}
                   >
                     <Check className="h-3.5 w-3.5 mr-1.5" />
                     Aprovar
@@ -159,6 +162,7 @@ export function EstudanteFaseCard({
                     variant="destructive"
                     onClick={() => onReprovar(candidato.id)}
                     className="text-xs"
+                    disabled={acaoEmProgresso}
                   >
                     <X className="h-3.5 w-3.5 mr-1.5" />
                     Reprovar

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { supabaseWithRetry } from '@/lib/supabase-utils';
+import { isEventoPublicamenteVisivel } from '@/lib/evento-visibility';
 import type { Tables } from '@/integrations/supabase/types';
 
 export type Evento = Tables<'eventos'> & {
@@ -13,6 +14,7 @@ export type Evento = Tables<'eventos'> & {
     id: string;
     motivo_reserva: string;
     professores_convidados_json?: any;
+    status_reserva?: string;
   }[];
 };
 
@@ -163,18 +165,16 @@ export const useEventos = (options: UseEventosOptions = {}) => {
 
       if (error) throw error;
 
-      // Aplicar regra de visibilidade: 
-      // Evento deve estar aprovado E (sem reserva OU com reserva aprovada)
-      const filteredData = (data || []).filter((evento: Evento) => {
-        // Se não tem reserva_id, mostrar
-        if (!evento.reserva_id) {
-          return true;
+      const normalized = (data || []).map((row) => ({
+        ...row,
+        reservas: Array.isArray(row.reservas) ? row.reservas : row.reservas ? [row.reservas] : [],
+      }));
+      const filteredData = normalized.filter((row) => {
+        try {
+          return isEventoPublicamenteVisivel(row);
+        } catch {
+          return false;
         }
-        
-        // Se tem reserva_id, verificar se a reserva está aprovada
-        // A reserva vem no join como array, pegar o primeiro item
-        const reserva = Array.isArray(evento.reservas) ? evento.reservas[0] : evento.reservas;
-        return reserva?.status_reserva === 'aprovada';
       });
 
       // Salvar no cache
@@ -202,13 +202,7 @@ export const useEventos = (options: UseEventosOptions = {}) => {
         return;
       }
       
-      // Log detalhado do erro para debug
-      console.error('❌ Erro detalhado no useEventos:', {
-        error: err,
-        message: err instanceof Error ? err.message : 'Erro desconhecido',
-        stack: err instanceof Error ? err.stack : undefined,
-        queryParams: { pageSize, statusAprovacao, entidadeId, from, to }
-      });
+      console.error('useEventos:', err instanceof Error ? err.message : err);
       
       setError(err instanceof Error ? err.message : 'Erro ao carregar eventos');
     } finally {

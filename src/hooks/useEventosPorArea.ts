@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { isEventoPublicamenteVisivel } from '@/lib/evento-visibility';
 
 export interface EventoPorArea {
   area_atuacao: string;
@@ -16,25 +17,29 @@ export const useEventosPorArea = () => {
       setLoading(true);
       setError(null);
 
-      console.log('🔄 Buscando eventos por área de atuação...');
-
-      // Buscar todos os eventos com suas áreas de atuação
       const { data: eventosData, error: eventosError } = await supabase
         .from('eventos')
-        .select('area_atuacao, status_aprovacao')
-        .eq('status_aprovacao', 'aprovado'); // Apenas eventos aprovados
+        .select(`area_atuacao, status_aprovacao, reserva_id, reservas!left(id, status_reserva)`)
+        .eq('status_aprovacao', 'aprovado')
+        .neq('status', 'cancelado');
 
-      if (eventosError) {
-        console.error('❌ Erro ao buscar eventos:', eventosError);
-        throw eventosError;
-      }
+      if (eventosError) throw eventosError;
 
-      console.log('✅ Eventos carregados:', eventosData?.length || 0, 'eventos encontrados');
+      const normalized = (eventosData || []).map((row) => ({
+        ...row,
+        reservas: Array.isArray(row.reservas) ? row.reservas : row.reservas ? [row.reservas] : [],
+      }));
+      const visibleEventos = normalized.filter((row) => {
+        try {
+          return isEventoPublicamenteVisivel(row);
+        } catch {
+          return false;
+        }
+      });
 
-      // Processar os dados para contar eventos por área
       const areaCount: { [key: string]: number } = {};
       
-      eventosData?.forEach(evento => {
+      visibleEventos.forEach(evento => {
         if (evento.area_atuacao && Array.isArray(evento.area_atuacao)) {
           evento.area_atuacao.forEach(area => {
             if (area && typeof area === 'string') {
@@ -54,10 +59,9 @@ export const useEventosPorArea = () => {
         .slice(0, 10); // Top 10 áreas
 
       setEventosPorArea(eventosPorAreaArray);
-      console.log('📊 Eventos por área processados:', eventosPorAreaArray);
 
     } catch (err) {
-      console.error('❌ Erro ao buscar eventos por área:', err);
+      console.error('useEventosPorArea:', err);
       setError(err instanceof Error ? err.message : 'Erro desconhecido');
     } finally {
       setLoading(false);

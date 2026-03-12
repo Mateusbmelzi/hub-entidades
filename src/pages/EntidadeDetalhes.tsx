@@ -57,6 +57,7 @@ import { AcompanhamentoFasesPS } from '@/components/AcompanhamentoFasesPS';
 import ListaInscricoesEntidade from '@/components/ListaInscricoesEntidade';
 import BotaoInscreverEntidade from '@/components/BotaoInscreverEntidade';
 import { getFirstAreaColor } from '@/lib/constants';
+import { parseAreasAtuacao } from '@/lib/area-utils';
 import { FotoPerfilEntidade } from '@/components/FotoPerfilEntidade';
 import { UploadFotoPerfil } from '@/components/UploadFotoPerfil';
 import { EntidadeOwnerNavigation } from '@/components/EntidadeOwnerNavigation';
@@ -134,6 +135,17 @@ const EntidadeDetalhes = () => {
   
   // Estado para controlar qual seção está ativa (apenas para donos)
   const [activeSection, setActiveSection] = useState<'visao-geral' | 'eventos' | 'projetos' | 'gestao' | 'processo' | 'templates' | 'areas'>('visao-geral');
+
+  // Contagem real de templates
+  const [totalTemplates, setTotalTemplates] = useState(0);
+  useEffect(() => {
+    if (!entidade?.id || !isOwner) { setTotalTemplates(0); return; }
+    supabase
+      .from('templates_formularios')
+      .select('id', { count: 'exact', head: true })
+      .eq('entidade_id', entidade.id)
+      .then(({ count }) => setTotalTemplates(count || 0));
+  }, [entidade?.id, isOwner]);
   
   const { eventos: allEventos, loading: eventosLoading, refetch: refetchEventos } = useEventosEntidade(entidade?.id, isOwner);
   const eventos = allEventos?.filter(ev => {
@@ -336,9 +348,9 @@ const EntidadeDetalhes = () => {
     totalProjetos: projetos?.filter(p => p.status === 'ativo').length || 0,
     totalEventos: allEventos?.filter(e => e.status_aprovacao === 'aprovado').length || 0,
     totalMembros: entidade?.numero_membros || 0,
-    totalTemplates: 0, // TODO: implementar contagem de templates
+    totalTemplates: totalTemplates,
     processoAtivo: entidade?.processo_seletivo_ativo || false,
-    totalAreas: 0 // TODO: implementar contagem de áreas
+    totalAreas: parseAreasAtuacao(entidade?.area_atuacao).length
   } : {};
 
   if (loading) {
@@ -597,25 +609,49 @@ const EntidadeDetalhes = () => {
                   {user && profile ? (
                     <>
                       {entidade?.processo_seletivo_ativo ? (
-                        // Usar novo componente com dialog quando processo seletivo ativo
-                        <BotaoInscreverEntidade entidadeId={entidade.id} />
+                        (() => {
+                          const hoje = new Date();
+                          const abertura = entidade.abertura_processo_seletivo
+                            ? new Date(entidade.abertura_processo_seletivo)
+                            : null;
+                          const fechamento = entidade.fechamento_processo_seletivo
+                            ? new Date(entidade.fechamento_processo_seletivo)
+                            : null;
+
+                          const foraDoPeriodo =
+                            (abertura && hoje < abertura) ||
+                            (fechamento && hoje > fechamento);
+
+                          if (foraDoPeriodo) {
+                            return (
+                              <Button
+                                disabled
+                                className="bg-gray-300 text-gray-600 cursor-not-allowed"
+                                size="lg"
+                              >
+                                Inscrições fora do período
+                              </Button>
+                            );
+                          }
+
+                          return <BotaoInscreverEntidade entidadeId={entidade.id} />;
+                        })()
                       ) : (
-                        // Usar botão antigo para demonstrar interesse quando processo não ativo
-                    <Button 
-                      onClick={handleDemonstrarInteresse}
-                      disabled={interestCheckLoading}
-                      variant={hasDemonstratedInterest ? "secondary" : "default"}
-                      className={`${
-                        hasDemonstratedInterest 
-                          ? "bg-green-600 hover:bg-green-700" 
-                          : "bg-white text-red-600 hover:bg-gray-50"
-                      } shadow-lg hover:shadow-xl transition-all duration-300`}
-                      size="lg"
-                    >
-                      {interestCheckLoading ? 'Verificando...' : 
-                       hasDemonstratedInterest ? '✓ Interesse já demonstrado' : 
-                           'Demonstrar Interesse'}
-                    </Button>
+                        <Button 
+                          onClick={handleDemonstrarInteresse}
+                          disabled={interestCheckLoading}
+                          variant={hasDemonstratedInterest ? 'secondary' : 'default'}
+                          className={`${
+                            hasDemonstratedInterest 
+                              ? 'bg-green-600 hover:bg-green-700' 
+                              : 'bg-white text-red-600 hover:bg-gray-50'
+                          } shadow-lg hover:shadow-xl transition-all duration-300`}
+                          size="lg"
+                        >
+                          {interestCheckLoading ? 'Verificando...' : 
+                            hasDemonstratedInterest ? '✓ Interesse já demonstrado' : 
+                              'Demonstrar Interesse'}
+                        </Button>
                       )}
                     </>
                   ) : (
@@ -1274,7 +1310,7 @@ const EntidadeDetalhes = () => {
               </div>
             )}
 
-            {activeSection === 'processo' && entidade?.processo_seletivo_ativo && (
+            {activeSection === 'processo' && (
               <div className="space-y-8">
                 {/* Processo Seletivo */}
                 <Card className="border-0 shadow-lg bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-500">

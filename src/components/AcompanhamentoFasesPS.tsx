@@ -5,24 +5,25 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Users, 
-  Clock, 
-  Check, 
-  Calendar, 
+import {
+  Users,
+  Clock,
+  Check,
+  Calendar,
   Download,
   AlertCircle,
   CheckCircle,
   XCircle,
-  HourglassIcon
+  HourglassIcon,
+  User
 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAcompanhamentoFases } from '@/hooks/useAcompanhamentoFases';
 import { EstudanteFaseCard } from './EstudanteFaseCard';
 import { AtribuirCandidatosReserva } from './AtribuirCandidatosReserva';
 import type { InscricaoProcessoUsuario } from '@/types/acompanhamento-processo';
 import { toast } from 'sonner';
 import { useFaseReservas } from '@/hooks/useFaseReservas';
-import { supabase } from '@/integrations/supabase/client';
 
 interface AcompanhamentoFasesPSProps {
   entidadeId: number;
@@ -39,6 +40,7 @@ export function AcompanhamentoFasesPS({ entidadeId }: AcompanhamentoFasesPSProps
     metricas,
     loading,
     error,
+    acaoEmProgressoId,
     aprovarCandidato,
     reprovarCandidato,
     fetchCandidatos
@@ -52,38 +54,16 @@ export function AcompanhamentoFasesPS({ entidadeId }: AcompanhamentoFasesPSProps
   };
 
   const handleAprovarCandidato = async (candidatoId: string) => {
-    // Buscar o candidato para saber qual é a fase atual
-    const candidato = Array.from(candidatosPorFase.values())
-      .flat()
-      .find(c => c.id === candidatoId);
-    
-    const faseAtual = candidato?.fase_atual;
-    const proximaFase = faseAtual ? fases.find(f => f.ordem === faseAtual.ordem + 1) : null;
-    
-    // Buscar numero_total_fases para verificar se é última fase
-    const { data: entidadeData } = await supabase
-      .from('entidades')
-      .select('numero_total_fases')
-      .eq('id', candidato?.entidade_id)
-      .single();
-    
-    const numeroTotalFases = entidadeData?.numero_total_fases;
-    const ehUltimaFase = numeroTotalFases 
-      ? faseAtual?.ordem === numeroTotalFases
-      : !proximaFase;
-    
     const result = await aprovarCandidato(candidatoId);
     if (result.success) {
-      if (proximaFase && !ehUltimaFase) {
-        toast.success(`Candidato aprovado e movido para: ${proximaFase.nome}!`, {
-          duration: 4000,
-        });
-      } else if (ehUltimaFase) {
+      if (result.ehUltimaFase) {
         toast.success('Candidato aprovado definitivamente e adicionado como membro da organização estudantil!', {
           duration: 5000,
         });
       } else {
-        toast.success('Candidato aprovado com sucesso!');
+        toast.success('Candidato aprovado e movido para a próxima fase!', {
+          duration: 4000,
+        });
       }
     } else {
       toast.error('Erro ao aprovar candidato');
@@ -101,9 +81,11 @@ export function AcompanhamentoFasesPS({ entidadeId }: AcompanhamentoFasesPSProps
 
   const handleVerDetalhes = (candidatoId: string) => {
     setDetalhesEstudanteId(candidatoId);
-    // TODO: Implementar dialog de detalhes
-    toast.info('Funcionalidade de detalhes em desenvolvimento');
   };
+
+  const candidatoDetalhes = detalhesEstudanteId
+    ? Array.from(candidatosPorFase.values()).flat().find(c => c.id === detalhesEstudanteId)
+    : null;
 
   const getCandidatosPorFase = (faseId: string): InscricaoProcessoUsuario[] => {
     return candidatosPorFase.get(faseId) || [];
@@ -290,6 +272,7 @@ export function AcompanhamentoFasesPS({ entidadeId }: AcompanhamentoFasesPSProps
                           onAprovar={handleAprovarCandidato}
                           onReprovar={handleReprovarCandidato}
                           onVerDetalhes={handleVerDetalhes}
+                          acaoEmProgresso={acaoEmProgressoId === candidato.id}
                         />
                       ))}
                     </div>
@@ -339,6 +322,78 @@ export function AcompanhamentoFasesPS({ entidadeId }: AcompanhamentoFasesPSProps
           }))}
         />
       )}
+
+      {/* Dialog de Detalhes do Candidato */}
+      <Dialog open={detalhesEstudanteId !== null} onOpenChange={(open) => !open && setDetalhesEstudanteId(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Detalhes do Candidato</DialogTitle>
+          </DialogHeader>
+          {candidatoDetalhes && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                  <User className="w-6 h-6 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg">{candidatoDetalhes.nome_estudante}</h3>
+                  <p className="text-sm text-muted-foreground">{candidatoDetalhes.email_estudante}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase font-medium">Curso</p>
+                  <p className="text-sm font-medium">{candidatoDetalhes.curso_estudante}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase font-medium">Semestre</p>
+                  <p className="text-sm font-medium">{candidatoDetalhes.semestre_estudante}º</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase font-medium">Fase Atual</p>
+                  <p className="text-sm font-medium">{candidatoDetalhes.fase_atual?.nome || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase font-medium">Status</p>
+                  <Badge variant={
+                    candidatoDetalhes.status_fase === 'aprovado' ? 'default' :
+                    candidatoDetalhes.status_fase === 'reprovado' ? 'destructive' : 'secondary'
+                  }>
+                    {candidatoDetalhes.status_fase === 'aprovado' ? 'Aprovado' :
+                     candidatoDetalhes.status_fase === 'reprovado' ? 'Reprovado' : 'Pendente'}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase font-medium">Inscrição em</p>
+                  <p className="text-sm font-medium">
+                    {new Date(candidatoDetalhes.created_at).toLocaleDateString('pt-BR')}
+                  </p>
+                </div>
+              </div>
+
+              {Object.keys(candidatoDetalhes.respostas_formulario || {}).length > 0 && (
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase font-medium mb-2">Respostas do Formulário</p>
+                  <div className="space-y-2 max-h-40 overflow-y-auto bg-muted/40 rounded p-3">
+                    {Object.entries(candidatoDetalhes.respostas_formulario).map(([key, value]) => (
+                      <div key={key} className="text-sm">
+                        <span className="font-medium">{key}:</span> {String(value)}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end pt-2">
+                <Button variant="outline" onClick={() => setDetalhesEstudanteId(null)}>
+                  Fechar
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

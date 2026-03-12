@@ -1,9 +1,10 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useCallback, useState } from 'react';
+import { useActivityLogger } from '@/hooks/useActivityLogger';
 
 interface PageTrackingContextType {
   sessionId: string;
   trackPageVisit: (pageUrl: string, entityId?: string) => Promise<void>;
-  logPageView: (pageName: string, metadata?: any) => void;
+  logPageView: (pageName: string, metadata?: Record<string, unknown>) => void;
   logSearchActivity: (searchTerm: string, searchType?: string, resultsCount?: number) => Promise<void>;
   logInterestDemonstration: (entidadeId: number, estudanteEmail: string, areaInteresse?: string) => Promise<void>;
 }
@@ -23,44 +24,83 @@ interface PageTrackingProviderProps {
 }
 
 export const PageTrackingProvider: React.FC<PageTrackingProviderProps> = ({ children }) => {
-  const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+  const [sessionId] = useState(
+    () => `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
+  );
 
-  // Simplified tracking functions that don't make RPC calls
-  const trackPageVisit = async (pageUrl: string, entityId?: string) => {
-    try {
-      console.log('Page visit tracked:', { pageUrl, entityId, sessionId });
-      // TODO: Implement actual tracking when database is ready
-    } catch (error) {
-      console.error('Error tracking page visit:', error);
-    }
-  };
+  const {
+    logPageVisit,
+    logEntityPageVisit,
+    logSearchActivity: logSearch,
+    logInterestDemonstration: logInterest,
+    getReferrer
+  } = useActivityLogger();
 
-  const logSearchActivity = async (searchTerm: string, searchType?: string, resultsCount?: number) => {
-    try {
-      console.log('Search activity logged:', { searchTerm, searchType, resultsCount, sessionId });
-      // TODO: Implement actual search logging when database is ready
-    } catch (error) {
-      console.error('Error logging search activity:', error);
-    }
-  };
+  const trackPageVisit = useCallback(
+    async (pageUrl: string, entityId?: string) => {
+      try {
+        const referrer = getReferrer();
+        const metadata: Record<string, unknown> = {
+          userAgent: navigator.userAgent,
+          screenResolution: `${screen.width}x${screen.height}`,
+          language: navigator.language
+        };
+        if (entityId) {
+          await logEntityPageVisit(parseInt(entityId, 10), sessionId, referrer ?? undefined);
+        } else {
+          await logPageVisit({
+            pageUrl,
+            sessionId,
+            referrer: referrer ?? undefined,
+            metadata
+          });
+        }
+      } catch (error) {
+        console.error('Error tracking page visit:', error);
+      }
+    },
+    [sessionId, logPageVisit, logEntityPageVisit, getReferrer]
+  );
 
-  const logPageView = (pageName: string, metadata?: any) => {
-    try {
-      console.log('Page view logged:', { pageName, metadata, sessionId });
-      // TODO: Implement actual page view logging when database is ready
-    } catch (error) {
-      console.error('Error logging page view:', error);
-    }
-  };
+  const logPageView = useCallback(
+    (pageName: string, metadata?: Record<string, unknown>) => {
+      const url = typeof window !== 'undefined' ? window.location.pathname + window.location.search : pageName;
+      trackPageVisit(url, undefined);
+    },
+    [trackPageVisit]
+  );
 
-  const logInterestDemonstration = async (entidadeId: number, estudanteEmail: string, areaInteresse?: string) => {
-    try {
-      console.log('Interest demonstration logged:', { entidadeId, estudanteEmail, areaInteresse, sessionId });
-      // TODO: Implement actual interest logging when database is ready
-    } catch (error) {
-      console.error('Error logging interest demonstration:', error);
-    }
-  };
+  const logSearchActivity = useCallback(
+    async (searchTerm: string, searchType?: string, resultsCount?: number) => {
+      try {
+        await logSearch({
+          searchTerm,
+          searchType,
+          resultsCount,
+          sessionId
+        });
+      } catch (error) {
+        console.error('Error logging search activity:', error);
+      }
+    },
+    [sessionId, logSearch]
+  );
+
+  const logInterestDemonstration = useCallback(
+    async (entidadeId: number, estudanteEmail: string, areaInteresse?: string) => {
+      try {
+        await logInterest({
+          entidadeId,
+          estudanteEmail,
+          areaInteresse,
+          sessionId
+        });
+      } catch (error) {
+        console.error('Error logging interest demonstration:', error);
+      }
+    },
+    [sessionId, logInterest]
+  );
 
   const contextValue: PageTrackingContextType = {
     sessionId,
@@ -75,4 +115,4 @@ export const PageTrackingProvider: React.FC<PageTrackingProviderProps> = ({ chil
       {children}
     </PageTrackingContext.Provider>
   );
-}; 
+};
